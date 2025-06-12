@@ -1,0 +1,15 @@
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\MaJiangLib.deps.json
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\MaJiangLib.dll
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\MaJiangLib.pdb
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.GeneratedMSBuildEditorConfig.editorconfig
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.AssemblyInfoInputs.cache
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.AssemblyInfo.cs
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.csproj.CoreCompileInputs.cache
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.sourcelink.json
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.dll
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.pdb
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\LiteNetLib.dll
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\LiteNetLib.pdb
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\LiteNetLib.xml
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.csproj.AssemblyReference.cache
+D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.csproj.Up2Date
