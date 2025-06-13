@@ -1,6 +1,6 @@
 ﻿using System;
 using LiteNetLib.Utils;
-namespace MaJiangLib
+namespace MaJiangLib.SignalClass
 {
     [AttributeUsage(AttributeTargets.Class)]
     public class GameSignalAttribute : Attribute

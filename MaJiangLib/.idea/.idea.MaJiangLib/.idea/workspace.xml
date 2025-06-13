@@ -5,21 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/indexLayout.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangDeck.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangGame.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangHandel.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangPlayer.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangQiPai.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameRound.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameSignalAttribute.cs" afterDir="false" />
+      <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
+      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/Class1.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameSignalAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameSignalAttribute.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,6 +21,11 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <option name="PREVIOUS_COMMIT_AUTHORS">
+      <list>
+        <option value="空格空格感叹号 &lt;469757798@qq.com&gt;" />
+      </list>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -82,8 +81,27 @@
       <updated>1749441600708</updated>
       <workItem from="1749441601663" duration="6746000" />
       <workItem from="1749476887045" duration="5026000" />
-      <workItem from="1749727184906" duration="2602000" />
+      <workItem from="1749727184906" duration="2821000" />
+      <workItem from="1749812117906" duration="194000" />
+      <workItem from="1749812325932" duration="3054000" />
     </task>
+    <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
+      <option name="closed" value="true" />
+      <created>1749729895940</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1749729895940</updated>
+    </task>
+    <task id="LOCAL-00002" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
+      <option name="closed" value="true" />
+      <created>1749729948258</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1749729948258</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -91,8 +109,21 @@
   </component>
   <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="false" />
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
   <component name="VcsManagerConfiguration">
     <option name="LOCAL_CHANGES_DETAILS_PREVIEW_SHOWN" value="false" />
     <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="true" />
+    <MESSAGE value="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容" />
+    <option name="LAST_COMMIT_MESSAGE" value="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容" />
   </component>
 </project>
