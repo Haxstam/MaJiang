@@ -6,6 +6,7 @@
     /// </summary>
     public interface IMaJiangQiPai
     {
-        
+        public void QiPai(string pai);
+        public void HasPai(string pai);
     }
 }

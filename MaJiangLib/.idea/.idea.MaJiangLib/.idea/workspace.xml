@@ -6,14 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
       <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameSignalAttribute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/SignalClass/GameSignalAttribute.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangHandel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangHandel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangQiPai.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangQiPai.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,6 +43,10 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/metadata/97ae7ac4234f4186b3953e28ec9f8f7f1ec00/d0/0aa38aad/LiteNetLib.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://O:/PublicProject/LiteNetLib/LiteNetLib/Utils/NetDataWriter.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
@@ -83,7 +83,8 @@
       <workItem from="1749476887045" duration="5026000" />
       <workItem from="1749727184906" duration="2821000" />
       <workItem from="1749812117906" duration="194000" />
-      <workItem from="1749812325932" duration="3054000" />
+      <workItem from="1749812325932" duration="3358000" />
+      <workItem from="1749866104038" duration="1220000" />
     </task>
     <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
       <option name="closed" value="true" />
