@@ -6,6 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
       <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -82,7 +84,7 @@
       <workItem from="1749812117906" duration="194000" />
       <workItem from="1749812325932" duration="3358000" />
       <workItem from="1749866104038" duration="1220000" />
-      <workItem from="1750748554306" duration="739000" />
+      <workItem from="1750748554306" duration="1519000" />
     </task>
     <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
       <option name="closed" value="true" />

@@ -9,7 +9,7 @@
 
     <ItemGroup>
       <Reference Include="LiteNetLib">
-        <HintPath>O:\PublicProject\LiteNetLib\LiteNetLib\bin\Debug\net8.0\LiteNetLib.dll</HintPath>
+        <HintPath>..\..\LiteNetLib\LiteNetLib\bin\Release\net8.0\LiteNetLib.dll</HintPath>
       </Reference>
       <Reference Include="MaJiangLib">
         <HintPath>..\..\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\MaJiangLib.dll</HintPath>

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+99f6d892d10b919848a9cd84439b7f6396385ba2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+29a2ca6e3c0e2b15ff07e498a7ff3ef515d47bd6")]
 [assembly: System.Reflection.AssemblyProductAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
