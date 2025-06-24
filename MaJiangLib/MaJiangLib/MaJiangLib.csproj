@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>9</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="ProtocolLayer\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="LiteNetLib">
+        <HintPath>O:\PublicProject\LiteNetLib\LiteNetLib\bin\Debug\net8.0\LiteNetLib.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+</Project>
