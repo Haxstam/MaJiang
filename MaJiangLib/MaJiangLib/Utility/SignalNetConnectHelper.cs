@@ -1,32 +1,67 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using LiteNetLib;
 using LiteNetLib.Utils;
 using MaJiangLib.SignalClass;
 namespace MaJiangLib.Utility
 {
+    public interface ISignalNetConnectHelper
+    {
+        public Action<GameNetSignal> OnSignalGet { get; }
+        /// <summary>
+        /// 连接(绑定上peer)
+        /// </summary>
+        public void Connect(NetPeer peer);
+        /// <summary>
+        /// 把信号写入发送列表
+        /// </summary>
+        /// <param name="signal">信号类</param>
+        public void SignalWrite(GameNetSignal signal);
+        /// <summary>
+        /// 解析读取到的信号
+        /// </summary>
+        public void SignalGet(NetDataReader netr);
+        /// <summary>
+        /// 清楚发送列表
+        /// </summary>
+        public void Clear();
+        /// <summary>
+        /// 发送信号
+        /// </summary>
+        public void Send();
+
+    }
     /// <summary>
     ///     网络连接辅助类
     ///     负责进行一些基础的消息收发和解析等工作
     /// </summary>
-    public class NetConnectHelper
+    public class SignalNetConnectHelper : ISignalNetConnectHelper
     {
         /// <summary>
         /// 数据写入工具
         /// </summary>
-        public NetDataWriter DataWriter;
-        /// <summary>
-        /// 数据读取回调
-        /// </summary>
-        public Action<GameNetSignal> OnSignalGet;
+        protected NetDataWriter DataWriter;
+
+        public int peerKey => peer.Id;
+        public Action<GameNetSignal> OnSignalGet {
+            get;
+            protected set;
+        }
+
+        protected NetPeer peer;
         /// <summary>
         ///     反射获取命令集
         /// </summary>
-        public NetConnectHelper()
+        public SignalNetConnectHelper()
         {
             DataWriter = new NetDataWriter();
         }
-        public void SendSignal(GameNetSignal signal)
+        public void Connect(NetPeer peer)
+        {
+            this.peer = peer;
+        }
+        public void SignalWrite(GameNetSignal signal)
         {
             int signalId = SignalFactory.GetSignalID(signal);
             if ( signalId>0)
@@ -63,6 +98,14 @@ namespace MaJiangLib.Utility
             var d = SignalFactory.CreatEmptySignal(signalID);
             d.Reader(netr);
             return d;
+        }
+        public void Send()
+        {
+            peer.Send(DataWriter, DeliveryMethod.ReliableOrdered);
+        }
+        public void Clear()
+        {
+            DataWriter.Reset();
         }
     }
 }

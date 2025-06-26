@@ -17,7 +17,7 @@ namespace MaJiangLib.Utility
 
             Assembly asm = Assembly.GetAssembly(typeof(T));
             Type[] types = asm.GetExportedTypes();
-            List<(Type,T)> list = new List<(Type,T)>();
+            List<(Type,T)> list = new List<(Type,T )>();
             foreach (var type in types)
             {
                 var temp= type.GetCustomAttribute<T>();

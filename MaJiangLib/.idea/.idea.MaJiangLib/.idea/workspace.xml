@@ -6,25 +6,14 @@
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
       <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/SignalFactory.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.GeneratedMSBuildEditorConfig.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.restore.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangDeck.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangDeck.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangGame.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangGame.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/SignalNetConnectHelper.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.GeneratedMSBuildEditorConfig.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.g.props" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.restore.info" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,6 +46,7 @@
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/e7/f61732d0/Single.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/eb/ccf3a632/CancellationToken.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/metadata/97ae7ac4234f4186b3953e28ec9f8f7f1ec00/d0/0aa38aad/LiteNetLib.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/../LiteNetLib/LiteNetLib/NetConstants.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://O:/PublicProject/LiteNetLib/LiteNetLib/Utils/NetDataWriter.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="KubernetesApiPersistence">{}</component>
@@ -103,7 +93,7 @@
       <workItem from="1749866104038" duration="1220000" />
       <workItem from="1750748554306" duration="1519000" />
       <workItem from="1750751226845" duration="4000" />
-      <workItem from="1750931567706" duration="1766000" />
+      <workItem from="1750931567706" duration="3086000" />
     </task>
     <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
       <option name="closed" value="true" />
