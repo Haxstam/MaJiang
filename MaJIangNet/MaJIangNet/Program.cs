@@ -1,7 +1,4 @@
-﻿
-using System.Net;
-using System.Net.Sockets;
-using LiteNetLib;
+﻿using LiteNetLib;
 using MaJiangLib.SignalClass;
 using MaJiangLib.Utility;
 public static class TestProgram
@@ -26,7 +23,7 @@ public static class TestProgram
       private NetPeer Serviver;
       public TestC()
       {
-          helper = new NetConnectHelper();
+      
           listener = new EventBasedNetListener();
           client = new NetManager(listener);
           helper.OnSignalGet += ReCall;

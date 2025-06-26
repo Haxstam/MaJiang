@@ -6,14 +6,15 @@
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
       <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangDeck.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangDeck.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/IMaJiangGame.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/IMaJiangGame.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/SignalNetConnectHelper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/ReflectUtility.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/MaJiangLib.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/MaJiangLib.csproj" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.csproj.FileListAbsolute.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.sourcelink.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -62,21 +63,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "Server",
-    "ignore.virus.scanning.warn.message": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.environmentSetup",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Server&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.environmentSetup&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">
@@ -93,7 +94,8 @@
       <workItem from="1749866104038" duration="1220000" />
       <workItem from="1750748554306" duration="1519000" />
       <workItem from="1750751226845" duration="4000" />
-      <workItem from="1750931567706" duration="3086000" />
+      <workItem from="1750931567706" duration="3243000" />
+      <workItem from="1750934945681" duration="268000" />
     </task>
     <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
       <option name="closed" value="true" />
