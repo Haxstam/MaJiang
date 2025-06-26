@@ -6,9 +6,25 @@
   <component name="ChangeListManager">
     <list default="true" id="374b37f1-aab3-4a17-a239-b2f4d6541d59" name="更改" comment="">
       <changelist_data name="空格空格感叹号" email="469757798@qq.com" />
+      <change afterPath="$PROJECT_DIR$/MaJiangLib/IGameLifeManager.cs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/MaJiangLib/Utility/SignalFactory.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/Program.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.GeneratedMSBuildEditorConfig.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/Debug/net9.0/MaJIangNet.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.dgspec.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/MaJIangNet.csproj.nuget.g.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/project.assets.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.model.nuget.info" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/../MaJIangNet/MaJIangNet/obj/rider.project.restore.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.MaJiangLib/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/Utility/NetConnectHelper.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.AssemblyInfo.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.GeneratedMSBuildEditorConfig.editorconfig" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/Debug/netstandard2.1/MaJiangLib.GeneratedMSBuildEditorConfig.editorconfig" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.dgspec.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.g.props" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/MaJiangLib.csproj.nuget.g.props" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/project.assets.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.model.nuget.info" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/MaJiangLib/obj/rider.project.restore.info" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,6 +54,7 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/4c/a935c857/DateTime.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/b4/57885831/IDisposable.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/e7/f61732d0/Single.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/61f695f691c245d19d015128e4e8bedc8f5db0/eb/ccf3a632/CancellationToken.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/metadata/97ae7ac4234f4186b3953e28ec9f8f7f1ec00/d0/0aa38aad/LiteNetLib.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://O:/PublicProject/LiteNetLib/LiteNetLib/Utils/NetDataWriter.cs" root0="SKIP_HIGHLIGHTING" />
@@ -55,21 +72,21 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.environmentSetup&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "git-widget-placeholder": "Server",
+    "ignore.virus.scanning.warn.message": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.environmentSetup",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">
@@ -86,6 +103,7 @@
       <workItem from="1749866104038" duration="1220000" />
       <workItem from="1750748554306" duration="1519000" />
       <workItem from="1750751226845" duration="4000" />
+      <workItem from="1750931567706" duration="1766000" />
     </task>
     <task id="LOCAL-00001" summary="【开发】 引入了开源联网解决方案LiteNetLib，完成了信号类的定义  TODO: 完成手牌相关内容">
       <option name="closed" value="true" />
