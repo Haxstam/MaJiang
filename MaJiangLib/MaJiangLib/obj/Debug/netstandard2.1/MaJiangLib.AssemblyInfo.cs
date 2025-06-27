@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MaJiangLib")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bc0df7c6b2106d806341cb905532235b64803578")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2339d542e9ca3f6312637f2dde1c62d74c1ab800")]
 [assembly: System.Reflection.AssemblyProductAttribute("MaJiangLib")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MaJiangLib")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

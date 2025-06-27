@@ -8,11 +8,11 @@ namespace MaJiangLib.Utility
 {
     public interface ISignalNetConnectHelper
     {
-        public Action<GameNetSignal> OnSignalGet { get; }
+        public Action<ISignalNetConnectHelper,GameNetSignal> OnSignalGet { get; set; }
         /// <summary>
         /// 连接(绑定上peer)
         /// </summary>
-        public void Connect(NetPeer peer);
+        public ISignalNetConnectHelper Connect(NetPeer peer);
         /// <summary>
         /// 把信号写入发送列表
         /// </summary>
@@ -44,26 +44,30 @@ namespace MaJiangLib.Utility
         protected NetDataWriter DataWriter;
 
         public int peerKey => peer.Id;
-        public Action<GameNetSignal> OnSignalGet {
+        public Action<ISignalNetConnectHelper,GameNetSignal> OnSignalGet {
             get;
-            protected set;
+             set;
         }
 
         protected NetPeer peer;
+        private ISignalFactory _factory;
+
         /// <summary>
         ///     反射获取命令集
         /// </summary>
-        public SignalNetConnectHelper()
+        public SignalNetConnectHelper(ISignalFactory  factory=null)
         {
+            _factory=SignalFactory.Instance;
             DataWriter = new NetDataWriter();
         }
-        public void Connect(NetPeer peer)
+        public ISignalNetConnectHelper Connect(NetPeer peer)
         {
             this.peer = peer;
+            return this;
         }
         public void SignalWrite(GameNetSignal signal)
         {
-            int signalId = SignalFactory.GetSignalID(signal);
+            ushort signalId = _factory.GetSignalID(signal);
             if ( signalId>0)
             {
                 //上锁避免多线程导致写信息错位问题
@@ -83,11 +87,13 @@ namespace MaJiangLib.Utility
         /// </summary>
         public void SignalGet(NetDataReader netr)
         {
-            while (!netr.EndOfData)
+            netr.SetPosition(netr.UserDataOffset);
+            while (!netr.TryGetUShort(out ushort result))
             {
-                ushort signalID = netr.GetUShort();
+                ushort signalID = result;
                 GameNetSignal signal = SignalRead(netr,signalID);
-                OnSignalGet.Invoke(signal);
+                if (signal == null) throw new Exception();
+                OnSignalGet.Invoke(this,signal);
             }
         }
         /// <summary>
@@ -95,8 +101,8 @@ namespace MaJiangLib.Utility
         /// </summary>
         private GameNetSignal SignalRead(NetDataReader netr , ushort signalID)
         {
-            var d = SignalFactory.CreatEmptySignal(signalID);
-            d.Reader(netr);
+            var d = _factory.CreateEmptySignal(signalID);
+            d?.Reader(netr);
             return d;
         }
         public void Send()

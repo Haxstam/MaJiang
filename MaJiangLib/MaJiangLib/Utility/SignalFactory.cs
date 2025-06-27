@@ -5,53 +5,57 @@ namespace MaJiangLib.Utility
 {
     public interface ISignalFactory
     {
-        public static ISignalFactory Instance;
+        GameNetSignal CreateEmptySignal(ushort signalID);
+        bool HasSignal(ushort signalID);
+        ushort GetSignalID(GameNetSignal signal);
     }
+
     public class SignalFactory : ISignalFactory
     {
-        /// <summary>
-        ///     缓存避免重复反射
-        /// </summary>
-        protected static Dictionary<Type, ushort> tempSignalIDs = new Dictionary<Type, ushort>();
-        /// <summary>
-        /// 用来通过id获取对应的消息
-        /// </summary>
-        protected static Dictionary<ushort,Type > tempReSignalIDs = new Dictionary<ushort,Type >();
-        public SignalFactory()
-        {
-            if(ISignalFactory.Instance==null)
-                ISignalFactory.Instance = this;
-            var temp= ReflectUtility.GetAttributes<GameSignalAttribute>();
-            foreach (var com in temp)
-            {
-                tempSignalIDs.Add(com.Item1,com.Item2.SignalID);
-                tempReSignalIDs.Add(com.Item2.SignalID,com.Item1);
+        // 私有静态实例（单例核心）
+        private static SignalFactory _instance;
+        private static readonly object _lock = new object();
+
+        // 反射数据缓存
+        private static readonly Dictionary<Type, ushort> _typeToId = new();
+        private static readonly Dictionary<ushort, Type> _idToType = new();
+
+        // 全局访问点（推荐方式）
+        public static ISignalFactory Instance {
+            get {
+                if (_instance == null) {
+                    lock (_lock) {
+                        _instance ??= new SignalFactory();
+                    }
+                }
+                return _instance;
             }
         }
-        public static GameNetSignal CreatEmptySignal(ushort signalID)
+
+        // 私有构造函数（防止外部创建）
+        private SignalFactory()
         {
-            if (tempReSignalIDs.ContainsKey(signalID))
-            {
-                var temp = tempReSignalIDs[signalID];
-                return (GameNetSignal)Activator.CreateInstance(temp);
+            InitializeReflectionCache();
+        }
+
+        private void InitializeReflectionCache()
+        {
+            var attribs = ReflectUtility.GetAttributes<GameSignalAttribute>();
+            foreach (var (type, attrib) in attribs) {
+                _typeToId[type] = attrib.SignalID;
+                _idToType[attrib.SignalID] = type;
             }
-            return null;
         }
-        public static bool HasSignal(ushort signalID)
-        {
-            return tempReSignalIDs.ContainsKey(signalID);
-        }
-        /// <summary>
-        /// 获得信号类对应的id
-        /// </summary>
-        /// <returns>不存在会返回-1</returns>
-        public static int GetSignalID(GameNetSignal signal)
-        {
-            if (tempSignalIDs.ContainsKey(signal.GetType()))
-            {
-                return tempSignalIDs[signal.GetType()];
-            }
-            return 0;
-        }
+
+        public GameNetSignal CreateEmptySignal(ushort signalID)
+            => _idToType.TryGetValue(signalID, out var type) 
+                ? (GameNetSignal)Activator.CreateInstance(type) 
+                : null;
+
+        public bool HasSignal(ushort signalID) 
+            => _idToType.ContainsKey(signalID);
+
+        public ushort GetSignalID(GameNetSignal signal) 
+            => _typeToId.GetValueOrDefault(signal.GetType(), (ushort.MinValue));
     }
 }
