@@ -8,23 +8,23 @@
     "net9.0": []
   },
   "packageFolders": {
-    "C:\\Users\\46975\\.nuget\\packages\\": {},
+    "C:\\Users\\89171\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Project\\MaJiang\\MaJIangNet\\MaJIangNet\\MaJIangNet.csproj",
+      "projectUniqueName": "G:\\文档\\GitHub\\MaJiang\\MaJIangNet\\MaJIangNet\\MaJIangNet.csproj",
       "projectName": "MaJIangNet",
-      "projectPath": "D:\\Project\\MaJiang\\MaJIangNet\\MaJIangNet\\MaJIangNet.csproj",
-      "packagesPath": "C:\\Users\\46975\\.nuget\\packages\\",
-      "outputPath": "D:\\Project\\MaJiang\\MaJIangNet\\MaJIangNet\\obj\\",
+      "projectPath": "G:\\文档\\GitHub\\MaJiang\\MaJIangNet\\MaJIangNet\\MaJIangNet.csproj",
+      "packagesPath": "C:\\Users\\89171\\.nuget\\packages\\",
+      "outputPath": "G:\\文档\\GitHub\\MaJiang\\MaJIangNet\\MaJIangNet\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\46975\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\89171\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -50,7 +50,8 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -71,7 +72,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

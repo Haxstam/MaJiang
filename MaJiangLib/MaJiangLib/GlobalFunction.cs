@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Threading;
 
 namespace MaJiangLib
 {
@@ -67,7 +65,7 @@ namespace MaJiangLib
             {
                 // 先对牌按花色分类
                 List<Pai> mainPaiList = shouPai.ShouPaiList;
-                List<List<int>> coloredPaiList = new();
+                List<List<int>> coloredPaiList = new() { new(), new(), new(), new() };
 
                 foreach (Pai pai in mainPaiList)
                 {
@@ -95,8 +93,6 @@ namespace MaJiangLib
                 {
                     for (int i = 1; i < 10; i++)
                     {
-                        // [TODO]返回标签,考虑舍弃
-                        Start:
                         // 跳过字牌序号为8,9的情况
                         if (color == Color.Honor && i >= 8)
                         {
@@ -105,8 +101,8 @@ namespace MaJiangLib
                         // [TODO] 等待优化
                         // 添加一张牌去判断
                         List<Group> tempGroups = new();
-                        mainPaiList.Add(new(color, i));
-                        coloredPaiList[(int)color].Add(i);
+                        List<List<int>> tempList = coloredPaiList.Select(inner => inner.ToList()).ToList();
+                        tempList[(int)color].Add(i);
                         // major pair 分别存储面子和雀头的数量
                         int major = 0;
                         int pair = 0;
@@ -116,32 +112,33 @@ namespace MaJiangLib
                             // 介于字牌的特殊情况,采用更直接的方法
                             if (j == 3)
                             {
-                                int[] paiCount = new int[7];
-                                foreach (int num in coloredPaiList[j])
+                                int[] paiCount = new int[8];
+                                foreach (int num in tempList[j])
                                 {
                                     paiCount[num]++;
                                 }
-                                for (int k = 0; k < 7; k++)
+                                for (int k = 1; k < 8; k++)
                                 {
                                     // 两张字牌,即为雀头,三张字牌,即为暗刻,其余字牌数认为不听牌
                                     if (paiCount[k] == 2)
                                     {
-                                        tempGroups.Add(new(GroupType.Pair, k));
+                                        pair++;
+                                        tempGroups.Add(new(GroupType.Pair, Color.Honor, k));
                                     }
                                     else if (paiCount[k] == 3)
                                     {
-                                        tempGroups.Add(new(GroupType.Triple, k));
+                                        major++;
+                                        tempGroups.Add(new(GroupType.Triple, Color.Honor, k));
                                     }
                                     else
                                     {
-                                        // [TODO]考虑将goto改为其他方式
-                                        goto Start;
+
                                     }
                                 }
                             }
                             else
                             {
-                                Node node = SingleColorJudge(coloredPaiList[j]);
+                                Node node = SingleColorJudge(tempList[j]);
                                 major += node.MajorCount;
                                 pair += node.PairCount;
                                 foreach (Group group in node.Groups)
@@ -224,7 +221,7 @@ namespace MaJiangLib
         public static int Main()
         {
             ShouPai shouPai = new ShouPai();
-            shouPai.ShouPaiList = new() 
+            shouPai.ShouPaiList = new()
             {
                 new(Color.Wans,1),
                 new(Color.Wans,2),
@@ -242,7 +239,7 @@ namespace MaJiangLib
             };
             bool isTingPai = TingPaiJudge(shouPai, out Dictionary<Pai, List<Group>> successPais);
             Console.WriteLine(isTingPai);
-            foreach (KeyValuePair<Pai,List<Group>> keyValuePair in successPais)
+            foreach (KeyValuePair<Pai, List<Group>> keyValuePair in successPais)
             {
                 Console.Write(keyValuePair.Key.ToString() + " ");
                 foreach (Group group in keyValuePair.Value)
