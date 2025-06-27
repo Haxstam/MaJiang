@@ -16,7 +16,7 @@ namespace MaJiangLib
         /// <param name="num"></param>
         public Pai(Color color, int num)
         {
-            Color = Color;
+            Color = color;
             Number = num;
             IsRedDora = false;
         }
@@ -28,7 +28,7 @@ namespace MaJiangLib
         /// <param name="isRedDora"></param>
         public Pai(Color color, int num, bool isRedDora)
         {
-            Color = Color;
+            Color = color;
             Number = num;
             IsRedDora = isRedDora;
         }

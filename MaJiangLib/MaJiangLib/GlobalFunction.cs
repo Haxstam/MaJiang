@@ -67,7 +67,7 @@ namespace MaJiangLib
             {
                 // 先对牌按花色分类
                 List<Pai> mainPaiList = shouPai.ShouPaiList;
-                List<List<int>> coloredPaiList = new();
+                List<List<int>> coloredPaiList = new() { new(),new(),new(),new()};
 
                 foreach (Pai pai in mainPaiList)
                 {
@@ -95,8 +95,6 @@ namespace MaJiangLib
                 {
                     for (int i = 1; i < 10; i++)
                     {
-                        // [TODO]返回标签,考虑舍弃
-                        Start:
                         // 跳过字牌序号为8,9的情况
                         if (color == Color.Honor && i >= 8)
                         {
@@ -110,18 +108,23 @@ namespace MaJiangLib
                         // major pair 分别存储面子和雀头的数量
                         int major = 0;
                         int pair = 0;
+                        bool isSkip = false;
                         // 按照牌的花色进行DFS算法寻找面子和雀头
                         for (int j = 0; j < 4; j++)
                         {
+                            if (isSkip)
+                            {
+                                break;
+                            }
                             // 介于字牌的特殊情况,采用更直接的方法
                             if (j == 3)
                             {
-                                int[] paiCount = new int[7];
-                                foreach (int num in coloredPaiList[j])
+                                int[] paiCount = new int[8];
+                                foreach (int num in tempList[j])
                                 {
                                     paiCount[num]++;
                                 }
-                                for (int k = 0; k < 7; k++)
+                                for (int k = 1; k < 8; k++)
                                 {
                                     // 两张字牌,即为雀头,三张字牌,即为暗刻,其余字牌数认为不听牌
                                     if (paiCount[k] == 2)
@@ -134,8 +137,7 @@ namespace MaJiangLib
                                     }
                                     else
                                     {
-                                        // [TODO]考虑将goto改为其他方式
-                                        goto Start;
+
                                     }
                                 }
                             }
@@ -160,6 +162,7 @@ namespace MaJiangLib
                         {
 
                         }
+                        mainPaiList.RemoveAt(-1);
                     }
                 }
                 /*
