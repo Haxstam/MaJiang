@@ -4,10 +4,36 @@ using System.Linq;
 
 namespace MaJiangLib
 {
+    /*
+     * [TODO]
+     * 1. 命名问题,修改变量名和方法名以切合相关术语
+     * 2. 效率问题,优化听牌判断和番数的判断
+     * 3. 限制域问题,修改修饰符减少成员暴露
+     * 4. 变量类型问题,尽可能减少泛型List的使用
+     */
+
+    /// <summary>
+    /// 风场类型,东风设定枚举为1是为了切合牌的序号
+    /// </summary>
+    public enum WindType
+    {
+        East = 1,
+        South,
+        West,
+        North,
+    }
+    /// <summary>
+    /// 牌面类型,包含所有面子的类型
+    /// </summary>
     public enum GroupType
     {
         Straight,
         Triple,
+        MingTriple,
+        MingStraight,
+        MingKang,
+        AnKang,
+        JiaKang,
         Pair,
     }
     /// <summary>
@@ -22,10 +48,88 @@ namespace MaJiangLib
         JiaGang,
     }
     /// <summary>
+    /// 立直麻将所有类型的役种,不包含流局满贯,括号内数字为副露时番数
+    /// </summary>
+    public enum YakuType
+    {
+        Empty,  // 占位符
+        Dora,  // 宝牌
+        AkaDora, // 红宝牌
+        UraDora,  // 里宝牌
+        NorthAkaDora,  // 拔北宝牌
+        Riichi,  // 立直-1
+        Ippatsu,  // 一发-1
+        Tsumo,  // 门前清自摸和-1
+        Pinfu,  // 平和-1
+        Tanyao,  // 断幺-1
+        Iipeikou,  // 一杯口-1
+        Jikaze,  // 自风牌-1
+        Bakaze,  // 场风牌-1
+        Sangenpai,  // 三元牌-1
+        Rinshankaiho,  // 岭上开花-1
+        HaiteiRaoyui,  // 海底捞月-1
+        HoteiRaoyui,  // 河底捞鱼-1
+        Chankan,  // 枪杠-1
+        Ittsu,  // 一气通贯-2(1)
+        Toitoi,  // 对对和-2
+        SanshokuDoujun,  // 三色同顺-2(1)
+        SanshokuDoukou,  // 三色同刻-2
+        Chanta,  // 混全带幺九-2(1)
+        Chiitoitsu,  // 七对子-2
+        Honroutou,  // 混老头-2
+        Sananko,  // 三暗刻-2
+        Sankantsu,  // 三杠子-2
+        DoubleRiichi,  // 两立直-2
+        Honitsu,  // 混一色-3(2)
+        Junchan,  // 纯全带幺九-3(2)
+        Ryanpeiko,  // 两杯口-3
+        Chinitsu,  // 清一色-6(5)
+        Suuankou,  // 四暗刻-13
+        KokushiMusou,  // 国士无双-13
+        DaiSanGen,  // 大三元-13
+        ShoSuuShii,  // 小四喜-13
+        Tsuuiiso,  // 字一色-13
+        Chinroto,  // 清老头-13
+        CHurenPoto,  // 九莲宝灯-13
+        Suukantsu,  // 四杠子-13
+        Tenho,  // 天和-13
+        Chiiho,  // 地和-13
+        DaiSuuShii,  // 大四喜-26
+        SuuankouTanki,  // 四暗刻单骑-26
+        ChuurenPoutou,  // 纯正九莲宝灯-26
+        KokushiMusouThirteenOrphans,  // 国士无双十三面-26
+    }
+    /// <summary>
     /// 公用的方法类
     /// </summary>
     public static class GlobalFunction
     {
+        /// <summary>
+        /// 判断该牌对于该玩家是否为役牌,需要当前比赛信息,牌的信息和玩家序号
+        /// </summary>
+        /// <param name="matchInformation">当前比赛信息</param>
+        /// <param name="pai">所判断的字牌</param>
+        /// <param name="player">玩家的序号</param>
+        /// <returns></returns>
+        public static bool IsYiPai(IMatchInformation matchInformation, Pai pai, int player)
+        {
+            if (pai.Color == Color.Honor)
+            {
+                if (pai.Number >= 5)  // 判断是不是白发中
+                {
+                    return true;
+                }
+                else if (pai.Number == (player-matchInformation.Round+1))  // 判断是否为自风
+                {
+                    return true;
+                }
+                else if (pai.Number == (int)matchInformation.Wind)  // 判断是否为场风
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         /// <summary>
         /// 振听判断方法,通过列表(暂时)
         /// </summary>
@@ -46,17 +150,34 @@ namespace MaJiangLib
             }
             return false;
         }
+        /// <summary>
+        /// 计算和牌番数的方法,需要和牌时的单张和和牌面子
+        /// </summary>
+        /// <param name="singlePai">和牌时的单张,手牌13张之外的一张</param>
+        /// <param name="groups">和牌的面子的分组</param>
+        /// <returns></returns>
+        public static int HePaiFanCalculate(Pai singlePai, List<Group> groups)
+        {
+            return -1;
+        }
         public static bool TingPaiJudge(ShouPai shouPai, out Dictionary<Pai, List<Group>> successPais)
         {
+            List<Pai> ShouPaiList = shouPai.ShouPaiList;
+            ShouPaiList.Sort();
+            if (true)
+            {
+
+            }
             successPais = new();
             // 对四副露分开看待
             if (shouPai.FuluPaiList.Count == 4)
             {
                 List<Group> groups = new();
-                foreach (FuluPai fuluPai in shouPai.FuluPaiList)
+                foreach (Group fuluPai in shouPai.FuluPaiList)
                 {
-                    groups.Add(fuluPai.Group);
+                    groups.Add(fuluPai);
                 }
+                // 直接返回所听牌和手牌相同
                 groups.Add(new(GroupType.Pair, shouPai.ShouPaiList[0].Color, shouPai.ShouPaiList[0].Number));
                 successPais[shouPai.ShouPaiList[0]] = groups;
                 return true;
@@ -148,9 +269,14 @@ namespace MaJiangLib
                                 }
                             }
                         }
-                        // 进行判断,仅当为四个面子和一个雀头时,才看做和牌
-                        if (major == 4 && pair == 1)
+                        // 进行判断,当为四个面子和一个雀头时,才看做和牌,考虑副露
+                        if (major + shouPai.FuluPaiList.Count == 4 && pair == 1)
                         {
+                            // 添加副露中的面子
+                            foreach (Group fulupai in shouPai.FuluPaiList)
+                            {
+                                tempGroups.Add(fulupai);
+                            }
                             successPais[new(color, i)] = tempGroups;
                         }
                         else
@@ -159,54 +285,6 @@ namespace MaJiangLib
                         }
                     }
                 }
-                /*
-                // 先对牌进行花色分类
-                foreach (Pai pai in mainPaiList)
-                {
-                    switch (pai.Color)
-                    {
-                        case Color.Wans:
-                            coloredPaiList[0].Add(pai.Number);
-                            break;
-                        case Color.Tungs:
-                            coloredPaiList[1].Add(pai.Number);
-                            break;
-                        case Color.Bamboo:
-                            coloredPaiList[2].Add(pai.Number);
-                            break;
-                        case Color.Honor:
-                            coloredPaiList[3].Add(pai.Number);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                mainPaiList.Sort();
-
-                List<Pai> tempPaiList = new();
-                for (int i = 0; i < mainPaiList.Count - 1; i++)
-                {
-                    if (mainPaiList[i].Color != mainPaiList[i+1].Color)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (mainPaiList[i].Number == mainPaiList[i+1].Number)
-                        {
-                            int major = 0;
-                            foreach (List<int> ints in coloredPaiList)
-                            {
-                                major += SingleColorJudge(ints).MajorCount;
-                            }
-                            if (major == 3)
-                            {
-
-                            }
-                        }
-                    }
-                }
-                */
             }
             if (successPais.Count != 0)
             {
@@ -216,38 +294,6 @@ namespace MaJiangLib
             {
                 return false;
             }
-        }
-        // 测试
-        public static int Main()
-        {
-            ShouPai shouPai = new ShouPai();
-            shouPai.ShouPaiList = new()
-            {
-                new(Color.Wans,1),
-                new(Color.Wans,2),
-                new(Color.Wans,3),
-                new(Color.Tungs,4),
-                new(Color.Tungs,4),
-                new(Color.Tungs,5),
-                new(Color.Tungs,5),
-                new(Color.Tungs,6),
-                new(Color.Tungs,6),
-                new(Color.Bamboo,1),
-                new(Color.Bamboo,2),
-                new(Color.Bamboo,3),
-                new(Color.Bamboo,4),
-            };
-            bool isTingPai = TingPaiJudge(shouPai, out Dictionary<Pai, List<Group>> successPais);
-            Console.WriteLine(isTingPai);
-            foreach (KeyValuePair<Pai, List<Group>> keyValuePair in successPais)
-            {
-                Console.Write(keyValuePair.Key.ToString() + " ");
-                foreach (Group group in keyValuePair.Value)
-                {
-                    Console.Write(group.ToString() + " ");
-                }
-            }
-            return 0;
         }
         /// <summary>
         /// DFS算法,Node定义,实现 IComparable 从而可比较
@@ -290,6 +336,11 @@ namespace MaJiangLib
         /// 记忆字典,存储所有可能路径下的结果
         /// </summary>
         internal static Dictionary<string, Node> Memory = new();
+        /// <summary>
+        /// DFS 算法
+        /// </summary>
+        /// <param name="cnt"></param>
+        /// <returns></returns>
         internal static Node Dfs(int[] cnt)
         {
             // 通过手牌剩余序列化选项
@@ -365,6 +416,11 @@ namespace MaJiangLib
             Memory[key] = best;
             return best;
         }
+        /// <summary>
+        /// 单个花色下手牌面子的判断
+        /// </summary>
+        /// <param name="nums"></param>
+        /// <returns></returns>
         internal static Node SingleColorJudge(List<int> nums)
         {
             int[] countList = new int[10];
@@ -374,5 +430,7 @@ namespace MaJiangLib
             }
             return Dfs(countList);
         }
+
+       
     }
 }

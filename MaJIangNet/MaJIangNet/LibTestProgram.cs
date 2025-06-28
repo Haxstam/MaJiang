@@ -14,12 +14,12 @@ namespace MaJIangNet
             ShouPai shouPai = new ShouPai();
             shouPai.ShouPaiList = new()
             {
-                new(Color.Tungs,1),
                 new(Color.Tungs,2),
+                new(Color.Tungs,3),
                 new(Color.Tungs,3),
                 new(Color.Tungs,4),
                 new(Color.Tungs,5),
-                new(Color.Tungs,6),
+                new(Color.Tungs,7),
                 new(Color.Tungs,7),
                 new(Color.Wans,9),
                 new(Color.Wans,9),

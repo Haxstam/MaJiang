@@ -15,9 +15,5 @@
         public bool CouldPen(string pai);
         public bool CouldGan(string pai);
         public bool CouldHe();
-        // /// <summary>
-        // /// 计算番数
-        // /// </summary>
-        // public int CalculateYi();
     }
 }

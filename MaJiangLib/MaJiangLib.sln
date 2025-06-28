@@ -1,5 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36221.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MaJiangLib", "MaJiangLib\MaJiangLib.csproj", "{F9D50FF1-8B55-42DA-9C58-F8C74DFF74F1}"
 EndProject
 Global
@@ -12,5 +15,11 @@ Global
 		{F9D50FF1-8B55-42DA-9C58-F8C74DFF74F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9D50FF1-8B55-42DA-9C58-F8C74DFF74F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9D50FF1-8B55-42DA-9C58-F8C74DFF74F1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {980CD6D0-9003-4E04-B836-E7F0B430BF02}
 	EndGlobalSection
 EndGlobal
