@@ -10,6 +10,7 @@ namespace MaJiangLib
      * 2. 效率问题,优化听牌判断和番数的判断
      * 3. 限制域问题,修改修饰符减少成员暴露
      * 4. 变量类型问题,尽可能减少泛型List的使用
+     * 5. 因为Group类也用于算法,考虑分离以合并Group内的成员 [目前已分离为GlobalFunction.GFSGroup 和 Group]
      */
 
     /// <summary>
@@ -79,6 +80,7 @@ namespace MaJiangLib
         Honroutou,  // 混老头-2
         Sananko,  // 三暗刻-2
         Sankantsu,  // 三杠子-2
+        ShoSanGen,  // 小三元-2
         DoubleRiichi,  // 两立直-2
         Honitsu,  // 混一色-3(2)
         Junchan,  // 纯全带幺九-3(2)
@@ -119,7 +121,7 @@ namespace MaJiangLib
                 {
                     return true;
                 }
-                else if (pai.Number == (player-matchInformation.Round+1))  // 判断是否为自风
+                else if (pai.Number == (player - matchInformation.Round + 1))  // 判断是否为自风
                 {
                     return true;
                 }
@@ -150,16 +152,6 @@ namespace MaJiangLib
             }
             return false;
         }
-        /// <summary>
-        /// 计算和牌番数的方法,需要和牌时的单张和和牌面子
-        /// </summary>
-        /// <param name="singlePai">和牌时的单张,手牌13张之外的一张</param>
-        /// <param name="groups">和牌的面子的分组</param>
-        /// <returns></returns>
-        public static int HePaiFanCalculate(Pai singlePai, List<Group> groups)
-        {
-            return -1;
-        }
         public static bool TingPaiJudge(ShouPai shouPai, out Dictionary<Pai, List<Group>> successPais)
         {
             List<Pai> ShouPaiList = shouPai.ShouPaiList;
@@ -169,6 +161,7 @@ namespace MaJiangLib
 
             }
             successPais = new();
+
             // 对四副露分开看待
             if (shouPai.FuluPaiList.Count == 4)
             {
@@ -178,7 +171,7 @@ namespace MaJiangLib
                     groups.Add(fuluPai);
                 }
                 // 直接返回所听牌和手牌相同
-                groups.Add(new(GroupType.Pair, shouPai.ShouPaiList[0].Color, shouPai.ShouPaiList[0].Number));
+                groups.Add(new(GroupType.Pair, ShouPaiList[0].Color, new() { ShouPaiList[0] }));
                 successPais[shouPai.ShouPaiList[0]] = groups;
                 return true;
             }
@@ -244,12 +237,12 @@ namespace MaJiangLib
                                     if (paiCount[k] == 2)
                                     {
                                         pair++;
-                                        tempGroups.Add(new(GroupType.Pair, Color.Honor, k));
+                                        tempGroups.Add(new(GroupType.Pair, Color.Honor, new() { new(Color.Honor, k), new(Color.Honor, k) }));
                                     }
                                     else if (paiCount[k] == 3)
                                     {
                                         major++;
-                                        tempGroups.Add(new(GroupType.Triple, Color.Honor, k));
+                                        tempGroups.Add(new(GroupType.Triple, Color.Honor, new() { new(Color.Honor, k), new(Color.Honor, k), new(Color.Honor, k) }));
                                     }
                                     else
                                     {
@@ -262,10 +255,39 @@ namespace MaJiangLib
                                 Node node = SingleColorJudge(tempList[j]);
                                 major += node.MajorCount;
                                 pair += node.PairCount;
-                                foreach (Group group in node.Groups)
+
+                                foreach (DFSGroup DFSgroup in node.DFSGroups)
                                 {
-                                    group.Color = (Color)j;
-                                    tempGroups.Add(group);
+                                    // 将算法中的DFSGroup转化为Group
+                                    Group tempGroup;
+                                    DFSgroup.Color = (Color)j;
+                                    if (DFSgroup.GroupType == GroupType.Straight)
+                                    {
+                                        tempGroup = new(GroupType.Straight, DFSgroup.Color, new()
+                                        {
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                            new(DFSgroup.Color, DFSgroup.Numbers[1]),
+                                            new(DFSgroup.Color, DFSgroup.Numbers[2]),
+                                        });
+                                    }
+                                    else if (DFSgroup.GroupType == GroupType.Triple)
+                                    {
+                                        tempGroup = new(GroupType.Triple, DFSgroup.Color, new()
+                                        {
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                        });
+                                    }
+                                    else
+                                    {
+                                        tempGroup = new(GroupType.Pair, DFSgroup.Color, new()
+                                        {
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                            new(DFSgroup.Color, DFSgroup.Numbers[0]),
+                                        });
+                                    }
+                                    tempGroups.Add(tempGroup);
                                 }
                             }
                         }
@@ -292,19 +314,84 @@ namespace MaJiangLib
             }
             else
             {
+                // 最后判断七对子,避免两杯口杯判断为七对子
+                if (SevenPairJudge(ShouPaiList, out Pai sevenPairPai, out List<Group> sevenPairGroups))
+                {
+                    successPais[sevenPairPai] = sevenPairGroups;
+                    return true;
+                }
                 return false;
             }
+        }
+        /// <summary>
+        /// 用于判断七对子的单独方法,由于算法的设计优先考虑面子而非雀头,七对子若包含一杯口则会被看做四个对子和两个顺子,因此分开讨论
+        /// </summary>
+        /// <param name="calPaiList"></param>
+        /// <param name="pai"></param>
+        /// <returns></returns>
+        public static bool SevenPairJudge(List<Pai> calPaiList, out Pai pai, out List<Group> groups)
+        {
+            int pairCount = 0;
+            bool haveSinglePai = false;
+            pai = calPaiList[0];  // 一定会被赋值,仅用于占位
+            groups = new();
+            for (int i = 0; i < calPaiList.Count - 1; i++)
+            {
+                if (i < calPaiList.Count - 2)
+                {
+                    if (calPaiList[i] == calPaiList[i + 1] && calPaiList[i] == calPaiList[i + 2])
+                    {
+                        // 如果存在三张相同的牌,直接退出,避免龙七对
+                        return false;
+                    }
+                }
+                // 存在前后相同的牌,对子数+1且序号+1
+                if (calPaiList[i] == calPaiList[i + 1])
+                {
+                    groups.Add(new(GroupType.Pair, calPaiList[i].Color, new() { calPaiList[i], calPaiList[i + 1] }));
+                    pairCount++;
+                    i++;
+                }
+                else if (!haveSinglePai)
+                {
+                    // 如果下一张牌和当前牌不一样且目前没有存储的单张,存储当前牌为待听牌
+                    pai = calPaiList[i];
+                    haveSinglePai = true;
+                }
+                else if (haveSinglePai)
+                {
+                    // 在已有一张孤张的情况下又出现一张,直接退出
+                    return false;
+                }
+            }
+            if (pairCount == 6)
+            {
+                if (!haveSinglePai)
+                {
+                    // 如果遍历完毕后仍没有单张,则说明单张为最后一张
+                    pai = calPaiList[12];
+                }
+                groups.Add(new(GroupType.Pair, pai.Color, new() { pai, pai }));
+                // 如果haveSinglePai为True,一定会在上述循环中赋值
+                return true;
+            }
+            else  // 兜底,正常情况下不会走到这里
+            {
+                Console.WriteLine($"警告:七对子判断进行到不可能的范围,位置:{nameof(SevenPairJudge)}");
+                return false;
+            }
+
         }
         /// <summary>
         /// DFS算法,Node定义,实现 IComparable 从而可比较
         /// </summary>
         internal class Node : IComparable<Node>
         {
-            public Node(int maj, int pair, List<Group> group)
+            public Node(int maj, int pair, List<DFSGroup> DFSgroup)
             {
                 MajorCount = maj;
                 PairCount = pair;
-                Groups = group;
+                DFSGroups = DFSgroup;
             }
             /// <summary>
             /// 顺子/刻子的成组
@@ -317,7 +404,7 @@ namespace MaJiangLib
             /// <summary>
             /// 所有组合的列表
             /// </summary>
-            public List<Group> Groups { get; set; }
+            public List<DFSGroup> DFSGroups { get; set; }
             /// <summary>
             /// 比较方法
             /// </summary>
@@ -337,80 +424,111 @@ namespace MaJiangLib
         /// </summary>
         internal static Dictionary<string, Node> Memory = new();
         /// <summary>
+        /// GlobalFunction 内部算法使用的类
+        /// </summary>
+        internal class DFSGroup
+        {
+            /// <summary>
+            /// 不考虑花色的构造器,用于DFS算法,为内部构造器
+            /// </summary>
+            /// <param name="groupType">面子类型</param>
+            /// <param name="nums">面子数字</param>
+            internal DFSGroup(GroupType groupType, params int[] nums)
+            {
+                GroupType = groupType;
+                Numbers = nums;
+            }
+            /// <summary>
+            /// 考虑花色的构造器
+            /// </summary>
+            /// <param name="groupType">面子类型</param>
+            /// <param name="color">面子花色</param>
+            /// <param name="nums">面子数字</param>
+            public DFSGroup(GroupType groupType, Color color, params int[] nums)
+            {
+                GroupType = groupType;
+                Color = color;
+                Numbers = nums;
+            }
+            public GroupType GroupType { get; set; }
+            public int[] Numbers { get; set; }
+            public Color Color { get; set; }
+        }
+        /// <summary>
         /// DFS 算法
         /// </summary>
-        /// <param name="cnt"></param>
+        /// <param name="count"></param>
         /// <returns></returns>
-        internal static Node Dfs(int[] cnt)
+        internal static Node Dfs(int[] count)
         {
             // 通过手牌剩余序列化选项
-            string key = string.Join(",", cnt.Skip(1));
+            string key = string.Join(",", count.Skip(1));
             if (Memory.TryGetValue(key, out var cached))
             {
                 return cached;
             }
             // 从第一张牌开始
             int i = 1;
-            while (i <= 9 && cnt[i] == 0)
+            while (i <= 9 && count[i] == 0)
             {
                 i++;
             }
             // 全处理完
             if (i > 9)
             {
-                Node leaf = new Node(0, 0, new List<Group>());
+                Node leaf = new Node(0, 0, new List<DFSGroup>());
                 Memory[key] = leaf;
                 return leaf;
             }
 
-            Node best = new Node(0, 0, new List<Group>());
+            Node best = new Node(0, 0, new List<DFSGroup>());
 
             // 1) 顺子
-            if (i <= 7 && cnt[i] > 0 && cnt[i + 1] > 0 && cnt[i + 2] > 0)
+            if (i <= 7 && count[i] > 0 && count[i + 1] > 0 && count[i + 2] > 0)
             {
-                cnt[i]--; cnt[i + 1]--; cnt[i + 2]--;
-                Node sub = Dfs(cnt);
-                List<Group> newGroups = new(sub.Groups);
-                newGroups.Insert(0, new Group(GroupType.Straight, i, i + 1, i + 2));
-                Node cand = new Node(sub.MajorCount + 1, sub.PairCount, newGroups);
+                count[i]--; count[i + 1]--; count[i + 2]--;
+                Node sub = Dfs(count);
+                List<DFSGroup> newDFSGroups = new(sub.DFSGroups);
+                newDFSGroups.Insert(0, new DFSGroup(GroupType.Straight, i, i + 1, i + 2));
+                Node cand = new Node(sub.MajorCount + 1, sub.PairCount, newDFSGroups);
                 if (cand.CompareTo(best) > 0) best = cand;
-                cnt[i]++;
-                cnt[i + 1]++;
-                cnt[i + 2]++;
+                count[i]++;
+                count[i + 1]++;
+                count[i + 2]++;
             }
 
             // 2) 刻子
-            if (cnt[i] >= 3)
+            if (count[i] >= 3)
             {
-                cnt[i] -= 3;
-                Node sub = Dfs(cnt);
-                List<Group> newGroups = new(sub.Groups);
-                newGroups.Insert(0, new Group(GroupType.Triple, i));
-                Node cand = new Node(sub.MajorCount + 1, sub.PairCount, newGroups);
+                count[i] -= 3;
+                Node sub = Dfs(count);
+                List<DFSGroup> newDFSGroups = new(sub.DFSGroups);
+                newDFSGroups.Insert(0, new DFSGroup(GroupType.Triple, i));
+                Node cand = new Node(sub.MajorCount + 1, sub.PairCount, newDFSGroups);
                 if (cand.CompareTo(best) > 0) best = cand;
-                cnt[i] += 3;
+                count[i] += 3;
             }
 
             // 3) 对子
-            if (cnt[i] >= 2)
+            if (count[i] >= 2)
             {
-                cnt[i] -= 2;
-                Node sub = Dfs(cnt);
-                List<Group> newGroups = new(sub.Groups);
-                newGroups.Insert(0, new Group(GroupType.Pair, i));
-                Node cand = new Node(sub.MajorCount, sub.PairCount + 1, newGroups);
+                count[i] -= 2;
+                Node sub = Dfs(count);
+                List<DFSGroup> newDFSGroups = new(sub.DFSGroups);
+                newDFSGroups.Insert(0, new DFSGroup(GroupType.Pair, i));
+                Node cand = new Node(sub.MajorCount, sub.PairCount + 1, newDFSGroups);
                 if (cand.CompareTo(best) > 0) best = cand;
-                cnt[i] += 2;
+                count[i] += 2;
             }
 
             // 4) 跳过 i
             {
-                int save = cnt[i];
-                cnt[i] = 0;
-                Node sub = Dfs(cnt);
+                int save = count[i];
+                count[i] = 0;
+                Node sub = Dfs(count);
                 // 不加任何组
                 if (sub.CompareTo(best) > 0) best = sub;
-                cnt[i] = save;
+                count[i] = save;
             }
 
             Memory[key] = best;
@@ -430,7 +548,5 @@ namespace MaJiangLib
             }
             return Dfs(countList);
         }
-
-       
     }
 }

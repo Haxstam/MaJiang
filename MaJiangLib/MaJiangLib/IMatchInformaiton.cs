@@ -39,6 +39,10 @@ namespace MaJiangLib
         /// </summary>
         public List<bool> IsRiichi { get; set; }
         /// <summary>
+        /// 记录是否为两立直,此变量对应序号为True时,IsRiichi对应的序号也必须为True
+        /// </summary>
+        public List<bool> IsDoubleRiichi { get; set; }
+        /// <summary>
         /// 剩余牌的数目,用于判断河底海底等
         /// </summary>
         public int RemainPaiCount { get; set; }
@@ -54,6 +58,13 @@ namespace MaJiangLib
         /// 刚摸完岭上牌的状态,拔北或开杠后设定为True,打出牌后设定为False
         /// </summary>
         public List<bool> IsKan { get; set; }
-
+        /// <summary>
+        /// 当前等待操作(打出一张牌)的玩家
+        /// </summary>
+        public int CurrentPlayer { get; set; }
+        /// <summary>
+        /// 当前局的庄家序号
+        /// </summary>
+        public int CurrentBanker { get; set; }
     }
 }

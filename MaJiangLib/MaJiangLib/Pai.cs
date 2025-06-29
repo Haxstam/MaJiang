@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace MaJiangLib
 {
     /// <summary>
     /// 牌的类,存储牌的信息
     /// </summary>
-    public class Pai : IComparable<Pai> 
+    public class Pai : IComparable<Pai>
     {
         /// <summary>
         /// 设定牌类型,默认不是红宝牌
@@ -77,7 +75,7 @@ namespace MaJiangLib
                 {
                     return Number - other.Number;
                 }
-                    
+
             }
         }
         public override string ToString()
@@ -103,6 +101,40 @@ namespace MaJiangLib
             }
             str = colorStr + Number.ToString();
             return str;
+        }
+        /// <summary>
+        /// 判断两张牌是否相同,注意:不考虑红宝牌
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static bool operator ==(Pai a, Pai b)
+        {
+            if (a.Number == b.Number && a.Color == b.Color)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        /// <summary>
+        /// 判断两张牌是否相同,注意:不考虑红宝牌
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static bool operator !=(Pai a, Pai b)
+        {
+            if (a.Number == b.Number && a.Color == b.Color)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
         }
     }
     /// <summary>

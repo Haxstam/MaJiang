@@ -14,19 +14,19 @@ namespace MaJIangNet
             ShouPai shouPai = new ShouPai();
             shouPai.ShouPaiList = new()
             {
-                new(Color.Tungs,2),
+                new(Color.Wans,1),
+                new(Color.Wans,1),
+                new(Color.Wans,3),
+                new(Color.Wans,3),
+                new(Color.Wans,2),
+                new(Color.Wans,2),
+                new(Color.Wans,7),
+                new(Color.Wans,7),
+                new(Color.Wans,9),
+                new(Color.Wans,9),
+                new(Color.Tungs,9),
+                new(Color.Tungs,9),
                 new(Color.Tungs,3),
-                new(Color.Tungs,3),
-                new(Color.Tungs,4),
-                new(Color.Tungs,5),
-                new(Color.Tungs,7),
-                new(Color.Tungs,7),
-                new(Color.Wans,9),
-                new(Color.Wans,9),
-                new(Color.Wans,9),
-                new(Color.Wans,2),
-                new(Color.Wans,2),
-                new(Color.Wans,2),
             };
             bool isTingPai = GlobalFunction.TingPaiJudge(shouPai, out Dictionary<Pai, List<Group>> successPais);
             Console.WriteLine(isTingPai);
