@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using static MaJiangLib.GlobalFunction;
 
 namespace MaJiangLib
 {
@@ -9,9 +11,9 @@ namespace MaJiangLib
     public static class FanCalculator
     {
         /// <summary>
-        /// 委托输出时的小结构体,仅限在该类内部使用
+        /// 委托输出时的类,存储番和役种
         /// </summary>
-        internal struct FanData
+        public class FanData
         {
             public FanData(int fan, YakuType yaku)
             {
@@ -20,6 +22,16 @@ namespace MaJiangLib
             }
             internal int Fan { get; set; }
             internal YakuType Yaku { get; set; }
+            public static FanData EmptyFanData { get; set; } = new FanData(0, YakuType.Empty);
+
+            public static bool operator ==(FanData left, FanData right)
+            {
+                return (left.Fan == right.Fan && left.Yaku == right.Yaku);
+            }
+            public static bool operator !=(FanData left, FanData right)
+            {
+                return !(left.Fan == right.Fan && left.Yaku == right.Yaku);
+            }
         }
         /// <summary>
         /// 比赛信息
@@ -31,42 +43,327 @@ namespace MaJiangLib
          * 对所有可能的役种进行判断相当繁琐,目前考虑根据牌型的特点进行分类,尽可能剪枝
          * 目前问题:
          * 1. 枪杠的触发较为特殊,结合国士无双,先不考虑
-         * 2. 考虑将对对和,三暗刻,四暗刻,混老头这类需求刻子的役种判定放在一起
-         * 3. 不相兼容且相似的役种的判定放在一起
-         * 4. 因为荣和时,所和之牌组成的刻子实际上为明刻,会影响三暗刻,四暗刻的判定,这一部分判定目前考虑先放在FanCalculator中单独用一个方法去实现
+         * 2. 不相兼容且相似的役种的判定放在一起
+         * 3. 因为荣和时,所和之牌组成的刻子实际上为明刻,会影响三暗刻,四暗刻的判定,这一部分判定目前考虑先放在FanCalculator中单独用一个方法去实现
+         * 4. 比较重大的问题:部分牌型可以同时符合两组役种,需要方法判断哪种面子组成的牌的点数更大
          */
-
         /// <summary>
-        /// 存储所有仅当门清时才会触发的番的判断
+        /// 这一部分役种受和牌状态而非和牌面子影响,包含宝牌,立直,一发,自摸,岭上,河海底,天地和,一般情况下必须要判定
         /// </summary>
-        internal static List<Func<HePaiData, FanData>> ClosedHandFanList { get; set; } = new List<Func<HePaiData, FanData>>()
+        internal static List<Func<HePaiData, FanData>> SpecialHePaiList = new()
         {
+            Dora,
+            AkaDora,
+            UraDora,
+            RiichiAndDoubleRiichi,
+            Ippatsu,
+            Tsumo,
+            Rinshankaiho,
+            HaiteiAndHotei,
+            TenhoAndChiiho,
+        };
+        /// <summary>
+        /// 这一部分役种需要顺子,比如平和,一杯口两杯口,一气通贯,三色同顺
+        /// </summary>
+        internal static List<Func<HePaiData, FanData>> StraightHePaiList = new()
+        {
+            Pinfu,
+            IipeikouAndRyanpeiko,
+            Ittsu,
+            SanshokuDoujun,
 
         };
         /// <summary>
-        /// 特殊牌型番数判断,比如不符合四个面子一个雀头的七对子,一些役满
+        /// 这一部分役种需要刻子,比如对对和,混老头清老头字一色,三元四喜,三杠子四杠子,三色同刻
         /// </summary>
-        internal static List<Func<HePaiData, FanData>> SpecialHandFanList { get; set; } = new List<Func<HePaiData, FanData>>()
+        internal static List<Func<HePaiData, FanData>> TripleHePaiList = new()
         {
-
+            Toitoi,
+            HonroutouAndChinrotoAndTsuuiiso,
+            SanankoAndSuuanKou,
+            SanGenAndSuuShii,
+            SankantsuAndSuukantsu,
+            SanshokuDoukou,
         };
         /// <summary>
-        /// 普遍牌型番数判断,存储绝大多数的函数
+        /// 这一部分和牌不在乎面子类型或是牌型特殊,比如断幺九,七对子,清混一色,绿一色和九莲,纯全混全,国士无双,通常情况下必须判定
         /// </summary>
-        internal static List<Func<HePaiData, FanData>> NromalHandFanList { get; set; } = new List<Func<HePaiData, FanData>>()
+        internal static List<Func<HePaiData, FanData>> NormalHePaiList = new()
         {
-
+            Tanyao,
+            Chiitoitsu,
+            HonitsuAndChinitsuAndRyuiishokuAndCHurenPoto,
+            ChantaAndJunchan,
+            KokushiMusou,
         };
+
         /// <summary>
         /// 和牌时番数计算的主方法
         /// </summary>
         /// <param name="groups">和牌时的组</param>
         /// <param name="singlePai">和牌时手牌外的第十四张牌</param>
         /// <returns></returns>
-        public static int MainCalculator(HePaiData hePaiData)
+        public static RonPoint MainCalculator(HePaiData hePaiData)
         {
+            List<FanData> YakuList = new();
+            List<FanData> YakuManList = new();
+            bool haveStraight = false;
+            bool haveTriple = false;
+            int yakuManCount = 0;
+            int fanCount = 0;
+            Group pairGroup = new(GroupType.Pair, Color.Wans, new() { });  // 一定会被赋值,暂当引用
+            if (hePaiData.Groups[0].Color == Color.Honor && hePaiData.Groups[0].Pais[0].Number == 8)
+            {   // 国士无双,跳过正常的判定
+                FanData fanData = KokushiMusou(hePaiData);
+                if (fanData != FanData.EmptyFanData)
+                {
+                    if (fanData.Fan == 13 || fanData.Fan == 26)
+                    {
+                        YakuManList.Add(fanData);
+                        yakuManCount += fanData.Fan / 13;
+                    }
+                    else
+                    {
+                        YakuList.Add(fanData);
+                        fanCount += fanData.Fan;
+                    }
+                }
+            }
+            else
+            {
+                foreach (Group group in hePaiData.Groups)
+                {
+                    if (group.IsTriple)
+                    {
+                        haveTriple = true;
+                    }
+                    else if (group.GroupType == GroupType.Straight)
+                    {
+                        haveStraight = true;
+                    }
+                    else if (group.GroupType == GroupType.Pair)
+                    {   // 在此处存储雀头的类便于后续计算
+                        pairGroup = group;
+                    }
+                }
+                if (haveStraight)
+                {
+                    foreach (var straightYaku in StraightHePaiList)
+                    {
+                        FanData fanData = straightYaku.Invoke(hePaiData);
+                        if (fanData != FanData.EmptyFanData)
+                        {
+                            if (fanData.Fan == 13 || fanData.Fan == 26)
+                            {
+                                YakuManList.Add(fanData);
+                                yakuManCount += fanData.Fan / 13;
+                            }
+                            else
+                            {
+                                YakuList.Add(fanData);
+                                fanCount += fanData.Fan;
+                            }
+                        }
+                    }
+                }
+                if (haveTriple)
+                {
+                    List<FanData> yakuFanData = YakuPai(hePaiData);
+                    if (yakuFanData.Count != 0)
+                    {
+                        fanCount += yakuFanData.Count;
+                        YakuList.AddRange(yakuFanData);
+                    }
+                    foreach (var straightYaku in TripleHePaiList)
+                    {
+                        FanData fanData = straightYaku.Invoke(hePaiData);
+                        if (fanData != FanData.EmptyFanData)
+                        {
+                            if (fanData.Fan == 13 || fanData.Fan == 26)
+                            {
+                                YakuManList.Add(fanData);
+                                yakuManCount += fanData.Fan / 13;
+                            }
+                            else
+                            {
+                                YakuList.Add(fanData);
+                                fanCount += fanData.Fan;
+                            }
+                        }
+                    }
+                }
+                foreach (var straightYaku in SpecialHePaiList)
+                {
+                    FanData fanData = straightYaku.Invoke(hePaiData);
+                    if (fanData != FanData.EmptyFanData)
+                    {
+                        if (fanData.Fan == 13 || fanData.Fan == 26)
+                        {
+                            YakuManList.Add(fanData);
+                            yakuManCount += fanData.Fan / 13;
+                        }
+                        else
+                        {
+                            YakuList.Add(fanData);
+                            fanCount += fanData.Fan;
+                        }
+                    }
+                }
+                foreach (var straightYaku in NormalHePaiList)
+                {
+                    FanData fanData = straightYaku.Invoke(hePaiData);
+                    if (fanData != FanData.EmptyFanData)
+                    {
+                        if (fanData.Fan == 13 || fanData.Fan == 26)
+                        {
+                            YakuManList.Add(fanData);
+                            yakuManCount += fanData.Fan / 13;
+                        }
+                        else
+                        {
+                            YakuList.Add(fanData);
+                            fanCount += fanData.Fan;
+                        }
+                    }
+                }
+            }
 
-            return -1;
+            int fu = 0;
+            int basePoint = 0;
+            RonPoint ronPoint;
+            if (YakuManList.Count != 0)
+            {   // n倍役满为 32000 * n 
+                basePoint = yakuManCount * 8000;
+                // 如果为役满,不考虑符数
+                ronPoint = new(yakuManCount * 13, fu, basePoint, YakuManList);
+            }
+            else
+            {   // 没有役满
+                switch (fanCount)
+                {
+                    case 13:
+                        basePoint = 8000;
+                        break;
+                    case 11:
+                    case 12:
+                        basePoint = 6000;
+                        break;
+                    case >= 8 and <= 10:
+                        basePoint = 4000;
+                        break;
+                    case 6:
+                    case 7:
+                        basePoint = 3000;
+                        break;
+                    case 5:
+                        basePoint = 2000;
+                        break;
+                    case >= 1 and <= 4:
+                        basePoint = fu * (int)Math.Pow(2, fanCount + 2);
+                        if (basePoint >= 2000)
+                        {
+                            basePoint = 2000;
+                        }
+                        break;
+                    case 0: // 一般不会有
+                        basePoint = 0;
+                        break;
+                }
+                // 符的计算
+                bool isFuSkip = false;
+                foreach (FanData fanData in YakuList)
+                {
+                    if (fanData.Yaku == YakuType.Chiitoitsu)
+                    {   // 七对子锁定25符
+                        fu = 25;
+                        isFuSkip = true;
+                        break;
+                    }
+                    else if (fanData.Yaku == YakuType.Pinfu && hePaiData.IsIsumo)
+                    {   // 平和自摸锁定20符
+                        fu = 20;
+                        isFuSkip = true;
+                    }
+                    else if (!haveTriple && !hePaiData.IsIsumo && !hePaiData.IsClosedHand)
+                    {   // 无刻子,副露平和型荣和,锁定30符
+                        fu = 30;
+                        isFuSkip = true;
+                    }
+                }
+                if (!isFuSkip)
+                {
+                    // 底符20符
+                    fu += 20;
+                    foreach (Group group in hePaiData.Groups)
+                    {
+                        // 面子符的计算:首先,根据刻杠增加次方数,明刻暗刻明杠暗杠分别为+1到+4,若为幺九则再+1
+                        // 根据次方数计算该面子的符:2/4/8/16/32,顺子不加符
+                        int tempFuCount = 0;
+                        if (group.GroupType == GroupType.MingTriple)
+                        {
+                            tempFuCount += 1;
+                        }
+                        else if (group.GroupType == GroupType.Triple)
+                        {
+                            tempFuCount += 2;
+                        }
+                        else if (group.GroupType == GroupType.MingKang || group.GroupType == GroupType.JiaKang)
+                        {
+                            tempFuCount += 3;
+                        }
+                        else if (group.GroupType == GroupType.AnKang)
+                        {
+                            tempFuCount += 4;
+                        }
+                        if (group.IsTriple || group.Pais[0].Number == 1 || group.Pais[0].Number == 9 || group.Color == Color.Honor)
+                        {
+                            tempFuCount += 1;
+                        }
+                        if (tempFuCount != 0)
+                        {
+                            fu += (int)Math.Pow(2, tempFuCount);
+                        }
+                    }
+                    if (IsYiPai(MatchInformation, pairGroup.Pais[0], hePaiData.Player))
+                    {   // 如果雀头是役牌,记2符,连风也为2符
+                        fu += 2;
+                    }
+                    if (hePaiData.IsClosedHand && !hePaiData.IsIsumo)
+                    {   //门前清荣和加10符
+                        fu += 10;
+                    }
+                    if (hePaiData.IsIsumo)
+                    {   // 自摸加2符
+                        fu += 2;
+                    }
+                    if (pairGroup.Pais[0] == hePaiData.SinglePai)
+                    {   // 单骑听雀头加2符
+                        fu += 2;
+                    }
+                    foreach (Group group1 in hePaiData.Groups)
+                    {   // 所和牌为边坎张加2符
+                        if (group1.GroupType == GroupType.Straight)
+                        {
+                            if (group1.Pais[1] == hePaiData.SinglePai)
+                            {
+                                fu += 2;
+                                break;
+                            }
+                            else if ((group1.Pais[0].Number == 7 && group1.Pais[0] == hePaiData.SinglePai) || (group1.Pais[2].Number == 3 && group1.Pais[2] == hePaiData.SinglePai))
+                            {
+                                fu += 2;
+                                break;
+                            }
+                        }
+                    }
+                    if (fu % 10 > 0)
+                    {   // 最后符数向上进位到十位
+                        fu += 10 - fu % 10;
+                    }
+                }
+                ronPoint = new(fanCount, fu, basePoint, YakuList);
+            }
+            return ronPoint;
         }
         /// <summary>
         /// 提供宝牌指示牌计算获得宝牌列表
@@ -233,6 +530,45 @@ namespace MaJiangLib
             {
                 return new(0, YakuType.Empty);
             }
+        }
+        /// <summary>
+        /// 役牌统合判定,返回役种列表,因而需要单独判断
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        internal static List<FanData> YakuPai(HePaiData data)
+        {
+            List<FanData> fanList = new List<FanData>();
+            foreach (Group group in data.Groups)
+            {
+                if (group.Color == Color.Honor && group.IsTriple)
+                {
+                    if (group.Pais[0].Number >= 5)
+                    {
+                        if (group.Pais[0].Number == 5)
+                        {
+                            fanList.Add(new(1, YakuType.Haku));
+                        }
+                        else if (group.Pais[0].Number == 6)
+                        {
+                            fanList.Add(new(1, YakuType.Hatsu));
+                        }
+                        else if (group.Pais[0].Number == 7)
+                        {
+                            fanList.Add(new(1, YakuType.Chun));
+                        }
+                    }
+                    if (group.Pais[0].Number == (data.Player - MatchInformation.Round + 1))
+                    {
+                        fanList.Add(new(1, YakuType.Jikaze));
+                    }
+                    else if (group.Pais[0].Number == (int)MatchInformation.Wind)
+                    {
+                        fanList.Add(new(1, YakuType.Bakaze));
+                    }
+                }
+            }
+            return fanList;
         }
         /// <summary>
         /// 立直和两立直的判定
@@ -476,7 +812,13 @@ namespace MaJiangLib
         {
             // 筛选所有顺子并记录花色出现次数,标记存在两个同花色顺子的花色,仅当各种花色都出现一次后再判断
             List<Pai> pais = new();
-            Dictionary<Color, int> colorCount = new();
+            Dictionary<Color, int> colorCount = new()
+            {
+                { Color.Wans, 0 },
+                { Color.Tungs, 0 },
+                { Color.Bamboo, 0 },
+                { Color.Honor, 0 },
+            };
             Color? majorColor = null;
             foreach (Group group in data.Groups)
             {
@@ -550,7 +892,14 @@ namespace MaJiangLib
             // 整体实现思路和三色同顺相同
             // 筛选所有刻子并记录花色出现次数,标记存在两个同花色刻子的花色,仅当各种花色都出现一次后再判断
             List<Pai> pais = new();
-            Dictionary<Color, int> colorCount = new();
+            Dictionary<Color, int> colorCount = new()
+            {
+                { Color.Wans, 0 },
+                { Color.Tungs, 0 },
+                { Color.Bamboo, 0 },
+                { Color.Honor, 0 },
+
+            };
             Color? majorColor = null;
             foreach (Group group in data.Groups)
             {
@@ -608,7 +957,7 @@ namespace MaJiangLib
         internal static FanData SanankoAndSuuanKou(HePaiData data)
         {
             int AnTripleCount = 0;
-            Pai? pairPai = null;
+            Pai? pairPai = new(Color.Wans, 1);  // 一定会被赋值,填写一万为占位符
             foreach (Group group in data.Groups)
             {
                 if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.AnKang)
@@ -636,6 +985,22 @@ namespace MaJiangLib
                 }
             }
             return new(0, YakuType.Empty);
+        }
+        /// <summary>
+        /// 七对子的判定,如果和牌面子全为对子则为七对子
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        internal static FanData Chiitoitsu(HePaiData data)
+        {
+            if (data.Groups.All(group => group.GroupType == GroupType.Pair))
+            {
+                return new(2, YakuType.Chiitoitsu);
+            }
+            else
+            {
+                return new(0, YakuType.Empty);
+            }
         }
         /// <summary>
         /// 对对和的判定
@@ -716,14 +1081,49 @@ namespace MaJiangLib
 
         }
         /// <summary>
-        /// 清一色和混一色的判定
+        /// 判断面子是否符合绿一色的方法,因为实在太过繁琐不好放在if()里维护,故单开方法
+        /// </summary>
+        /// <param name="group"></param>
+        /// <returns></returns>
+        internal static bool RyuiishokuPaiJudge(Group group)
+        {
+            if (group.Color == Color.Bamboo)  // 是否为条子
+            {
+                if (group.IsTriple || group.GroupType == GroupType.Pair)  // 是条子 && 是刻杠子或雀头
+                {
+                    if (new int[] { 2, 3, 4, 6, 8 }.Contains(group.Pais[0].Number))  // 是条子 && 是刻杠子或雀头 && 序号在 2 3 4 6 8 里
+                    {
+                        return true;
+                    }
+                }
+                else if (group.GroupType == GroupType.Straight)  // 是条子 && 是顺子
+                {
+                    if (group.Pais[0].Number == 2)  // 是条子 && 是顺子 && 第一张序号是2
+                    {
+                        return true;
+                    }
+                }
+            }
+            else if ((group.IsTriple || group.GroupType == GroupType.Pair) && group.Color == Color.Honor)  // 是刻杠子或雀头 && 是字牌
+            {
+                if (group.Pais[0].Number == 6)  // 是刻杠子或雀头 && 是字牌 && 是发
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        /// <summary>
+        /// 清一色,混一色,绿一色和九莲宝灯的判定,九莲宝灯要求是清一色
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        internal static FanData HonitsuAndChinitsu(HePaiData data)
+        internal static FanData HonitsuAndChinitsuAndRyuiishokuAndCHurenPoto(HePaiData data)
         {
             bool isHonitsu = true;
             bool isChinitsu = true;
+            bool isRyuiishoku = true;
+            int[] numberCount = new int[10];
             Color color = Color.Honor;  // 一般情况下该变量一定会被赋值,如果没有改变赋值则判定为字一色,不在该方法范围内
             foreach (Group group in data.Groups)
             {
@@ -733,10 +1133,24 @@ namespace MaJiangLib
                     break;
                 }
             }
+            if (color == Color.Honor)
+            {
+                return new(0, YakuType.Empty);
+            }
             foreach (Group group1 in data.Groups)
-            {   // 既不是字牌也不是所定花色,直接跳出
-                if (group1.Color != Color.Honor && group1.Color != color)
+            {
+                ////合在一起的判断
+                //if (!(((group1.IsTriple || group1.GroupType == GroupType.Pair) && ((group1.Color == Color.Bamboo && new int[] { 2, 3, 4, 6, 8 }.Contains(group1.Pais[0].Number)) || (group1.Color == Color.Honor && group1.Pais[0].Number == 4)))
+                //|| ((group1.GroupType == GroupType.Straight) && group1.Pais[0].Number == 2)))
+                //{
+                //    isRyuiishoku = false;
+                //}
+                if (!RyuiishokuPaiJudge(group1))
                 {
+                    isRyuiishoku = false;
+                }
+                if (group1.Color != Color.Honor && group1.Color != color)
+                {   // 既不是字牌也不是所定花色,直接跳出
                     isHonitsu = false;
                     isChinitsu = false;
                     break;
@@ -745,12 +1159,53 @@ namespace MaJiangLib
                 {   // 存在为字牌的面子,不是清一色
                     isChinitsu = false;
                 }
+                else if (group1.Color == color)
+                {
+                    foreach (Pai pai in group1.Pais)
+                    {
+                        numberCount[pai.Number]++;
+                    }
+                }
+            }
+            if (isRyuiishoku)
+            {
+                return new(13, YakuType.Ryuiishoku);
             }
             if (isChinitsu)  // 是清一色
             {
                 if (data.IsClosedHand)
                 {
-                    return new(6, YakuType.Chinitsu);
+                    int extraPai = 0;
+                    bool haveExtraPai = false;
+                    for (int i = 1; i < 10; i++)
+                    {   // 九莲宝灯判定方法:先找到多出的那一张(幺九即为第四张,中张即为第二张),如果同时有多个符合条件的张,跳过
+                        if ((i == 0 && numberCount[i] == 4) || (i >= 2 && i <= 8 && numberCount[i] == 2) || (i == 9 && numberCount[i] == 4))
+                        {
+                            if (haveExtraPai == true)
+                            {
+                                extraPai = 0;
+                                break;
+                            }
+                            haveExtraPai = true;
+                            extraPai = i;
+                            break;
+                        }
+                    }
+                    if (haveExtraPai && extraPai != 0)
+                    {   // 如果存在多出的牌且仅一张,也即除去这张牌后,手牌符合1112345678999,若所和牌为此牌,则为九莲宝灯
+                        if (data.SinglePai.Number == extraPai)
+                        {
+                            return new(26, YakuType.ChuurenPoutou);
+                        }
+                        else
+                        {
+                            return new(13, YakuType.CHurenPoto);
+                        }
+                    }
+                    else
+                    {
+                        return new(6, YakuType.Chinitsu);
+                    }
                 }
                 else
                 {
@@ -898,6 +1353,29 @@ namespace MaJiangLib
             else if (KangCount == 4)
             {
                 return new(13, YakuType.Suukantsu);
+            }
+            else
+            {
+                return new(0, YakuType.Empty);
+            }
+        }
+        /// <summary>
+        /// 国士无双十三面的判定,根据z8判定,如果听牌为z8则为十三面,反之为国士无双
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        internal static FanData KokushiMusou(HePaiData data)
+        {
+            if (data.Groups[0].Pais[0] == new Pai(Color.Honor, 8))
+            {
+                if (data.SinglePai == new Pai(Color.Honor, 8))
+                {
+                    return new(26, YakuType.KokushiMusouThirteenOrphans);
+                }
+                else
+                {
+                    return new(13, YakuType.KokushiMusou);
+                }
             }
             else
             {

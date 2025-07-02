@@ -11,6 +11,7 @@ namespace MaJiangLib
      * 3. 限制域问题,修改修饰符减少成员暴露
      * 4. 变量类型问题,尽可能减少泛型List的使用
      * 5. 因为Group类也用于算法,考虑分离以合并Group内的成员 [目前已分离为GlobalFunction.GFSGroup 和 Group]
+     * 6. 国士无双不好判断,目前如果为国士无双十三面,则和牌所对应牌为z8(字牌的第八种),从而使得听牌判断方便返回
      */
 
     /// <summary>
@@ -66,7 +67,9 @@ namespace MaJiangLib
         Iipeikou,  // 一杯口-1
         Jikaze,  // 自风牌-1
         Bakaze,  // 场风牌-1
-        Sangenpai,  // 三元牌-1
+        Haku,  // 役牌 白-1
+        Hatsu,  // 役牌 发-1
+        Chun,  // 役牌 中-1
         Rinshankaiho,  // 岭上开花-1
         HaiteiRaoyui,  // 海底捞月-1
         HoteiRaoyui,  // 河底捞鱼-1
@@ -91,6 +94,7 @@ namespace MaJiangLib
         DaiSanGen,  // 大三元-13
         ShoSuuShii,  // 小四喜-13
         Tsuuiiso,  // 字一色-13
+        Ryuiishoku,  // 绿一色-13
         Chinroto,  // 清老头-13
         CHurenPoto,  // 九莲宝灯-13
         Suukantsu,  // 四杠子-13
@@ -106,6 +110,23 @@ namespace MaJiangLib
     /// </summary>
     public static class GlobalFunction
     {
+        // 暂时用一个列表去存储国士无双的牌来判断
+        public static List<Pai> kokuShiList = new()
+            {
+                new(Color.Wans,1),
+                new(Color.Wans,9),
+                new(Color.Tungs,1),
+                new(Color.Tungs,9),
+                new(Color.Bamboo,1),
+                new(Color.Bamboo,9),
+                new(Color.Honor,1),
+                new(Color.Honor,2),
+                new(Color.Honor,3),
+                new(Color.Honor,4),
+                new(Color.Honor,5),
+                new(Color.Honor,6),
+                new(Color.Honor,7),
+            };
         /// <summary>
         /// 判断该牌对于该玩家是否为役牌,需要当前比赛信息,牌的信息和玩家序号
         /// </summary>
@@ -152,16 +173,17 @@ namespace MaJiangLib
             }
             return false;
         }
+        /// <summary>
+        /// 听牌判断方法,输入手牌列表,返回是否听牌和所听牌及对应和牌牌型
+        /// </summary>
+        /// <param name="shouPai"></param>
+        /// <param name="successPais"></param>
+        /// <returns></returns>
         public static bool TingPaiJudge(ShouPai shouPai, out Dictionary<Pai, List<Group>> successPais)
         {
             List<Pai> ShouPaiList = shouPai.ShouPaiList;
             ShouPaiList.Sort();
-            if (true)
-            {
-
-            }
             successPais = new();
-
             // 对四副露分开看待
             if (shouPai.FuluPaiList.Count == 4)
             {
@@ -314,7 +336,13 @@ namespace MaJiangLib
             }
             else
             {
-                // 最后判断七对子,避免两杯口杯判断为七对子
+                // 国士无双的判断
+                if (KokuShiJudge(ShouPaiList, out Dictionary<Pai, List<Group>> kokushiPais))
+                {
+                    successPais = kokushiPais;
+                    return true;
+                }
+                // 最后判断七对子,避免两杯口被判断为七对子
                 if (SevenPairJudge(ShouPaiList, out Pai sevenPairPai, out List<Group> sevenPairGroups))
                 {
                     successPais[sevenPairPai] = sevenPairGroups;
@@ -322,6 +350,70 @@ namespace MaJiangLib
                 }
                 return false;
             }
+        }
+        /// <summary>
+        /// 国士无双的判定,先判断是否所有牌都是幺九牌,再判断是否最多只有两张重复的牌,没有重复的牌则为十三面
+        /// </summary>
+        /// <param name="calPaiList"></param>
+        /// <param name="successPais"></param>
+        /// <returns></returns>
+        public static bool KokuShiJudge(List<Pai> calPaiList, out Dictionary<Pai, List<Group>> successPais)
+        {
+            successPais = new();
+            if (calPaiList.All(n => (n.Color == Color.Honor) || (n.Number == 9 || n.Number == 1)))
+            {
+                bool isKokushi = true;
+                bool haveExtraPai = false;
+                for (int i = 0; i < calPaiList.Count - 1; i++)
+                {
+                    if (calPaiList[i] == calPaiList[i + 1] && haveExtraPai)
+                    {
+                        isKokushi = false;
+                        break;
+                    }
+                    else if (calPaiList[i] == calPaiList[i + 1] && !haveExtraPai)
+                    {
+                        haveExtraPai = true;
+                        i++;
+                    }
+                }
+                if (isKokushi)
+                {
+                    if (haveExtraPai)
+                    {
+                        for (int i = 0; i < calPaiList.Count; i++)
+                        {
+                            if (calPaiList[i] != kokuShiList[i])
+                            {
+                                successPais[kokuShiList[i]] = new()
+                                {
+                                    new Group(GroupType.Triple, Color.Honor, new()
+                                    {
+                                        new(Color.Honor, 8),
+                                        new(Color.Honor, 8),
+                                        new(Color.Honor, 8),
+                                    })
+                                };
+                                return true;
+                            }
+                        }
+                    }
+                    else
+                    {   // 目前设定十三面的听牌为z8,标志其听牌为所有幺九牌
+                        successPais[new(Color.Honor, 8)] = new()
+                        {
+                            new Group(GroupType.Triple, Color.Honor, new()
+                            {
+                                new(Color.Honor, 8),
+                                new(Color.Honor, 8),
+                                new(Color.Honor, 8),
+                            })
+                        };
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
         /// <summary>
         /// 用于判断七对子的单独方法,由于算法的设计优先考虑面子而非雀头,七对子若包含一杯口则会被看做四个对子和两个顺子,因此分开讨论
