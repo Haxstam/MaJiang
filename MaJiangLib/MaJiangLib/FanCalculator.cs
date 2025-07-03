@@ -32,6 +32,10 @@ namespace MaJiangLib
             {
                 return !(left.Fan == right.Fan && left.Yaku == right.Yaku);
             }
+            public override bool Equals(object obj)
+            {
+                return this == (FanData)obj;
+            }
         }
         /// <summary>
         /// 比赛信息
@@ -45,7 +49,7 @@ namespace MaJiangLib
          * 1. 枪杠的触发较为特殊,结合国士无双,先不考虑
          * 2. 不相兼容且相似的役种的判定放在一起
          * 3. 因为荣和时,所和之牌组成的刻子实际上为明刻,会影响三暗刻,四暗刻的判定,这一部分判定目前考虑先放在FanCalculator中单独用一个方法去实现
-         * 4. 比较重大的问题:部分牌型可以同时符合两组役种,需要方法判断哪种面子组成的牌的点数更大
+         * 4. 多面牌型,即既可以组成刻子也可以组成顺子的牌型,目前仅考虑一色三节高或四节高的情况,在计算番数的时候会先检测,然后判断有顺子和无顺子时的番数
          */
         /// <summary>
         /// 这一部分役种受和牌状态而非和牌面子影响,包含宝牌,立直,一发,自摸,岭上,河海底,天地和,一般情况下必须要判定
@@ -96,14 +100,13 @@ namespace MaJiangLib
             ChantaAndJunchan,
             KokushiMusou,
         };
-
         /// <summary>
-        /// 和牌时番数计算的主方法
+        /// 和牌时番数计算的方法
         /// </summary>
         /// <param name="groups">和牌时的组</param>
         /// <param name="singlePai">和牌时手牌外的第十四张牌</param>
         /// <returns></returns>
-        public static RonPoint MainCalculator(HePaiData hePaiData)
+        public static RonPoint RonPointCalculator(HePaiData hePaiData)
         {
             List<FanData> YakuList = new();
             List<FanData> YakuManList = new();
@@ -1175,24 +1178,33 @@ namespace MaJiangLib
             {
                 if (data.IsClosedHand)
                 {
+                    bool isSkipPoto = false;
                     int extraPai = 0;
                     bool haveExtraPai = false;
                     for (int i = 1; i < 10; i++)
                     {   // 九莲宝灯判定方法:先找到多出的那一张(幺九即为第四张,中张即为第二张),如果同时有多个符合条件的张,跳过
-                        if ((i == 0 && numberCount[i] == 4) || (i >= 2 && i <= 8 && numberCount[i] == 2) || (i == 9 && numberCount[i] == 4))
+                        if ((i == 1 && numberCount[i] == 4) || (i >= 2 && i <= 8 && numberCount[i] == 2) || (i == 9 && numberCount[i] == 4))
                         {
                             if (haveExtraPai == true)
                             {
                                 extraPai = 0;
                                 break;
                             }
-                            haveExtraPai = true;
-                            extraPai = i;
+                            else
+                            {
+                                haveExtraPai = true;
+                                extraPai = i;
+                            }
+
+                        }
+                        if ((i == 1 && numberCount[i] <= 2) || (i >= 2 && i <= 8 && numberCount[i] >= 3) || (i == 9 && numberCount[i] <= 2))
+                        {   // 如果幺九少于3张,2到8大于2张,则不是九莲宝灯
+                            isSkipPoto = true;
                             break;
                         }
                     }
-                    if (haveExtraPai && extraPai != 0)
-                    {   // 如果存在多出的牌且仅一张,也即除去这张牌后,手牌符合1112345678999,若所和牌为此牌,则为九莲宝灯
+                    if (haveExtraPai && extraPai != 0 && !isSkipPoto)
+                    {   // 如果存在多出的牌且仅一张,也即除去这张牌后,手牌符合1112345678999,若所和牌为此牌,则为纯正九莲宝灯,反之为九莲宝灯
                         if (data.SinglePai.Number == extraPai)
                         {
                             return new(26, YakuType.ChuurenPoutou);
