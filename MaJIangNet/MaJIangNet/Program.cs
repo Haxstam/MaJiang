@@ -1,9 +1,10 @@
 ﻿using LiteNetLib;
+using MaJiangLib;
 using MaJiangLib.SignalClass;
 using MaJiangLib.Utility;
 public static class TestProgram
 {
-  public static void Main()
+  public static void _Main()
   {
      string v= Console.ReadLine();
      if (v.Equals("C"))
@@ -96,25 +97,27 @@ public static class TestProgram
               Console.WriteLine(pp.Name+"  "+pro);
           }
       }
-      public void main()
-      {
-          Console.WriteLine("writePort");
-          int  port = int.Parse(Console.ReadLine());
-          Service.Start(port);
-          listener.ConnectionRequestEvent  += RequestEvent;
-          listener.PeerConnectedEvent += Connect;
-          Service.BroadcastReceiveEnabled = true;
-          Service.UpdateTime = 15;
-          listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod, channel) => {
-              if(!clients.TryGetValue(fromPeer.Id, out var helper))return;
-              helper.SignalGet(dataReader);
-          };
-          while (!Console.KeyAvailable)
-          {
-              Service.PollEvents();
-              Thread.Sleep(15);
-          }
-      }
+        public void main()
+        {
+            Console.WriteLine("writePort");
+            int port = int.Parse(Console.ReadLine());
+            Service.Start(port);
+            listener.ConnectionRequestEvent += RequestEvent;
+            listener.PeerConnectedEvent += Connect;
+            Service.BroadcastReceiveEnabled = true;
+            Service.UpdateTime = 15;
+            listener.NetworkReceiveEvent += (fromPeer, dataReader, deliveryMethod, channel) =>
+            {
+                if (!clients.TryGetValue(fromPeer.Id, out var helper)) return;
+                helper.SignalGet(dataReader);
+            };
+            while (!Console.KeyAvailable)
+            {
+                Service.PollEvents();
+                Thread.Sleep(15);
+            }
+        }
+        
       private void RequestEvent(ConnectionRequest request)
       {
          string va=  request.Data.GetString();

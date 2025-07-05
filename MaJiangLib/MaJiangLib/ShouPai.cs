@@ -15,8 +15,18 @@ namespace MaJiangLib
             ShouPaiList = new();
             FuluPaiList = new();
         }
+        /// <summary>
+        /// 手牌列表,不超过13枚
+        /// </summary>
         public List<Pai> ShouPaiList { get; set; }
-        public List<FuluPai> FuluPaiList { get; set; }
+        /// <summary>
+        /// 副露牌列表,按面子分组,不超过4组
+        /// </summary>
+        public List<Group> FuluPaiList { get; set; }
+        /// <summary>
+        /// 北宝牌计数,仅适用于三麻
+        /// </summary>
+        public int NorthDoraCount { get; set; }
         /// <summary>
         /// 判断是否门清,当没有副露或仅有暗杠副露时为门清
         /// </summary>
@@ -24,9 +34,9 @@ namespace MaJiangLib
         public bool IsMenQing()
         {
             bool isMenQing = true;
-            foreach (FuluPai fuluPai in FuluPaiList)
+            foreach (Group fuluPai in FuluPaiList)
             {
-                if (fuluPai.FuluType != FuluType.AnGang)
+                if (fuluPai.GroupType != GroupType.AnKang)
                 {
                     isMenQing = false;
                     break;
