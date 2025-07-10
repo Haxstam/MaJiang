@@ -458,7 +458,7 @@ namespace MaJiangLib
             {
                 // 先对牌按花色分类
                 List<Pai> mainPaiList = shouPai.ShouPaiList;
-                List<List<int>> coloredPaiList = new() { new(), new(), new(), new() };
+                List<List<int>> coloredPaiList = new() { new(),new(),new(),new()};
 
                 foreach (Pai pai in mainPaiList)
                 {
