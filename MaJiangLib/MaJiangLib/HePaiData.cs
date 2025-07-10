@@ -7,9 +7,9 @@ namespace MaJiangLib
     /// </summary>
     public class HePaiData
     {
-        public HePaiData(int player, ShouPai shouPai, Pai singlePai, bool isIsumo, bool isClosedHand, List<Group> group)
+        public HePaiData(ShouPai shouPai, Pai singlePai, bool isIsumo, bool isClosedHand, List<Group> group)
         {
-            Player = player;
+            Player = shouPai.Player;
             ShouPai = shouPai;
             SinglePai = singlePai;
             IsIsumo = isIsumo;

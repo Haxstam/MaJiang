@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
+        <OutputPath>..\..\MaJiangUnity\Assets\Plugins</OutputPath>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
     </PropertyGroup>

@@ -28,3 +28,9 @@ D:\Project\MaJiang\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\LiteNetLib.xml
 D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.csproj.Up2Date
 D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.dll
 D:\Project\MaJiang\MaJiangLib\MaJiangLib\obj\Debug\netstandard2.1\MaJiangLib.pdb
+G:\文档\GitHub\MaJiang\MaJiangLib\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.deps.json
+G:\文档\GitHub\MaJiang\MaJiangLib\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.dll
+G:\文档\GitHub\MaJiang\MaJiangLib\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.pdb
+G:\文档\GitHub\MaJiang\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.deps.json
+G:\文档\GitHub\MaJiang\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.dll
+G:\文档\GitHub\MaJiang\MaJiangUnity\Assets\Plugins\netstandard2.1\MaJiangLib.pdb

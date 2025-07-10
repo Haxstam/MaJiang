@@ -7,6 +7,10 @@ namespace MaJiangLib
     public interface IMatchInformation
     {
         /// <summary>
+        /// 记录当前场的类型
+        /// </summary>
+        public MatchType MatchType { get; set; }
+        /// <summary>
         /// 弃牌堆,存储所有人的弃牌,第0所对应的玩家为东一场的亲家
         /// </summary>
         public List<List<Pai>> QiPaiList { get; set; }
@@ -18,6 +22,10 @@ namespace MaJiangLib
         /// 里宝牌列表,暂时放在这里
         /// </summary>
         public List<Pai> UraDoraList { get; set; }
+        /// <summary>
+        /// 目前开杠的数量
+        /// </summary>
+        public int KangCount { get; set; }
         /// <summary>
         /// 当前风场
         /// </summary>

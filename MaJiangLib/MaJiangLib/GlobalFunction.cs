@@ -13,8 +13,21 @@ namespace MaJiangLib
      * 5. 因为Group类也用于算法,考虑分离以合并Group内的成员 [目前已分离为GlobalFunction.GFSGroup 和 Group]
      * 6. 国士无双不好判断,目前如果为国士无双十三面,则和牌所对应牌为z8(字牌的第八种),从而使得听牌判断方便返回
      * 7. 对于多重牌型,比如三个相邻的刻子既可以当作三个顺子也可以当作三个刻子,目前在听牌判断中通过分别优先考虑顺子/刻子来满足所有可能
+     * 8. 介于红宝牌的特殊性,需要在所有鸣牌操作中对其进行区分
+     * 9. 鸣牌考虑禁止食替,和牌/立直的判断放在一个方法内,吃/碰/明杠作为副露鸣牌放在一个方法内,加杠/暗杠/拔北作为自身行为放在一个方法里
+     * 10.目前将门清/副露听牌的判断定义在CutTingPaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
      */
 
+    /// <summary>
+    /// 比赛类型,标记本场比赛是三麻还是四麻,是东场还是半庄
+    /// </summary>
+    public enum MatchType
+    {
+        ThreeMahjongEast,
+        ThreeMahjongSouth,
+        FourMahjongEast,
+        FourMahjongSouth,
+    }
     /// <summary>
     /// 风场类型,东风设定枚举为1是为了切合牌的序号
     /// </summary>
@@ -51,7 +64,19 @@ namespace MaJiangLib
         JiaGang,
     }
     /// <summary>
-    /// 立直麻将所有类型的役种,不包含流局满贯,括号内数字为副露时番数
+    /// 玩家所能进行的操作,包含吃,碰,杠,立直,拔北,和牌(包含自摸)
+    /// </summary>
+    public enum PlayerAction
+    {
+        Chi,
+        Peng,
+        Gang,
+        Riichi,
+        BaBei,
+        He,
+    }
+    /// <summary>
+    /// 立直麻将所有类型的役种,括号内数字为副露时番数
     /// </summary>
     public enum YakuType
     {
@@ -105,6 +130,7 @@ namespace MaJiangLib
         SuuankouTanki,  // 四暗刻单骑-26
         ChuurenPoutou,  // 纯正九莲宝灯-26
         KokushiMusouThirteenOrphans,  // 国士无双十三面-26
+        NagashiMangan,  // 流局满贯-5
     }
     /// <summary>
     /// 公用的方法类
@@ -128,6 +154,236 @@ namespace MaJiangLib
                 new(Color.Honor,6),
                 new(Color.Honor,7),
             };
+        /// <summary>
+        /// 鸣牌数据,存储可进行吃碰杠时,对应的牌的列表和所要鸣的牌,对应的操作
+        /// </summary>
+        public class MingPaiData
+        {
+            /// <summary>
+            /// 需要手牌中能响应的牌,目标牌和进行的操作
+            /// </summary>
+            /// <param name="pais">手牌中所能鸣牌的牌</param>
+            /// <param name="targetPai">能被鸣牌响应的别家牌</param>
+            /// <param name="playerAction">所进行的操作</param>
+            public MingPaiData(List<Pai> pais, List<Pai> targetPai, PlayerAction playerAction)
+            {
+                Pais = pais;
+                TargetPai = targetPai;
+                PlayerAction = playerAction;
+            }
+            /// <summary>
+            /// 存储在手牌中的,能和TargetPai中的牌组成顺刻杠的牌
+            /// </summary>
+            public List<Pai> Pais { get; set; }
+            /// <summary>
+            /// 目标牌,即能够被吃碰杠响应的牌
+            /// </summary>
+            public List<Pai> TargetPai { get; set; }
+            /// <summary>
+            /// 所对应的操作
+            /// </summary>
+            public PlayerAction PlayerAction { get; set; }
+        }
+        public class SelfActionData
+        {
+            public SelfActionData(List<Pai> pais, PlayerAction playerAction)
+            {
+                Pais = pais;
+                PlayerAction = playerAction;
+            }
+            public List<Pai> Pais { get; set; }
+            public PlayerAction PlayerAction { get; set; }
+        }
+        /// <summary>
+        /// 用于判断其他玩家打出牌时,当前玩家所能进行的操作,需要当前手牌信息,每当玩家切换自己的手牌时更新
+        /// </summary>
+        /// <param name="shouPai"></param>
+        /// <returns>返回一个字典,以操作为键,可进行的操作(MingPaiData)的list为值</returns>
+        public static Dictionary<PlayerAction, List<MingPaiData>> ClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
+        {   // 返回结果是字典-列表-列表的嵌套,考虑优化
+            Dictionary<PlayerAction, List<MingPaiData>> playerActions = new()
+            {   // 鸣牌操作仅限吃碰杠
+                { PlayerAction.Chi, new()},
+                { PlayerAction.Peng, new()},
+                { PlayerAction.Gang, new()},
+            };
+            List<Pai> shouPaiList = shouPai.ShouPaiList;
+            shouPaiList.Sort();
+            for (int i = 0; i < shouPaiList.Count - 1; i++)
+            {   // 从手牌中每张牌进行遍历,按照每两张进行判断
+                if (shouPaiList[i] == shouPaiList[i + 1])
+                {   // 即雀头/刻子,第一张和第二张牌相同,若有三张相同则为刻子
+                    if (shouPaiList[i] == shouPaiList[i + 2] && i < shouPaiList.Count - 2)
+                    {   //是刻子,可以碰/杠
+                        if (matchInformation.RemainPaiCount >= 1)
+                        {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
+                            if (matchInformation.KangCount <= 3)
+                            {   // 开杠数大于3则不允许继续开杠
+                                playerActions[PlayerAction.Gang].Add(new(
+                                    new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
+                                    new() { shouPaiList[i] },
+                                    PlayerAction.Gang
+                                    ));
+                            }
+                        }
+                        playerActions[PlayerAction.Peng].Add(new(
+                            new() { shouPaiList[i], shouPaiList[i + 1] },
+                            new() { shouPaiList[i] },
+                            PlayerAction.Peng
+                            ));
+                    }
+                    else
+                    {   //是雀头,可以碰
+                        playerActions[PlayerAction.Peng].Add(new(
+                            new() { shouPaiList[i], shouPaiList[i + 1] },
+                            new() { shouPaiList[i] },
+                            PlayerAction.Peng
+                            ));
+                    }
+                }
+                // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
+                if ((matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
+                    && (matchInformation.CurrentPlayer == shouPai.Player - 1 || matchInformation.CurrentPlayer == shouPai.Player + 3))
+                {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌
+                    if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 1) && shouPaiList[i].Color != Color.Honor)
+                    {   // 即两面/边张,第一张牌和第二张牌相邻且同色且都不是字牌
+                        if (shouPaiList[i].Number == 1)
+                        {   // 是1 2边张
+                            playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number + 2) },
+                                PlayerAction.Chi
+                                ));
+                        }
+                        else if (shouPaiList[i].Number == 8)
+                        {
+                            // 是8 9边张
+                            playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number - 1) },
+                                PlayerAction.Chi
+                                ));
+                        }
+                        else
+                        {   // 即中张两面
+                            playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number - 1), new(shouPaiList[i].Color, shouPaiList[i].Number + 2) },
+                                PlayerAction.Chi
+                                ));
+                        }
+                    }
+                    if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 2) && shouPaiList[i].Color != Color.Honor)
+                    {   // 即坎张,第二张牌比第一张牌点数大2且同色且都不是字牌
+                        playerActions[PlayerAction.Chi].Add(new(
+                            new() { shouPaiList[i], shouPaiList[i + 1] },
+                            new() { new(shouPaiList[i].Color, shouPaiList[i].Number + 1) },
+                            PlayerAction.Chi
+                            ));
+                    }
+                }
+            }
+            return playerActions;
+        }
+        /// <summary>
+        /// 用于判断当前玩家手牌所能进行的自身操作,需要玩家手牌,当前所摸的牌,判断能否加杠/暗杠/拔北
+        /// </summary>
+        /// <param name="shouPai"></param>
+        /// <returns>返回一个字典,以操作为键,可进行的操作(SelfActionData)的list为值</returns>
+        public static Dictionary<PlayerAction, List<SelfActionData>> SelfAvailableJudge(ShouPai shouPai, Pai singlePai, IMatchInformation matchInformation)
+        {
+
+            // 将刚摸的牌添加进去,并判断
+            List<Pai> paiList = shouPai.ShouPaiList.ToList();
+            paiList.Add(singlePai);
+            paiList.Sort();
+            Dictionary<PlayerAction, List<SelfActionData>> playerActions = new()
+            {
+                 { PlayerAction.Gang, new()},
+                 { PlayerAction.BaBei, new()},
+            };
+            if (matchInformation.RemainPaiCount >= 1)
+            {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
+                if (matchInformation.KangCount <= 3)
+                {   // 开杠数大于3则不允许继续开杠
+                    List<Pai> gangPaiList = new();
+                    foreach (Group fuluGroup in shouPai.FuluPaiList)
+                    {   // 获取所有副露的明刻,从而获取那几张牌可以用来加杠
+                        if (fuluGroup.GroupType == GroupType.Triple)
+                        {
+                            gangPaiList.Add(fuluGroup.Pais[0]);
+                        }
+                    }
+                    for (int i = 0; i < paiList.Count; i++)
+                    {
+                        if (i < paiList.Count - 3)
+                        {   // 暗杠,如果存在四张相同的牌,那么可以进行暗杠
+                            if (paiList[i] == paiList[i + 1] && paiList[i] == paiList[i + 2] && paiList[i] == paiList[i + 3])
+                            {
+                                playerActions[PlayerAction.Gang].Add(new(
+                                    new() { paiList[i], paiList[i + 1], paiList[i + 2], paiList[i + 3], },
+                                    PlayerAction.Gang
+                                    ));
+                            }
+                        }
+                        if (gangPaiList.Contains(paiList[i]))
+                        {   // 加杠,如果存在和刻子相同的牌,则可以进行加杠
+                            playerActions[PlayerAction.Gang].Add(new(
+                                 new() { paiList[i], },
+                                 PlayerAction.Gang
+                                 ));
+                        }
+                    }
+                }
+                if (matchInformation.MatchType == MatchType.ThreeMahjongEast || matchInformation.MatchType == MatchType.ThreeMahjongSouth)
+                {   // 三人场才允许拔北
+                    for (int i = 0; i < paiList.Count; i++)
+                    {
+                        if (paiList[i].Color == Color.Honor && paiList[i].Number == 4)
+                        {   // 所有北牌等效
+                            playerActions[PlayerAction.BaBei].Add(new(
+                                 new() { paiList[i], },
+                                 PlayerAction.BaBei
+                                 ));
+                        }
+                    }
+                }
+            }
+            return playerActions;
+        }
+
+        /// <summary>
+        /// 切牌听牌的判定,用于判断当前手牌下,打出哪张牌可以进入听牌阶段,返回一个字典,存储所切的牌->对应的和牌列表->对应的面子并根据能否听牌返回bool
+        /// </summary>
+        /// <param name="shouPai">手中的手牌</param>
+        /// <param name="singlePai">单牌,也即刚摸到的牌</param>
+        /// <param name="cutPais">存储所切的牌->对应的和牌列表->对应的面子</param>
+        /// <returns>返回存在牌,切出该牌后可听牌</returns>
+        public static bool CutTingPaiJudge(ShouPai shouPai, Pai singlePai, out Dictionary<Pai, Dictionary<Pai, List<Group>>> cutPais)
+        {
+            cutPais = new();
+            // 将输入的手牌再赋值并添加单牌
+            ShouPai fullShouPai = (ShouPai)shouPai.Clone();
+            fullShouPai.ShouPaiList.Add(singlePai);
+            for (int i = 0; i < fullShouPai.ShouPaiList.Count; i++)
+            {   // 具体的计算过程是,依次删除每一张手牌并判断剩余手牌是否听牌,如果能听牌将其标记为可被切的牌
+                ShouPai calculateShouPai = (ShouPai)fullShouPai.Clone();
+                Pai deletedPai = calculateShouPai.ShouPaiList[i];
+                calculateShouPai.ShouPaiList.RemoveAt(i);
+                if (TingPaiJudge(calculateShouPai, out Dictionary<Pai, List<Group>> successPais))
+                {   // 将可行的切牌和可听的牌列表存储进字典中
+                    cutPais[deletedPai] = successPais;
+                }
+            }
+            if (cutPais.Count != 0)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         /// <summary>
         /// 判断该牌对于该玩家是否为役牌,需要当前比赛信息,牌的信息和玩家序号
         /// </summary>

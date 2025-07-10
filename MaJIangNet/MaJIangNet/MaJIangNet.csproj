@@ -9,10 +9,10 @@
 
     <ItemGroup>
       <Reference Include="LiteNetLib">
-        <HintPath>..\..\LiteNetLib\LiteNetLib\bin\Release\net8.0\LiteNetLib.dll</HintPath>
+        <HintPath>..\..\MaJiangUnity\Assets\Plugins\LiteNetLib.dll</HintPath>
       </Reference>
       <Reference Include="MaJiangLib">
-        <HintPath>..\..\MaJiangLib\MaJiangLib\bin\Debug\netstandard2.1\MaJiangLib.dll</HintPath>
+        <HintPath>..\..\MaJiangUnity\Assets\Plugins\MaJiangLib.dll</HintPath>
       </Reference>
     </ItemGroup>
 

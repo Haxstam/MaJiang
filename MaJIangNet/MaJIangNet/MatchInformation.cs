@@ -8,7 +8,7 @@ namespace MaJIangNet
     internal class MatchInformation : IMatchInformation
     {
         /// <summary>
-        /// 测试用构造器
+        /// 测试用构造器,即无宝牌,东一 一本场 无立直 剩余0牌 无一发
         /// </summary>
         public MatchInformation()
         {
@@ -24,10 +24,36 @@ namespace MaJIangNet
             RemainPaiCount = 0;
             HaveIppatsu = new() { false, false, false, false };
             FirstCycleIppatsu = false;
-            IsKan = new() { false,false,false,false};
+            IsKan = new() { false, false, false, false };
             CurrentBanker = 1;
             CurrentPlayer = 1;
         }
+        public MatchInformation(MaJiangLib.MatchType matchType,List<List<Pai>> qiPaiList, List<Pai> doraList, List<Pai> uraDoraList, int kangCount, WindType wind, int round, int honba, List<int> playerPoint, List<bool> isRiichi, List<bool> isDoubleRiichi, int remainPaiCount, List<bool> haveIppatsu, bool firstCycleIppatsu, List<bool> isKan, int currentPlayer, int currentBanker)
+        {
+            MatchType = matchType;
+            QiPaiList = qiPaiList;
+            DoraList = doraList;
+            UraDoraList = uraDoraList;
+            KangCount = kangCount;
+            Wind = wind;
+            Round = round;
+            Honba = honba;
+            PlayerPoint = playerPoint;
+            IsRiichi = isRiichi;
+            IsDoubleRiichi = isDoubleRiichi;
+            RemainPaiCount = remainPaiCount;
+            HaveIppatsu = haveIppatsu;
+            FirstCycleIppatsu = firstCycleIppatsu;
+            IsKan = isKan;
+            CurrentPlayer = currentPlayer;
+            CurrentBanker = currentBanker;
+        }
+        // MatchType存在二义性:MaJiang.MatchType和System.IO.MatchType
+
+        /// <summary>
+        /// 记录当前场的类型
+        /// </summary>
+        public MaJiangLib.MatchType MatchType { get; set; }
         /// <summary>
         /// 弃牌堆,存储所有人的弃牌,第0所对应的玩家为东一场的亲家
         /// </summary>
@@ -40,6 +66,10 @@ namespace MaJIangNet
         /// 里宝牌列表,暂时放在这里
         /// </summary>
         public List<Pai> UraDoraList { get; set; }
+        /// <summary>
+        /// 目前开杠的数量
+        /// </summary>
+        public int KangCount { get; set; }
         /// <summary>
         /// 当前风场
         /// </summary>

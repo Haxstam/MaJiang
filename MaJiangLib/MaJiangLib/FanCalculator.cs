@@ -20,8 +20,8 @@ namespace MaJiangLib
                 Fan = fan;
                 Yaku = yaku;
             }
-            internal int Fan { get; set; }
-            internal YakuType Yaku { get; set; }
+            public int Fan { get; set; }
+            public YakuType Yaku { get; set; }
             public static FanData EmptyFanData { get; set; } = new FanData(0, YakuType.Empty);
 
             public static bool operator ==(FanData left, FanData right)
@@ -1252,7 +1252,7 @@ namespace MaJiangLib
             bool isTsuuiiso = true;
             foreach (Group group in data.Groups)
             {   // 排除不是刻子的面子,或是面子牌既不是幺九也不是字牌的和牌
-                if (!group.IsTriple || (group.Pais[0].Number != 1 && group.Pais[0].Number != 9 && group.Color != Color.Honor))
+                if ((!group.IsTriple && !(group.GroupType == GroupType.Pair))|| (group.Pais[0].Number != 1 && group.Pais[0].Number != 9 && group.Color != Color.Honor))
                 {
                     return new(0, YakuType.Empty);
                 }

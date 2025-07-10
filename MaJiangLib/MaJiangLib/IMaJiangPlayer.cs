@@ -3,7 +3,7 @@
     /// <summary>
     /// 麻将玩家
     /// </summary>
-    public interface IMaJiangPlayer
+    public interface IPlayer
     {
         public void MoPai(string pai);
         public void DaPai(string pai);

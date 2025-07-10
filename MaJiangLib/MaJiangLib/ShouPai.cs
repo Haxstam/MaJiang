@@ -1,20 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Linq;
 
 namespace MaJiangLib
 {
     /// <summary>
     /// 手牌的类,因为副露等原因设定为类
     /// </summary>
-    public class ShouPai
+    public class ShouPai : ICloneable
     {
         public ShouPai()
         {
+
             ShouPaiList = new();
             FuluPaiList = new();
         }
+        
+        /// <summary>
+        /// 标记该手牌所属的玩家
+        /// </summary>
+        public int Player { get; set; }
         /// <summary>
         /// 手牌列表,不超过13枚
         /// </summary>
@@ -28,21 +33,21 @@ namespace MaJiangLib
         /// </summary>
         public int NorthDoraCount { get; set; }
         /// <summary>
-        /// 判断是否门清,当没有副露或仅有暗杠副露时为门清
+        /// 返回手牌是否门清,仅当副露面子计数为0或副露中仅暗杠时为门清
         /// </summary>
-        /// <returns></returns>
-        public bool IsMenQing()
+        public bool IsClosedHand
         {
-            bool isMenQing = true;
-            foreach (Group fuluPai in FuluPaiList)
-            {
-                if (fuluPai.GroupType != GroupType.AnKang)
-                {
-                    isMenQing = false;
-                    break;
-                }
-            }
-            return isMenQing;
+            get { return FuluPaiList.Count <= 0 || FuluPaiList.All(group => group.GroupType == GroupType.AnKang); }
+        }
+
+        public object Clone()
+        {
+            ShouPai shouPai = new ShouPai();
+            shouPai.Player = Player;
+            shouPai.ShouPaiList = ShouPaiList.ToList();
+            shouPai.FuluPaiList = FuluPaiList.ToList();
+            shouPai.NorthDoraCount = NorthDoraCount;
+            return shouPai;
         }
     }
 }
