@@ -27,7 +27,28 @@ namespace MaJIangNet
             IsKan = new() { false, false, false, false };
             CurrentBanker = 1;
             CurrentPlayer = 1;
+            PlayerFuluList = new();
         }
+        /// <summary>
+        /// 暂不定义副露牌列表
+        /// </summary>
+        /// <param name="matchType"></param>
+        /// <param name="qiPaiList"></param>
+        /// <param name="doraList"></param>
+        /// <param name="uraDoraList"></param>
+        /// <param name="kangCount"></param>
+        /// <param name="wind"></param>
+        /// <param name="round"></param>
+        /// <param name="honba"></param>
+        /// <param name="playerPoint"></param>
+        /// <param name="isRiichi"></param>
+        /// <param name="isDoubleRiichi"></param>
+        /// <param name="remainPaiCount"></param>
+        /// <param name="haveIppatsu"></param>
+        /// <param name="firstCycleIppatsu"></param>
+        /// <param name="isKan"></param>
+        /// <param name="currentPlayer"></param>
+        /// <param name="currentBanker"></param>
         public MatchInformation(MaJiangLib.MatchType matchType,List<List<Pai>> qiPaiList, List<Pai> doraList, List<Pai> uraDoraList, int kangCount, WindType wind, int round, int honba, List<int> playerPoint, List<bool> isRiichi, List<bool> isDoubleRiichi, int remainPaiCount, List<bool> haveIppatsu, bool firstCycleIppatsu, List<bool> isKan, int currentPlayer, int currentBanker)
         {
             MatchType = matchType;
@@ -47,6 +68,7 @@ namespace MaJIangNet
             IsKan = isKan;
             CurrentPlayer = currentPlayer;
             CurrentBanker = currentBanker;
+            PlayerFuluList = new();  // [TODO]
         }
         // MatchType存在二义性:MaJiang.MatchType和System.IO.MatchType
 
@@ -118,5 +140,9 @@ namespace MaJIangNet
         /// 当前局的庄家序号
         /// </summary>
         public int CurrentBanker { get; set; }
+        /// <summary>
+        /// 副露牌列表
+        /// </summary>
+        public Dictionary<int, List<Group>> PlayerFuluList { get; set; }
     }
 }

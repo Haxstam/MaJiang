@@ -74,5 +74,9 @@ namespace MaJiangLib
         /// 当前局的庄家序号
         /// </summary>
         public int CurrentBanker { get; set; }
+        /// <summary>
+        /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
+        /// </summary>
+        public Dictionary<int, List<Group>> PlayerFuluList { get; set; }
     }
 }

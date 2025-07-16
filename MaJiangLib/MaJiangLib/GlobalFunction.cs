@@ -16,6 +16,7 @@ namespace MaJiangLib
      * 8. 介于红宝牌的特殊性,需要在所有鸣牌操作中对其进行区分
      * 9. 鸣牌考虑禁止食替,和牌/立直的判断放在一个方法内,吃/碰/明杠作为副露鸣牌放在一个方法内,加杠/暗杠/拔北作为自身行为放在一个方法里
      * 10.目前将门清/副露听牌的判断定义在CutTingPaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
+     * 11.流满判断考虑在matchInformation中记录,当某家被鸣牌时设定其为false,从而避免流局时判定
      */
 
     /// <summary>
@@ -213,32 +214,35 @@ namespace MaJiangLib
             {   // 从手牌中每张牌进行遍历,按照每两张进行判断
                 if (shouPaiList[i] == shouPaiList[i + 1])
                 {   // 即雀头/刻子,第一张和第二张牌相同,若有三张相同则为刻子
-                    if (shouPaiList[i] == shouPaiList[i + 2] && i < shouPaiList.Count - 2)
-                    {   //是刻子,可以碰/杠
-                        if (matchInformation.RemainPaiCount >= 1)
-                        {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
-                            if (matchInformation.KangCount <= 3)
-                            {   // 开杠数大于3则不允许继续开杠
-                                playerActions[PlayerAction.Gang].Add(new(
-                                    new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
-                                    new() { shouPaiList[i] },
-                                    PlayerAction.Gang
-                                    ));
+                    if (i < shouPaiList.Count - 2)
+                    {   // 至少其后有两张牌
+                        if (shouPaiList[i] == shouPaiList[i + 2])
+                        {   //是刻子,可以碰/杠
+                            if (matchInformation.RemainPaiCount >= 1)
+                            {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
+                                if (matchInformation.KangCount <= 3)
+                                {   // 开杠数大于3则不允许继续开杠
+                                    playerActions[PlayerAction.Gang].Add(new(
+                                        new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
+                                        new() { shouPaiList[i] },
+                                        PlayerAction.Gang
+                                        ));
+                                }
                             }
+                            playerActions[PlayerAction.Peng].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { shouPaiList[i] },
+                                PlayerAction.Peng
+                                ));
                         }
-                        playerActions[PlayerAction.Peng].Add(new(
-                            new() { shouPaiList[i], shouPaiList[i + 1] },
-                            new() { shouPaiList[i] },
-                            PlayerAction.Peng
-                            ));
-                    }
-                    else
-                    {   //是雀头,可以碰
-                        playerActions[PlayerAction.Peng].Add(new(
-                            new() { shouPaiList[i], shouPaiList[i + 1] },
-                            new() { shouPaiList[i] },
-                            PlayerAction.Peng
-                            ));
+                        else
+                        {   //是雀头,可以碰
+                            playerActions[PlayerAction.Peng].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { shouPaiList[i] },
+                                PlayerAction.Peng
+                                ));
+                        }
                     }
                 }
                 // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
@@ -257,7 +261,7 @@ namespace MaJiangLib
                         }
                         else if (shouPaiList[i].Number == 8)
                         {
-                            // 是8 9边张
+                            // 是8 9边张   
                             playerActions[PlayerAction.Chi].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
                                 new() { new(shouPaiList[i].Color, shouPaiList[i].Number - 1) },
@@ -351,7 +355,42 @@ namespace MaJiangLib
             }
             return playerActions;
         }
-
+        /// <summary>
+        /// 立直的判定,当前玩家未立直且有1000点且门清且牌山剩余牌数大于4时可以进行立直,此方法不考虑是否听牌,相关判断位于调用处
+        /// </summary>
+        /// <param name="shouPai">手牌</param>
+        /// <param name="matchInformation">比赛信息</param>
+        /// <returns>返回能否立直</returns>
+        public static bool RiichiJudge(ShouPai shouPai, IMatchInformation matchInformation)
+        {
+            return matchInformation.IsRiichi[shouPai.Player] == false && matchInformation.RemainPaiCount >= 4 && matchInformation.PlayerPoint[shouPai.Player] >= 1000 && shouPai.IsClosedHand;
+        }
+        /// <summary>
+        /// 流局满贯判定,即在荒牌流局的情况下存在玩家,其牌河仅为幺九牌且未被鸣牌
+        /// </summary>
+        /// <param name="matchInformation"></param>
+        /// <returns></returns>
+        public static bool NagashiManganJudge(IMatchInformation matchInformation, int player)
+        {
+            foreach (Pai pai in matchInformation.QiPaiList[player])
+            {
+                if (!(pai.Color == Color.Honor || pai.Number == 1 || pai.Number == 9))
+                {   // 弃牌全为幺九牌
+                    return false;
+                }
+            }
+            foreach (KeyValuePair<int, List<Group>> keyValuePair in matchInformation.PlayerFuluList)
+            {   // 没有别家鸣牌来源自该玩家
+                foreach (Group group in keyValuePair.Value)
+                {
+                    if (group.GroupType != GroupType.AnKang && group.FuluSource == player)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
         /// <summary>
         /// 切牌听牌的判定,用于判断当前手牌下,打出哪张牌可以进入听牌阶段,返回一个字典,存储所切的牌->对应的和牌列表->对应的面子并根据能否听牌返回bool
         /// </summary>
@@ -384,6 +423,7 @@ namespace MaJiangLib
                 return false;
             }
         }
+
         /// <summary>
         /// 判断该牌对于该玩家是否为役牌,需要当前比赛信息,牌的信息和玩家序号
         /// </summary>
@@ -458,7 +498,7 @@ namespace MaJiangLib
             {
                 // 先对牌按花色分类
                 List<Pai> mainPaiList = shouPai.ShouPaiList;
-                List<List<int>> coloredPaiList = new() { new(),new(),new(),new()};
+                List<List<int>> coloredPaiList = new() { new(), new(), new(), new() };
 
                 foreach (Pai pai in mainPaiList)
                 {

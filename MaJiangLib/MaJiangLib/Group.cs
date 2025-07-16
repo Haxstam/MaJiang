@@ -3,25 +3,59 @@
 namespace MaJiangLib
 {
     /// <summary>
-    /// 面子分组，由分组类型设定为Straight顺子,Triple刻子,Pair对子/雀头,Numbers存储组成的数字
+    /// 面子分组,定义了最基础的面子/雀头的属性
     /// </summary>
     public class Group
     {
         /// <summary>
-        /// 考虑花色的构造器
+        /// 非副露下的构造器,需要面子类型,花色,面子的牌列表
         /// </summary>
         /// <param name="groupType">面子类型</param>
         /// <param name="color">面子花色</param>
-        /// <param name="nums">面子数字</param>
+        /// <param name="pais">面子的牌</param>
         public Group(GroupType groupType, Color color, List<Pai> pais)
         {
             GroupType = groupType;
             Color = color;
             Pais = pais;
         }
+        /// <summary>
+        /// 副露的构造器,需要面子类型,花色,鸣牌来源及组成面子的手里的牌和别家的牌
+        /// </summary>
+        /// <param name="groupType">面子类型</param>
+        /// <param name="color">花色</param>
+        /// <param name="pais">自己手中的牌的列表</param>
+        /// <param name="player">所鸣牌的来源</param>
+        /// <param name="singlePai">所鸣的牌</param>
+        public Group(GroupType groupType, Color color, List<Pai> pais, int player, Pai singlePai)
+        {
+            GroupType = groupType;
+            Color = color;
+            Pais = pais;
+            Pais.Add(singlePai);
+            SinglePai = singlePai;
+            FuluSource = player;
+        }
+        /// <summary>
+        /// 面子类型
+        /// </summary>
         public GroupType GroupType { get; set; }
+        /// <summary>
+        /// 组成面子的牌的列表
+        /// </summary>
         public List<Pai> Pais { get; set; }
+        /// <summary>
+        /// 面子花色
+        /// </summary>
         public Color Color { get; set; }
+        /// <summary>
+        /// 该面子的来源,门清的面子来源均为自己,如果是副露,则为其所鸣牌的来源玩家
+        /// </summary>
+        public int? FuluSource { get; set; }
+        /// <summary>
+        /// 所鸣的单牌,仅用于副露下的面子
+        /// </summary>
+        public Pai? SinglePai { get; set; }
         /// <summary>
         /// 在役种判断中对刻子的判断较繁琐,通过该属性简化,当为刻子或杠子时,返回True
         /// </summary>
