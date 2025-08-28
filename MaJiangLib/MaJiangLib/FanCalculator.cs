@@ -105,7 +105,7 @@ namespace MaJiangLib
         /// </summary>
         /// <param name="groups">和牌时的组</param>
         /// <param name="singlePai">和牌时手牌外的第十四张牌</param>
-        /// <returns></returns>
+        /// <returns>返回RonPoint即和牌信息</returns>
         public static RonPoint RonPointCalculator(HePaiData hePaiData)
         {
             List<FanData> YakuList = new();
@@ -363,6 +363,11 @@ namespace MaJiangLib
                     {   // 最后符数向上进位到十位
                         fu += 10 - fu % 10;
                     }
+                    if (!hePaiData.IsClosedHand && fu < 30)
+                    {
+                        // 副露后符数下限为30
+                        fu = 30;
+                    }
                 }
                 ronPoint = new(fanCount, fu, basePoint, YakuList);
             }
@@ -421,30 +426,34 @@ namespace MaJiangLib
         {
             int doraCount = 0;
             List<Pai> doraList = DoraListCalculator(MatchInformation.DoraList);
-            foreach (Group group in data.Groups)
+            // 如果存在多张相同的宝牌,对于每张宝牌要单独计算
+            foreach (Pai doraPai in doraList)
             {
-                if (group.IsTriple)
+                foreach (Group group in data.Groups)
                 {
-                    if (doraList.Contains(group.Pais[0]))
+                    if (group.IsTriple)
                     {
-                        if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                        if (doraPai == group.Pais[0])
                         {
-                            doraCount += 3;
-                        }
-                        else
-                        {
-                            doraCount += 4;
+                            if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                            {
+                                doraCount += 3;
+                            }
+                            else
+                            {
+                                doraCount += 4;
+                            }
                         }
                     }
-                }
-                else
-                {
-                    foreach (Pai pai in group.Pais)
+                    else
                     {
-                        // 寻找符合数字和花色的牌
-                        if (doraList.Contains(pai))
+                        foreach (Pai pai in group.Pais)
                         {
-                            doraCount++;
+                            // 寻找符合数字和花色的牌
+                            if (pai == doraPai)
+                            {
+                                doraCount++;
+                            }
                         }
                     }
                 }
@@ -487,7 +496,7 @@ namespace MaJiangLib
 
         }
         /// <summary>
-        /// 里宝牌判定,和宝牌相同,要求立直
+        /// 里宝牌判定,和宝牌相同,但要求立直
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
@@ -497,31 +506,35 @@ namespace MaJiangLib
             if (MatchInformation.IsRiichi[data.Player] == true)
             {
                 int doraCount = 0;
-                List<Pai> doraList = DoraListCalculator(MatchInformation.UraDoraList);
-                foreach (Group group in data.Groups)
+                List<Pai> doraList = DoraListCalculator(MatchInformation.DoraList);
+                // 如果存在多张相同的宝牌,对于每张宝牌要单独计算
+                foreach (Pai doraPai in doraList)
                 {
-                    if (group.IsTriple)
+                    foreach (Group group in data.Groups)
                     {
-                        if (doraList.Contains(group.Pais[0]))
+                        if (group.IsTriple)
                         {
-                            if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                            if (doraPai == group.Pais[0])
                             {
-                                doraCount += 3;
-                            }
-                            else
-                            {
-                                doraCount += 4;
+                                if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                                {
+                                    doraCount += 3;
+                                }
+                                else
+                                {
+                                    doraCount += 4;
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        foreach (Pai pai in group.Pais)
+                        else
                         {
-                            // 寻找符合数字和花色的牌
-                            if (doraList.Contains(pai))
+                            foreach (Pai pai in group.Pais)
                             {
-                                doraCount++;
+                                // 寻找符合数字和花色的牌
+                                if (pai == doraPai)
+                                {
+                                    doraCount++;
+                                }
                             }
                         }
                     }
@@ -1252,7 +1265,7 @@ namespace MaJiangLib
             bool isTsuuiiso = true;
             foreach (Group group in data.Groups)
             {   // 排除不是刻子的面子,或是面子牌既不是幺九也不是字牌的和牌
-                if ((!group.IsTriple && !(group.GroupType == GroupType.Pair))|| (group.Pais[0].Number != 1 && group.Pais[0].Number != 9 && group.Color != Color.Honor))
+                if ((!group.IsTriple && !(group.GroupType == GroupType.Pair)) || (group.Pais[0].Number != 1 && group.Pais[0].Number != 9 && group.Color != Color.Honor))
                 {
                     return new(0, YakuType.Empty);
                 }

@@ -28,6 +28,8 @@ namespace MaJIangNet
             CurrentBanker = 1;
             CurrentPlayer = 1;
             PlayerFuluList = new();
+            KangMark = 0;
+            CurrentStageType = StageType.ClaimStage;
         }
         /// <summary>
         /// 暂不定义副露牌列表
@@ -49,7 +51,7 @@ namespace MaJIangNet
         /// <param name="isKan"></param>
         /// <param name="currentPlayer"></param>
         /// <param name="currentBanker"></param>
-        public MatchInformation(MaJiangLib.MatchType matchType,List<List<Pai>> qiPaiList, List<Pai> doraList, List<Pai> uraDoraList, int kangCount, WindType wind, int round, int honba, List<int> playerPoint, List<bool> isRiichi, List<bool> isDoubleRiichi, int remainPaiCount, List<bool> haveIppatsu, bool firstCycleIppatsu, List<bool> isKan, int currentPlayer, int currentBanker)
+        public MatchInformation(MaJiangLib.MatchType matchType,List<List<Pai>> qiPaiList, List<Pai> doraList, List<Pai> uraDoraList, int kangCount, WindType wind, int round, int honba, List<int> playerPoint, List<bool> isRiichi, List<bool> isDoubleRiichi, int remainPaiCount, List<bool> haveIppatsu, bool firstCycleIppatsu, List<bool> isKan, int currentPlayer, int currentBanker, int kangMark, StageType stageType)
         {
             MatchType = matchType;
             QiPaiList = qiPaiList;
@@ -68,7 +70,9 @@ namespace MaJIangNet
             IsKan = isKan;
             CurrentPlayer = currentPlayer;
             CurrentBanker = currentBanker;
-            PlayerFuluList = new();  // [TODO]
+            PlayerFuluList = new();
+            KangMark = kangMark;
+            CurrentStageType = stageType; // [TODO] 映射太麻烦,考虑修改
         }
         // MatchType存在二义性:MaJiang.MatchType和System.IO.MatchType
 
@@ -144,5 +148,7 @@ namespace MaJIangNet
         /// 副露牌列表
         /// </summary>
         public Dictionary<int, List<Group>> PlayerFuluList { get; set; }
+        public int KangMark { get; set; }
+        public StageType CurrentStageType { get; set; }
     }
 }

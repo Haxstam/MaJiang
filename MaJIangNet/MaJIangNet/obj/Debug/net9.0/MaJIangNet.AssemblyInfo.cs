@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b2d8fb82ffc1d6887e5d40b7e33eab583f8f0117")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+40fd6221f887b5092afa8e61d0cfa6b091cd1e8b")]
 [assembly: System.Reflection.AssemblyProductAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MaJIangNet")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

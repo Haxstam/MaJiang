@@ -27,6 +27,10 @@ namespace MaJiangLib
         /// </summary>
         public int KangCount { get; set; }
         /// <summary>
+        /// 开杠玩家的标记,通过该变量判断是否有多个玩家开杠,第一位玩家开杠时设定此为玩家编号,若存在其他玩家开杠则设定为-1,用于判断四杠流局
+        /// </summary>
+        public int KangMark { get; set; }
+        /// <summary>
         /// 当前风场
         /// </summary>
         public WindType Wind { get; set; }
@@ -67,9 +71,13 @@ namespace MaJiangLib
         /// </summary>
         public List<bool> IsKan { get; set; }
         /// <summary>
-        /// 当前等待操作(打出一张牌)的玩家
+        /// 当前正进行回合的玩家,当前玩家结束阶段完毕后,转至下一玩家的舍牌阶段
         /// </summary>
         public int CurrentPlayer { get; set; }
+        /// <summary>
+        /// 当前正进行回合的玩家的阶段类型
+        /// </summary>
+        public StageType CurrentStageType { get; set; }
         /// <summary>
         /// 当前局的庄家序号
         /// </summary>

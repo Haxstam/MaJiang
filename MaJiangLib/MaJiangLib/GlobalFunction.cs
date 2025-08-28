@@ -10,15 +10,73 @@ namespace MaJiangLib
      * 2. 效率问题,优化听牌判断和番数的判断
      * 3. 限制域问题,修改修饰符减少成员暴露
      * 4. 变量类型问题,尽可能减少泛型List的使用
+     * 
      * 5. 因为Group类也用于算法,考虑分离以合并Group内的成员 [目前已分离为GlobalFunction.GFSGroup 和 Group]
+     * 
      * 6. 国士无双不好判断,目前如果为国士无双十三面,则和牌所对应牌为z8(字牌的第八种),从而使得听牌判断方便返回
      * 7. 对于多重牌型,比如三个相邻的刻子既可以当作三个顺子也可以当作三个刻子,目前在听牌判断中通过分别优先考虑顺子/刻子来满足所有可能
      * 8. 介于红宝牌的特殊性,需要在所有鸣牌操作中对其进行区分
+     * 
      * 9. 鸣牌考虑禁止食替,和牌/立直的判断放在一个方法内,吃/碰/明杠作为副露鸣牌放在一个方法内,加杠/暗杠/拔北作为自身行为放在一个方法里
      * 10.目前将门清/副露听牌的判断定义在CutTingPaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
      * 11.流满判断考虑在matchInformation中记录,当某家被鸣牌时设定其为false,从而避免流局时判定
+     * 
+     * 12.目前暂定单个玩家切牌时分三个阶段->舍牌阶段,响应阶段和结束阶段
+     *    玩家摸牌或响应别家牌时进入舍牌阶段,可加杠/拔北/暗杠/立直/自摸/九种九牌流局
+     *    打出牌/开杠/拔北后进入响应阶段,可被其他家吃碰杠荣和
+     *    如果拔北/开杠后响应阶段无人响应,再进入舍牌阶段并添加岭上标记
+     *    如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
+     *    
+     * 13.流局优先级:
+     *    四杠散了>四家立直>四风连打,以上途中流局均优先于荒牌流局
+     *    第一巡四家均立直且宣言牌都为同一种风牌,北家立直并支付1000点后按四家立直流局
+     *    牌山剩余最后一张,当前已有两人及以上开三杠,玩家开四杠后舍牌时无人荣和,按四杠散了流局,不计算罚符
      */
 
+    /// <summary>
+    /// 玩家切牌时的阶段类型,分为舍牌阶段,响应阶段和结束阶段
+    /// </summary>
+    public enum StageType
+    {
+        /// <summary>
+        /// 玩家摸牌或响应别家牌时进入舍牌阶段,可加杠/拔北/暗杠/立直/自摸/九种九牌流局
+        /// </summary>
+        DiscardStage,
+        /// <summary>
+        /// 打出牌/开杠/拔北后进入响应阶段,可被其他家吃碰杠荣和
+        /// </summary>
+        ClaimStage,
+        /// <summary>
+        /// 如果拔北/开杠后响应阶段无人响应,再进入舍牌阶段并添加岭上标记;如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
+        /// </summary>
+        EndStage,
+    }
+    /// <summary>
+    /// 流局类型,包含五种-荒牌流局,九种九牌,四杠散了,四家立直,四风连打
+    /// </summary>
+    public enum DrawType
+    {
+        /// <summary>
+        /// 荒牌流局:当剩余牌为0时最后一位玩家打出牌后无人和牌时触发,需要判断听牌罚符和流局满贯
+        /// </summary>
+        DeadWallDraw,
+        /// <summary>
+        /// 九种九牌:第一巡无人鸣牌情况下,有玩家手牌包含九种及以上的幺九牌且选择流局时触发
+        /// </summary>
+        NineTerminalsDraw,
+        /// <summary>
+        /// 四杠散了:当开杠人数大于1且开第4杠的玩家打出牌后无人和牌时触发,单个玩家开4杠不会触发
+        /// </summary>
+        FourKansDraw,
+        /// <summary>
+        /// 四家立直:当四家都宣布立直且最后立直玩家的立直宣言牌无人荣和时触发,三麻无此规则
+        /// </summary>
+        FourRiichiDraw,
+        /// <summary>
+        /// 四风连打:第一巡无人鸣牌时,庄家和所有子家都打出同一种风牌且北家打出后无人和牌时触发,三麻无此规则
+        /// </summary>
+        FourWindsDraw,
+    }
     /// <summary>
     /// 比赛类型,标记本场比赛是三麻还是四麻,是东场还是半庄
     /// </summary>
@@ -185,6 +243,9 @@ namespace MaJiangLib
             /// </summary>
             public PlayerAction PlayerAction { get; set; }
         }
+        /// <summary>
+        /// 玩家在自己切牌时的非副露行为,目前仅包含加杠/暗杠/拔北
+        /// </summary>
         public class SelfActionData
         {
             public SelfActionData(List<Pai> pais, PlayerAction playerAction)
@@ -194,6 +255,55 @@ namespace MaJiangLib
             }
             public List<Pai> Pais { get; set; }
             public PlayerAction PlayerAction { get; set; }
+        }
+        /// <summary>
+        /// 流局判断,判断荒牌流局,四风连打,四杠散了,四家立直,九种九牌属于玩家的主动操作,不在此处判断
+        /// </summary>
+        /// <param name="drawType">流局类型</param>
+        /// <param name="matchInformation">比赛信息</param>
+        /// <returns>返回是否流局</returns>
+        public static bool DrawJudge(out DrawType? drawType, IMatchInformation matchInformation)
+        {
+            if (matchInformation.CurrentStageType == StageType.EndStage)
+            {   // 以上流局判断都必须在结束阶段内进行
+                List<List<Pai>> qiPaiList = matchInformation.QiPaiList;
+
+                if (matchInformation.KangCount == 4 && matchInformation.KangMark == -1)
+                {   // 存在两名及以上玩家开四杠,按四杠散了流局,为最优先判断
+                    drawType = DrawType.FourKansDraw;
+                    return true;
+                }
+                else if (!matchInformation.IsRiichi.Exists(player => player = false))
+                {   // 结束阶段时有四家均立直,按四家立直流局,优先于四风连打
+                    drawType = DrawType.FourRiichiDraw;
+                    return true;
+                }
+                else if (
+                    matchInformation.FirstCycleIppatsu &&
+                    matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth &&
+                    matchInformation.CurrentPlayer == 3
+                    ) // 无人鸣牌,四人麻将,是北家的结束阶段,判断四风连打
+                {
+                    if (
+                        qiPaiList[0][0].Color == Color.Honor && qiPaiList[0][0].Number >= 1 && qiPaiList[0][0].Number <= 4 &&
+                        qiPaiList[1][0] == qiPaiList[0][0] &&
+                        qiPaiList[2][0] == qiPaiList[0][0] &&
+                        qiPaiList[3][0] == qiPaiList[0][0]
+                        ) // 庄家第一张舍牌为风牌,且子家的第一张舍牌与其相同,分开以避免在第一巡访问到不存在的子家舍牌
+                    {
+                        drawType = DrawType.FourWindsDraw;
+                        return true;
+                    }
+                }
+                else if (matchInformation.RemainPaiCount == 0) // 进入结束阶段且剩余牌为0,为荒牌流局,优先级最低
+                {
+                    drawType = DrawType.DeadWallDraw;
+                    return true;
+                }
+            }
+            // 不符合任何一种流局情况,返回null
+            drawType = null;
+            return false;
         }
         /// <summary>
         /// 用于判断其他玩家打出牌时,当前玩家所能进行的操作,需要当前手牌信息,每当玩家切换自己的手牌时更新
