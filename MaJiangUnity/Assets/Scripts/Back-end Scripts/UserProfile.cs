@@ -2,7 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player : MonoBehaviour
+/// <summary>
+/// 表示用户自己的基本信息
+/// </summary>
+public class UserProfile : MonoBehaviour
 {
     // Start is called before the first frame update
     void Start()
@@ -15,10 +18,9 @@ public class Player : MonoBehaviour
     {
         
     }
-    
-    public bool Chi()
-    {
+    /// <summary>
+    /// 用户名
+    /// </summary>
+    public string Name { get; set; }
 
-        return false;
-    }
 }
