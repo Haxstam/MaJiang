@@ -1,26 +1,17 @@
-using System.Collections;
-using System.Collections.Generic;
+using MaJiangLib;
 using UnityEngine;
 
 /// <summary>
 /// 表示用户自己的基本信息
 /// </summary>
-public class UserProfile : MonoBehaviour
+public class UserProfile
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
     /// <summary>
     /// 用户名
     /// </summary>
     public string Name { get; set; }
-
+    /// <summary>
+    /// 性别
+    /// </summary>
+    public Gender UserGender { get; set; }
 }

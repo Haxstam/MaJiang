@@ -1,9 +1,11 @@
-﻿using System;
+﻿using JetBrains.Annotations;
 using System.Collections.Generic;
-using System.Text;
 
 namespace MaJiangLib
 {
+    /// <summary>
+    /// 比赛信息,用于传递对局中所有玩家都可见的公共信息
+    /// </summary>
     public interface IMatchInformation
     {
         /// <summary>
@@ -69,11 +71,11 @@ namespace MaJiangLib
         /// <summary>
         /// 刚摸完岭上牌的状态,拔北或开杠后设定为True,打出牌后设定为False
         /// </summary>
-        public List<bool> IsKan { get; set; }
+        public List<bool> IsKang { get; set; }
         /// <summary>
         /// 当前正进行回合的玩家,当前玩家结束阶段完毕后,转至下一玩家的舍牌阶段
         /// </summary>
-        public int CurrentPlayer { get; set; }
+        public int CurrentPlayerIndex { get; set; }
         /// <summary>
         /// 当前正进行回合的玩家的阶段类型
         /// </summary>
@@ -81,7 +83,7 @@ namespace MaJiangLib
         /// <summary>
         /// 当前局的庄家序号
         /// </summary>
-        public int CurrentBanker { get; set; }
+        public int CurrentBankerIndex { get; set; }
         /// <summary>
         /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
         /// </summary>

@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Interfaces\IMatchInformaiton.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\QiPaiDui.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\MainMatchControl.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Player.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Group.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Client.cs" />
@@ -67,12 +68,13 @@
     <Compile Include="Assets\Scripts\Back-end Scripts\Pai.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\UserProfile.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\ShouPai.cs" />
+    <Compile Include="Assets\Scripts\Interfaces\IPlayerInformation.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\FanCalculator.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\GlobalFunction.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\PackCoder.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Server.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerAction.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\PlayerAction.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\PlayerActionData.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

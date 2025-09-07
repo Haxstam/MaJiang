@@ -1,9 +1,7 @@
-using MaJiangLib;
 using System;
 using System.Linq;
 using System.Net;
 using System.Text;
-using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
 
 namespace MaJiangLib
@@ -33,13 +31,17 @@ namespace MaJiangLib
          * (4) "_SA_" 社交行为,表示为个人信息/好友相关
          * 
          * 7. 玩家操作传输仅传输其所做出的操作,对于玩家能否进行哪些操作则是玩家本地客户端/服务端同步进行计算,服务端在确定操作合规时再进行
-         * 8.[TODO] 考虑修改为工厂形式,重构包生成过程
+         * 8. [TODO] 考虑修改为工厂形式,重构包生成过程
+         * 
+         * 9. 对于对局信息,目前设定是对于MainMatchControl,其有一个完全转换为Byte[]的方法,但因为信息很多故避免使用此方法
+         *    对局信息的更新是按照单次行为在本地的演算来获取的,服务器和用户端之间的对局信息同步则尽可能避免
+         *    
          */
 
         public static string PackHeadStr { get; set; } = "HaxMajPk";
         public static string PackEndStr { get; set; } = "EndPack_";
 
-        
+
         /// <summary>
         /// 空包生成方法,需要用户名,自身IPv4地址
         /// </summary>
@@ -89,7 +91,45 @@ namespace MaJiangLib
             int length = signalByte.Length + playerActionByte.Length + 4;
             byte[] lengthByte = BitConverter.GetBytes(length);
             byte[] finalByte = signalByte.Concat(lengthByte).Concat(playerActionByte).ToArray();
+            ReplaceBytes(pack, finalByte, 104);
             return pack;
+        }
+        /// <summary>
+        /// 用于判断包是否合法(包头尾正确,大小正确),如果合法则返回True,反之则返回False
+        /// </summary>
+        /// <param name="pack"></param>
+        /// <returns>如果合法则返回True,反之则返回False</returns>
+        public static bool IsLegalPack(byte[] pack)
+        {
+            if (pack.Length == 512 && Encoding.UTF8.GetString(pack, 0, 8) == PackHeadStr && Encoding.UTF8.GetString(pack, 504, 8) == PackEndStr)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        /// <summary>
+        /// "_PA_" 玩家行为解包器,需要包,输出玩家操作数据和是否成功
+        /// </summary>
+        /// <param name="pack">要解的包</param>
+        /// <param name="playerActionData">输出的玩家数据类型</pa
+        /// ram>
+        /// <returns>如果解包成功,结构正确则返回True,反之返回False</returns>
+        public static bool PlayerActionDecode(byte[] pack, out PlayerActionData playerActionData)
+        {
+            playerActionData = null;
+            if (Encoding.UTF8.GetString(pack, 104, 4) == "_PA_")
+            {
+                int length = BitConverter.ToInt32(pack, 108);
+                playerActionData = PlayerActionData.GetPlayerActionData(pack, 112);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 

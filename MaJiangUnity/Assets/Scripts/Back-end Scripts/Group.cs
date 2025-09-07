@@ -51,11 +51,11 @@ namespace MaJiangLib
         /// <summary>
         /// 该面子的来源,门清的面子来源均为自己,如果是副露,则为其所鸣牌的来源玩家
         /// </summary>
-        public int? FuluSource { get; set; }
+        public int FuluSource { get; set; }
         /// <summary>
         /// 所鸣的单牌,仅用于副露下的面子
         /// </summary>
-        public Pai? SinglePai { get; set; }
+        public Pai SinglePai { get; set; }
         /// <summary>
         /// 在役种判断中对刻子的判断较繁琐,通过该属性简化,当为刻子或杠子时,返回True
         /// </summary>

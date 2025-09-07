@@ -21,11 +21,39 @@ namespace MaJiangLib
      * 10.目前将门清/副露听牌的判断定义在CutTingPaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
      * 11.流满判断考虑在matchInformation中记录,当某家被鸣牌时设定其为false,从而避免流局时判定
      * 
-     * 12.目前暂定单个玩家切牌时分三个阶段->舍牌阶段,响应阶段和结束阶段
-     *    玩家摸牌或响应别家牌时进入舍牌阶段,可加杠/拔北/暗杠/立直/自摸/九种九牌流局
-     *    打出牌/开杠/拔北后进入响应阶段,可被其他家吃碰杠荣和
-     *    如果拔北/开杠后响应阶段无人响应,再进入舍牌阶段并添加岭上标记
-     *    如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
+     * 12.单巡阶段的基准是客户端和服务端之间的交互点
+     *    开始->服务端,客户端连接
+     *    开始阶段: 服务端向客户端发送初始化信息,自身进入开始阶段
+     *              
+     *              客户端接收后发送响应信息,自身进入开始阶段
+     *              
+     *    舍牌阶段: 服务端确认客户端已初始化,向客户端发送摸牌信息和可进行的操作信息,自身进入舍牌阶段
+     *              
+     *              客户端接收摸牌后返回自身操作,自身进入舍牌阶段
+     *              
+     *    分支-1:   客户端确认自摸/流局,服务端接收后广播,自身标记对局结束
+     *              
+     *              客户端接收后处理,自身标记对局结束[END]
+     *              
+     *    响应阶段: 服务端确认客户端的操作,将玩家操作广播给所有玩家,自身进入响应阶段
+     *              
+     *              客户端接收信息后处理并返回,自身进入响应阶段
+     *              
+     *    分支-1:   服务端处理发现存在鸣牌,将玩家操作广播给所有玩家,如开杠/拔北返回岭上牌,自身进入舍牌阶段
+     *              
+     *              客户端接收鸣牌信息,做出处理后返回,自身进入舍牌阶段-->进入响应阶段/舍牌阶段分支-1
+     *              
+     *    分支-2:   服务端处理发现存在和牌,将玩家操作广播给所有玩家,自身标记对局结束
+     *              
+     *              客户端接收消息后,自身标记对局结束[END]
+     *              
+     *    结束阶段: 服务端处理发现无人鸣牌,判断流局,没有流局,广播结果,自身进入结束阶段
+     *              
+     *              客户端接收后处理并返回,自身进入结束阶段-->进入舍牌阶段分支
+     *              
+     *    分支-1:   服务端处理后发现存在流局,进行广播,自身标记对局结束
+     *              
+     *              客户端接收后处理,自身标记对局结束[END]
      *    
      * 13.流局优先级:
      *    四杠散了>四家立直>四风连打,以上途中流局均优先于荒牌流局
@@ -33,13 +61,29 @@ namespace MaJiangLib
      *    牌山剩余最后一张,当前已有两人及以上开三杠,玩家开四杠后舍牌时无人荣和,按四杠散了流局,不计算罚符
      *    
      * 14.因为架构问题,目前考虑取消MaJiangLib
+     * 
+     * 15.为了便于传输,尽量所有使得涉及到传输的数据避免使用负数作为标记
      */
+
+    /// <summary>
+    /// 性别:男,女,保密..
+    /// </summary>
+    public enum Gender
+    {
+        Male,
+        Female,
+        Other,
+    }
 
     /// <summary>
     /// 玩家切牌时的阶段类型,分为舍牌阶段,响应阶段和结束阶段
     /// </summary>
     public enum StageType
     {
+        /// <summary>
+        /// 开始阶段,仅用于触发摸牌行为/标记,一般立刻结束进入舍牌阶段
+        /// </summary>
+        StartStage,
         /// <summary>
         /// 玩家摸牌或响应别家牌时进入舍牌阶段,可加杠/拔北/暗杠/立直/自摸/九种九牌流局
         /// </summary>
@@ -49,7 +93,7 @@ namespace MaJiangLib
         /// </summary>
         ClaimStage,
         /// <summary>
-        /// 如果拔北/开杠后响应阶段无人响应,再进入舍牌阶段并添加岭上标记;如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
+        /// 如果拔北/开杠后响应阶段无人响应,再进入摸牌阶段并添加岭上标记;如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
         /// </summary>
         EndStage,
     }
@@ -120,15 +164,23 @@ namespace MaJiangLib
     {
         Chi,
         Peng,
-        AnGang,
-        MingGang,
-        JiaGang,
+        AnKang,
+        MingKang,
+        JiaKang,
     }
     /// <summary>
-    /// 玩家所能进行的操作,包含吃,碰,杠,立直,拔北,荣和,自摸,流局
+    /// 玩家所能进行的操作,包含切牌,吃,碰,杠,立直,拔北,荣和,自摸,流局
     /// </summary>
     public enum PlayerAction : byte
     {
+        /// <summary>
+        /// 手切
+        /// </summary>
+        HandCut,
+        /// <summary>
+        /// 摸切
+        /// </summary>
+        TakeCut,
         /// <summary>
         /// 吃
         /// </summary>
@@ -140,7 +192,7 @@ namespace MaJiangLib
         /// <summary>
         /// 杠
         /// </summary>
-        Gang,
+        Kang,
         /// <summary>
         /// 立直
         /// </summary>
@@ -253,6 +305,7 @@ namespace MaJiangLib
         {
             // [TODO]暂时先实现四人有赤宝情况
             // 每次生成牌山都要这样生成一个列表,考虑将其作为一个静态变量放在类中跳过生成
+            // 对于四人麻将,总共牌数136张,其中王牌14张
             List<Pai> paiList = new List<Pai>();
             for (int i = 1; i < 10; i++)
             {   // 添加1w~9w,1p~9p,1s~9s,其中5w,5p,5s中有一张牌分别被一张0w,0p,0s替代
@@ -305,7 +358,7 @@ namespace MaJiangLib
                 new(Color.Honor,6),
                 new(Color.Honor,7),
             };
-        
+
         ///// <summary>
         ///// 鸣牌数据,存储可进行吃碰杠时,对应的牌的列表和所要鸣的牌,对应的操作
         ///// </summary>
@@ -363,7 +416,7 @@ namespace MaJiangLib
             {   // 以上流局判断都必须在结束阶段内进行
                 List<List<Pai>> qiPaiList = matchInformation.QiPaiList;
 
-                if (matchInformation.KangCount == 4 && matchInformation.KangMark == -1)
+                if (matchInformation.KangCount == 4 && matchInformation.KangMark == 5)
                 {   // 存在两名及以上玩家开四杠,按四杠散了流局,为最优先判断
                     drawType = DrawType.FourKansDraw;
                     return true;
@@ -376,7 +429,7 @@ namespace MaJiangLib
                 else if (
                     matchInformation.FirstCycleIppatsu &&
                     matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth &&
-                    matchInformation.CurrentPlayer == 3
+                    matchInformation.CurrentPlayerIndex == 3
                     ) // 无人鸣牌,四人麻将,是北家的结束阶段,判断四风连打
                 {
                     if (
@@ -411,7 +464,7 @@ namespace MaJiangLib
             {   // 鸣牌操作仅限吃碰杠
                 { PlayerAction.Chi, new()},
                 { PlayerAction.Peng, new()},
-                { PlayerAction.Gang, new()},
+                { PlayerAction.Kang, new()},
             };
             List<Pai> shouPaiList = shouPai.ShouPaiList;
             shouPaiList.Sort();
@@ -427,10 +480,10 @@ namespace MaJiangLib
                             {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
                                 if (matchInformation.KangCount <= 3)
                                 {   // 开杠数大于3则不允许继续开杠
-                                    playerActions[PlayerAction.Gang].Add(new(
+                                    playerActions[PlayerAction.Kang].Add(new(
                                         new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
                                         new() { shouPaiList[i] },
-                                        PlayerAction.Gang
+                                        PlayerAction.Kang
                                         ));
                                 }
                             }
@@ -452,7 +505,7 @@ namespace MaJiangLib
                 }
                 // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
                 if ((matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
-                    && (matchInformation.CurrentPlayer == shouPai.Player - 1 || matchInformation.CurrentPlayer == shouPai.Player + 3))
+                    && (matchInformation.CurrentPlayerIndex == shouPai.Player - 1 || matchInformation.CurrentPlayerIndex == shouPai.Player + 3))
                 {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌
                     if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 1) && shouPaiList[i].Color != Color.Honor)
                     {   // 即两面/边张,第一张牌和第二张牌相邻且同色且都不是字牌
@@ -508,7 +561,7 @@ namespace MaJiangLib
             paiList.Sort();
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
             {
-                 { PlayerAction.Gang, new()},
+                 { PlayerAction.Kang, new()},
                  { PlayerAction.BaBei, new()},
                  { PlayerAction.Draw, new()},
             };
@@ -532,12 +585,12 @@ namespace MaJiangLib
             {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
                 if (matchInformation.KangCount <= 3)
                 {   // 开杠数大于3则不允许继续开杠
-                    List<Pai> gangPaiList = new();
+                    List<Pai> KangPaiList = new();
                     foreach (Group fuluGroup in shouPai.FuluPaiList)
                     {   // 获取所有副露的明刻,从而获取那几张牌可以用来加杠
                         if (fuluGroup.GroupType == GroupType.Triple)
                         {
-                            gangPaiList.Add(fuluGroup.Pais[0]);
+                            KangPaiList.Add(fuluGroup.Pais[0]);
                         }
                     }
                     for (int i = 0; i < paiList.Count; i++)
@@ -546,17 +599,17 @@ namespace MaJiangLib
                         {   // 暗杠,如果存在四张相同的牌,那么可以进行暗杠
                             if (paiList[i] == paiList[i + 1] && paiList[i] == paiList[i + 2] && paiList[i] == paiList[i + 3])
                             {
-                                playerActions[PlayerAction.Gang].Add(new(
+                                playerActions[PlayerAction.Kang].Add(new(
                                     new() { paiList[i], paiList[i + 1], paiList[i + 2], paiList[i + 3], },
-                                    PlayerAction.Gang
+                                    PlayerAction.Kang
                                     ));
                             }
                         }
-                        if (gangPaiList.Contains(paiList[i]))
+                        if (KangPaiList.Contains(paiList[i]))
                         {   // 加杠,如果存在和刻子相同的牌,则可以进行加杠
-                            playerActions[PlayerAction.Gang].Add(new(
+                            playerActions[PlayerAction.Kang].Add(new(
                                  new() { paiList[i], },
-                                 PlayerAction.Gang
+                                 PlayerAction.Kang
                                  ));
                         }
                     }
@@ -1252,7 +1305,7 @@ namespace MaJiangLib
                 return TripleDFS(countList);
             }
         }
-    
+
         /// <summary>
         /// 字节替换,需要目标字节,短字节和索引
         /// </summary>

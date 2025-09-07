@@ -15,7 +15,7 @@ namespace MaJiangLib
             ShouPaiList = new();
             FuluPaiList = new();
         }
-        
+
         /// <summary>
         /// 标记该手牌所属的玩家
         /// </summary>
@@ -24,6 +24,10 @@ namespace MaJiangLib
         /// 手牌列表,不超过13枚
         /// </summary>
         public List<Pai> ShouPaiList { get; set; }
+        /// <summary>
+        /// 摸牌时所摸到的单张牌
+        /// </summary>
+        public Pai SinglePai { get; set; }
         /// <summary>
         /// 副露牌列表,按面子分组,不超过4组
         /// </summary>

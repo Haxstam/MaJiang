@@ -1,11 +1,8 @@
 using MaJiangLib;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
-using UnityEditor.Networking.PlayerConnection;
 using UnityEngine;
-
 public class Client : MonoBehaviour
 {
     /// <summary>
@@ -15,7 +12,7 @@ public class Client : MonoBehaviour
     /// <summary>
     /// 客户端TCP连接缓存
     /// </summary>
-    private byte[] ClientBuffer {  get; set; } = new byte[8192];
+    private byte[] ClientBuffer { get; set; } = new byte[8192];
     /// <summary>
     /// 客户端TCP数据流
     /// </summary>
@@ -25,19 +22,31 @@ public class Client : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
     // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyUp(KeyCode.L))
         {
-            TimeOutConnectAsync("127.0.0.1",23456);
+            TimeOutConnectAsync("127.0.0.1", 23456);
         }
         if (Input.GetKeyUp(KeyCode.M))
         {
-            byte[] bytes = PackCoder.EmptyPack("Haxstam",IPAddress.Parse("127.0.0.1"));
-            ClientStream.Write(bytes);
+            byte[] bytes = PackCoder.EmptyPack("Haxstam", IPAddress.Parse("127.0.0.1"));
+            byte[] testData = PackCoder.PlayerActionPack(bytes, new
+                (
+                new() { new(MaJiangLib.Color.Bamboo, 4), new(MaJiangLib.Color.Bamboo, 5, true) },
+                new() { new(MaJiangLib.Color.Bamboo, 3) },
+                PlayerAction.Chi
+                )
+                );
+            ClientStream.Write(testData);
+        }
+        if (Input.GetKeyUp(KeyCode.S))
+        {
+            Debug.Log(ClientStream);
+            Debug.Log(MainClient.Connected);
         }
     }
 
@@ -47,18 +56,19 @@ public class Client : MonoBehaviour
     /// <param name="IP">要连接的IP地址,需要字符串</param>
     /// <param name="Port">所连接的端口</param>
     /// <returns></returns>
-    public async Task<bool> TimeOutConnectAsync(string IP, int Port)
+    public async void TimeOutConnectAsync(string IP, int Port)
     {
         IPAddress IPAddress = IPAddress.Parse(IP);
         // 超时Task,如果10s后仍未连接成功,返回false
         Task timeoutTask = Task.Delay(10000);
-        Task connectTask =  MainClient.ConnectAsync(IPAddress, Port);
+        Task connectTask = MainClient.ConnectAsync(IPAddress, Port);
         Task finishedTask = await Task.WhenAny(timeoutTask, connectTask);
         if (finishedTask == connectTask)
         {
             Debug.Log("Client Connected!");
             ClientStream = MainClient.GetStream();
-            return true;
+
+            //return true;
         }
         else
         {
@@ -66,7 +76,7 @@ public class Client : MonoBehaviour
             // [TODO] 但再次连接就必须重启Client
             MainClient.Close();
             Debug.Log("TimeOut!");
-            return false;
+            //return false;
         }
     }
 }

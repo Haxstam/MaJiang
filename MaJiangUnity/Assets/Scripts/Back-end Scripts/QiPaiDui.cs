@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace MaJiangLib
 {
@@ -10,7 +8,7 @@ namespace MaJiangLib
     public class QiPaiDui
     {
 
-        public QiPaiDui(int camp) 
+        public QiPaiDui(int camp)
         {
             Camp = camp;
             PaiDui = new();

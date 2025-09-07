@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 using static MaJiangLib.FanCalculator;
 
 namespace MaJiangLib
@@ -10,7 +8,7 @@ namespace MaJiangLib
     /// </summary>
     public class RonPoint
     {
-        public RonPoint(int fan ,int fu, int basePoint, List<FanData> fanDatas)
+        public RonPoint(int fan, int fu, int basePoint, List<FanData> fanDatas)
         {
             Fan = fan;
             Fu = fu;

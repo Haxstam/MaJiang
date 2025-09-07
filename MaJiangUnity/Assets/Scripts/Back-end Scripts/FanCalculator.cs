@@ -629,7 +629,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Tsumo(HePaiData data)
         {
-            if (data.IsClosedHand && MatchInformation.CurrentPlayer == data.Player)
+            if (data.IsClosedHand && MatchInformation.CurrentPlayerIndex == data.Player)
             {
                 return new(1, YakuType.Tsumo);
             }
@@ -704,7 +704,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Rinshankaiho(HePaiData data)
         {
-            if (MatchInformation.IsKan[data.Player])
+            if (MatchInformation.IsKang[data.Player])
             {
                 return new(1, YakuType.Rinshankaiho);
             }
@@ -973,7 +973,7 @@ namespace MaJiangLib
         internal static FanData SanankoAndSuuanKou(HePaiData data)
         {
             int AnTripleCount = 0;
-            Pai? pairPai = new(Color.Wans, 1);  // 一定会被赋值,填写一万为占位符
+            Pai pairPai = new(Color.Wans, 1);  // 一定会被赋值,填写一万为占位符
             foreach (Group group in data.Groups)
             {
                 if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.AnKang)
@@ -1345,7 +1345,7 @@ namespace MaJiangLib
         {
             if (MatchInformation.FirstCycleIppatsu && data.IsIsumo)
             {
-                if (data.Player == MatchInformation.CurrentBanker)
+                if (data.Player == MatchInformation.CurrentBankerIndex)
                 {
                     return new(13, YakuType.Tenho);
                 }

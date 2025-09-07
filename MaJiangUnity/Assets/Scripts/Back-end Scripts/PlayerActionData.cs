@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
@@ -20,7 +21,7 @@ namespace MaJiangLib
             PlayerAction = playerAction;
         }
         /// <summary>
-        /// 进行拔北暗杠加杠立直和牌等自身操作时的玩家行为记录,需要能操作的牌和对应操作,或要和牌的目标牌
+        /// 进行切牌拔北暗杠加杠立直和牌等自身操作时的玩家行为记录,需要能操作的牌和对应操作,或要和牌的目标牌
         /// </summary>
         /// <param name="pais">能操作的牌</param>
         /// <param name="playerAction">对应操作</param>
@@ -54,6 +55,14 @@ namespace MaJiangLib
         /// </summary>
         public List<Pai> TargetPais { get; set; }
         /// <summary>
+        /// 目标玩家的序号
+        /// </summary>
+        public int TargetPlayerNumber { get; set; }
+        /// <summary>
+        /// 自己的序号
+        /// </summary>
+        public int SelfNumber { get; set; }
+        /// <summary>
         /// 从玩家操作信息到字节的隐式转换,长度固定32Bytes,不允许过大成员数的转换
         /// </summary>
         /// <param name="playerAction">目标操作</param>
@@ -64,7 +73,7 @@ namespace MaJiangLib
              * 1  byte  操作类型
              * 1  byte  操作发出者序号,即鸣牌者
              * 1  byte  操作承受者序号,即被鸣牌者
-             * 5  bytes 留白
+             * 5  bytes 留空
              * 16 bytes Pais变量的存储,可存储最大4张操作牌,不足则补0
              * 8  bytes TargetPais的存储,可存储最大2张被操作牌,不足则补0
              */
@@ -90,6 +99,55 @@ namespace MaJiangLib
                 }
             }
             return MainBytes;
+        }
+        /// <summary>
+        /// 从字节到玩家操作信息的隐式转换,需求长度固定为32bytes的字节串
+        /// </summary>
+        /// <param name="bytes"></param>
+        public static implicit operator PlayerActionData(byte[] bytes)
+        {
+            if (bytes.Length != 32)
+            {
+                throw new System.Exception($"字节串长度{bytes.Length}bytes不符合转换的32bytes要求");
+            }
+            else
+            {
+                PlayerActionData playerActionData = new(new(), new(), (PlayerAction)bytes[0]);
+                playerActionData.SelfNumber = bytes[1];
+                playerActionData.TargetPlayerNumber = bytes[2];
+                int index = 8;
+                for (int i = 0; i < 6; i++)
+                {
+                    Pai singlePai = Pai.GetPai(bytes, index);
+                    if (singlePai != null)
+                    {
+                        if (i <= 3)
+                        {
+                            // 前4张为Pais
+                            playerActionData.Pais.Add(singlePai);
+                        }
+                        else
+                        {
+                            // 后两张是TargetPais
+                            playerActionData.TargetPais.Add(singlePai);
+                        }
+                    }
+                    index += 4;
+                }
+                return playerActionData;
+            }
+        }
+        /// <summary>
+        /// 从指定字节串中某索引处转换为操作类型的方法,需要目标字节串和索引
+        /// </summary>
+        /// <param name="bytes">目标字节串</param>
+        /// <param name="index">索引</param>
+        /// <returns></returns>
+        public static PlayerActionData GetPlayerActionData(byte[] bytes, int index = 0)
+        {
+            byte[] shortBytes = new byte[32];
+            Array.Copy(bytes, index, shortBytes, 0, 32);
+            return shortBytes;
         }
     }
 }
