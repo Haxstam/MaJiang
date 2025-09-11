@@ -63,6 +63,8 @@ namespace MaJiangLib
      * 14.因为架构问题,目前考虑取消MaJiangLib
      * 
      * 15.为了便于传输,尽量所有使得涉及到传输的数据避免使用负数作为标记
+     * 
+     * 16.用json实现序列化会使得数据传输量太大,而用自动化反射序列化节省的操作不算多,暂时先为每个类手动实现序列化,将来也许会改
      */
 
     /// <summary>
@@ -1319,6 +1321,41 @@ namespace MaJiangLib
                 throw new ArgumentOutOfRangeException("替换范围超出目标数组长度");
 
             Array.Copy(shortBytes, 0, targetBytes, index, shortBytes.Length);
+        }
+        /// <summary>
+        /// 对T的列表进行序列化的方法,T必须实现接口IByteable
+        /// </summary>
+        /// <typeparam name="T">类型T必须实现IByteable</typeparam>
+        /// <param name="list">包含T的列表</param>
+        /// <returns>列表成员依次序列化后的字节串</returns>
+        public static byte[] ListToBytes<T>(List<T> list) where T : IByteable
+        {
+            int byteSize = list[0].ByteSize;
+            byte[] mainBytes = new byte[list.Count * byteSize];
+            for (int i = 0; i < list.Count; i++)
+            {
+                ReplaceBytes(mainBytes, list[i].GetBytes(), i * byteSize);
+            }
+            return mainBytes;
+        }
+        public static byte[] ListToBytes(List<bool> list)
+        {
+            byte[] mainBytes = new byte[list.Count];
+            for (int i = 0; i < list.Count; i++)
+            {
+                mainBytes[i] = BitConverter.GetBytes(list[i])[0];
+            }
+            return mainBytes;
+        }
+        public static byte[] ListToBytes(List<int> list)
+        {
+            byte[] mainBytes = new byte[list.Count * 4];
+            
+            for (int i = 0; i < list.Count; i++)
+            {
+                ReplaceBytes(mainBytes, BitConverter.GetBytes(list[i]), 4*i);
+            }
+            return mainBytes;
         }
     }
 }

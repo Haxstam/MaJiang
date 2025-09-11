@@ -6,7 +6,7 @@ namespace MaJiangLib
     /// <summary>
     /// 玩家进行操作的类,包含玩家操作时手中牌,操作目标牌,玩家操作类型
     /// </summary>
-    public class PlayerActionData
+    public class PlayerActionData : IByteable
     {
         /// <summary>
         /// 进行吃碰杠等鸣牌操作时的玩家行为记录,需要能响应的牌,目标牌和对应操作
@@ -62,6 +62,7 @@ namespace MaJiangLib
         /// 自己的序号
         /// </summary>
         public int SelfNumber { get; set; }
+        public int ByteSize { get; set; } = 32;
         /// <summary>
         /// 从玩家操作信息到字节的隐式转换,长度固定32Bytes,不允许过大成员数的转换
         /// </summary>
@@ -79,6 +80,8 @@ namespace MaJiangLib
              */
             byte[] MainBytes = new byte[32];
             MainBytes[0] = (byte)playerActionData.PlayerAction;
+            // [TODO] 发出者承受者待实现
+
             if (playerActionData.Pais.Count > 4 || playerActionData.TargetPais.Count > 2)
             {
                 // 如果成员数过多将不能转换
@@ -86,20 +89,12 @@ namespace MaJiangLib
             }
             else
             {
-                int index = 8;
-                for (int i = 0; i < playerActionData.Pais.Count; i++)
-                {
-                    ReplaceBytes(MainBytes, playerActionData.Pais[i], index);
-                    index += 4;
-                }
-                index = 24;
-                for (int i = 0; i < playerActionData.TargetPais.Count; i++)
-                {
-                    ReplaceBytes(MainBytes, playerActionData.TargetPais[i], index);
-                }
+                ReplaceBytes(playerActionData, ListToBytes(playerActionData.Pais), 8);
+                ReplaceBytes(playerActionData, ListToBytes(playerActionData.TargetPais), 24);
             }
             return MainBytes;
         }
+        public byte[] GetBytes() => this;
         /// <summary>
         /// 从字节到玩家操作信息的隐式转换,需求长度固定为32bytes的字节串
         /// </summary>

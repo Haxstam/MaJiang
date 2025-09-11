@@ -16,13 +16,6 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
      *   2.对于对局信息,目前设定是对于MainMatchControl,其有一个完全转换为Byte[]的方法,但避免使用此方法
      *     对局信息的更新是按照单次行为在本地的演算来获取的,服务器和用户端之间的对局信息同步则尽可能避免
      *     
-     *   3.目前暂定单个玩家切牌时分四个阶段->开始阶段,舍牌阶段,响应阶段和结束阶段
-     *     本场开始时,进入庄家即东风位的开始阶段,触发摸牌,摸牌后立刻跳至舍牌阶段
-     *     玩家摸牌或响应别家牌时进入舍牌阶段,可加杠/拔北/暗杠/立直/自摸/九种九牌流局
-     *     打出牌/开杠/拔北后进入响应阶段,可被其他家吃碰杠荣和
-     *     如果拔北/开杠后响应阶段无人响应,再进入舍牌阶段并添加岭上标记
-     *     如果打出牌后响应阶段无人响应,进入结束阶段,判断流局
-     *     结束阶段判断后进入下一顺位的开始阶段
      */
 
     /// <summary>
@@ -317,4 +310,96 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     {
         return false;
     }
+
+    /// <summary>
+    /// 对于比赛信息中公共信息的序列化,返回不包含用户名的864Bytes字节串
+    /// </summary>
+    /// <returns></returns>
+    public byte[] GetPublicBytes()
+    {
+        // 对局信息,使用 864 bytes 空间,不包含牌山,也即仅传输用户端会用到的信息
+        // 前16位,为各种短变量
+        byte[] MainBytes = new byte[864];
+        MainBytes[0] = (byte)MatchType;
+        MainBytes[1] = (byte)Wind;
+        MainBytes[2] = (byte)Round;
+        MainBytes[3] = (byte)Honba;
+        MainBytes[4] = (byte)KangCount;
+        MainBytes[5] = (byte)KangMark;
+        MainBytes[6] = (byte)CurrentPlayerIndex;
+        MainBytes[7] = (byte)CurrentStageType;
+        MainBytes[8] = (byte)CurrentBankerIndex;
+        MainBytes[9] = (byte)RemainPaiCount;
+        MainBytes[10] = BitConverter.GetBytes(FirstCycleIppatsu)[0];
+        // 标记列表 16~47
+        ReplaceBytes(MainBytes, ListToBytes(PlayerPoint), 16);  // +16
+        ReplaceBytes(MainBytes, ListToBytes(IsRiichi), 32); // +4
+        ReplaceBytes(MainBytes, ListToBytes(IsDoubleRiichi), 36); // +4
+        ReplaceBytes(MainBytes, ListToBytes(HaveIppatsu), 40); // +4
+        ReplaceBytes(MainBytes, ListToBytes(IsKang), 44); // +4
+        // 弃牌堆 48~431
+        // 弃牌堆目前设定单个玩家的弃牌堆大小为24张牌,弃牌堆总大小96张牌,也即 384 bytes,单个玩家的弃牌堆为 96 bytes
+        // 理论来讲,四人麻将庄家如果单局被吃碰鸣牌12次(三个子家各4次)需要24次过牌(四家总共),剩余48张牌庄家最多摸到12张,也即最多24张过牌
+        // 实际弃牌大于20张就足够罕见
+        for (int i = 0; i < QiPaiList.Count; i++)
+        {
+            ReplaceBytes(MainBytes, ListToBytes(QiPaiList[i]), 48 + i * 96);
+        }
+        // 宝牌 432~471
+        // 表里宝牌共10张 40 bytes
+        ReplaceBytes(MainBytes, ListToBytes(DoraList), 432);
+        ReplaceBytes(MainBytes, ListToBytes(UraDoraList), 452);
+        // 副露列表 472~855
+        // 存储四家共16个Group,也即 384 bytes,单个玩家的副露列表为 96 bytes
+        for (int i = 0; i < PlayerFuluList.Count; i++)
+        {
+            ReplaceBytes(MainBytes, ListToBytes(PlayerFuluList[i]), 472 + i * 96);
+        }
+        // 目前856~863 留空
+        return new byte[864];
+    }
+
+    //public static implicit operator byte[](MainMatchControl mainMatchControl)
+    //{
+    //    // 对局信息,使用 864 bytes 空间,不包含牌山,也即仅传输用户端会用到的信息
+    //    // 前16位,为各种短变量
+    //    byte[] MainBytes = new byte[864];
+    //    MainBytes[0] = (byte)mainMatchControl.MatchType;
+    //    MainBytes[1] = (byte)mainMatchControl.Wind;
+    //    MainBytes[2] = (byte)mainMatchControl.Round;
+    //    MainBytes[3] = (byte)mainMatchControl.Honba;
+    //    MainBytes[4] = (byte)mainMatchControl.KangCount;
+    //    MainBytes[5] = (byte)mainMatchControl.KangMark;
+    //    MainBytes[6] = (byte)mainMatchControl.CurrentPlayerIndex;
+    //    MainBytes[7] = (byte)mainMatchControl.CurrentStageType;
+    //    MainBytes[8] = (byte)mainMatchControl.CurrentBankerIndex;
+    //    MainBytes[9] = (byte)mainMatchControl.RemainPaiCount;
+    //    MainBytes[10] = BitConverter.GetBytes(mainMatchControl.FirstCycleIppatsu)[0];
+    //    // 标记列表 16~47
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.PlayerPoint), 16);  // +16
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.IsRiichi), 32); // +4
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.IsDoubleRiichi), 36); // +4
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.HaveIppatsu), 40); // +4
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.IsKang), 44); // +4
+    //    // 弃牌堆 48~431
+    //    // 弃牌堆目前设定单个玩家的弃牌堆大小为24张牌,弃牌堆总大小96张牌,也即 384 bytes,单个玩家的弃牌堆为 96 bytes
+    //    // 理论来讲,四人麻将庄家如果单局被吃碰鸣牌12次(三个子家各4次)需要24次过牌(四家总共),剩余48张牌庄家最多摸到12张,也即最多24张过牌
+    //    // 实际弃牌大于20张就足够罕见
+    //    for (int i = 0; i < mainMatchControl.QiPaiList.Count; i++)
+    //    {
+    //        ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.QiPaiList[i]), 48 + i * 96);
+    //    }
+    //    // 宝牌 432~471
+    //    // 表里宝牌共10张 40 bytes
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.DoraList), 432);
+    //    ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.UraDoraList), 452);
+    //    // 副露列表 472~855
+    //    // 存储四家共16个Group,也即 384 bytes,单个玩家的副露列表为 96 bytes
+    //    for (int i = 0; i < mainMatchControl.PlayerFuluList.Count; i++)
+    //    {
+    //        ReplaceBytes(MainBytes, ListToBytes(mainMatchControl.PlayerFuluList[i]), 472 + i * 96);
+    //    }
+    //    // 目前856~863 留空
+    //    return new byte[864];
+    //}
 }

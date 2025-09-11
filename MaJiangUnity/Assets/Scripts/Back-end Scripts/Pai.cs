@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
+using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
     /// <summary>
     /// 牌的类,存储牌的信息
     /// </summary>
-    public class Pai : IComparable<Pai>
+    public class Pai : IComparable<Pai>, IByteable
     {
         // 牌这个类是全程序基础,考虑让其足够灵活
 
@@ -42,6 +45,8 @@ namespace MaJiangLib
         /// </summary>
         public int Number { get; set; }
         public bool IsRedDora { get; set; }
+
+        public int ByteSize { get; } = 4;
         /// <summary>
         /// 比较方法,先比较花色(万<筒<索<字牌),再比较数字(比大小),最后比较红宝牌(红宝牌更大)
         /// </summary>
@@ -182,6 +187,11 @@ namespace MaJiangLib
             }
         }
         /// <summary>
+        /// 静态转换的包装
+        /// </summary>
+        /// <returns></returns>
+        public byte[] GetBytes() => this;
+        /// <summary>
         /// 从指定字节串中某索引处转换为牌的方法,为简易包装
         /// </summary>
         /// <param name="bytes">要操作的字符串</param>
@@ -238,6 +248,7 @@ namespace MaJiangLib
                 }
             }
         }
+        
     }
     /// <summary>
     /// 牌花色的枚举:万,筒,索,字牌

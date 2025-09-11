@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
-
+using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
     /// <summary>
     /// 面子分组,定义了最基础的面子/雀头的属性
     /// </summary>
-    public class Group
+    public class Group : IByteable
     {
         /// <summary>
         /// 非副露下的构造器,需要面子类型,花色,面子的牌列表
@@ -68,6 +68,10 @@ namespace MaJiangLib
             }
         }
 
+        public int ByteSize { get; } = 24;
+
+        
+
         public override string ToString()
         {
             string str = "";
@@ -119,6 +123,22 @@ namespace MaJiangLib
                 return true;
             }
         }
+        /// <summary>
+        /// 面子的序列化隐式转换
+        /// </summary>
+        /// <param name="group"></param>
+        public static implicit operator byte[](Group group)
+        {
+            // 1 byte(GroupType) + 1 byte(Color) + 1 byte(FuluSource) + 1 byte 留白 + 4 bytes(SinglePai) + 16 bytes(Pais) = 24 bytes
+            byte[] mainBytes = new byte[24];
+            mainBytes[0] = (byte)group.GroupType;
+            mainBytes[1] = (byte)group.Color;
+            mainBytes[2] = (byte)group.FuluSource;
+            ReplaceBytes(mainBytes, group.SinglePai, 4);
+            ReplaceBytes(mainBytes, ListToBytes(group.Pais), 8);
+            return new byte[0];
+        }
+        public byte[] GetBytes() => this;
     }
 
 }

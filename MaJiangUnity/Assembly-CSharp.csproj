@@ -71,6 +71,7 @@
     <Compile Include="Assets\Scripts\Interfaces\IPlayerInformation.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\FanCalculator.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\GlobalFunction.cs" />
+    <Compile Include="Assets\Scripts\Interfaces\IByteable.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\PackCoder.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Server.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerAction.cs" />

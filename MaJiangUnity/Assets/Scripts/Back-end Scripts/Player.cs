@@ -1,10 +1,12 @@
 using MaJiangLib;
+using System;
 using UnityEngine;
+using static MaJiangLib.GlobalFunction;
 
 /// <summary>
 /// 玩家的类,当开始对局时,就会为每个玩家创建这个类
 /// </summary>
-public class Player : MonoBehaviour, IPlayerInformation
+public class Player : MonoBehaviour, IPlayerInformation, IByteable
 {
     /// <summary>
     /// 经由玩家外显信息创建玩家个人信息,用于用户端创建对局信息
@@ -49,4 +51,18 @@ public class Player : MonoBehaviour, IPlayerInformation
 
         return false;
     }
+
+    public int ByteSize { get; set; }
+    public static implicit operator byte[](Player player)
+    {
+        // 96 bytes PlayerProfile + 1 byte PlayerNumber + 1 byte CurrentStageType + 38 bytes 留空 + 4 bytes Point + 160 bytes ShouPai = 300 bytes
+        byte[] MainBytes = new byte[300];
+        ReplaceBytes(MainBytes, player.PlayerProfile, 0);
+        MainBytes[96] = (byte)player.PlayerNumber;
+        MainBytes[97] = (byte)player.CurrentStageType;
+        ReplaceBytes(MainBytes, BitConverter.GetBytes(player.Point), 136);
+        ReplaceBytes(MainBytes, player.ShouPai, 140);
+        return MainBytes;
+    }
+    public byte[] GetBytes() => this;
 }
