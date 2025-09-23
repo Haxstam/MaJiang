@@ -65,6 +65,8 @@ namespace MaJiangLib
      * 15.为了便于传输,尽量所有使得涉及到传输的数据避免使用负数作为标记
      * 
      * 16.用json实现序列化会使得数据传输量太大,而用自动化反射序列化节省的操作不算多,暂时先为每个类手动实现序列化,将来也许会改
+     * 17.因为C# 9.0 的限制,像BytesTo()这样的静态方法无法在接口中声明,因此对于BytesToList(),其限制where T : IByteable并不保证T可以从字节串转化而来
+     *    对于任何实现了该接口的类型,其必须在GlobalFunction.ByteableInstanceDict里注册
      */
 
     /// <summary>
@@ -360,6 +362,19 @@ namespace MaJiangLib
                 new(Color.Honor,6),
                 new(Color.Honor,7),
             };
+        /// <summary>
+        /// 为实现实例方法调用的注册字典,任何实现IByteable的类都要注册于此
+        /// </summary>
+        public static Dictionary<Type, object> ByteableInstanceDict = new Dictionary<Type, object>()
+        {
+            // 仅用于调用接口方法,具体实现不影响
+            {typeof(Pai), new Pai(Color.Wans, 1) },
+            {typeof(Group), new Group(GroupType.Triple, Color.Wans, new())},
+            {typeof(Player), new Player() },
+            {typeof(PlayerActionData), new PlayerActionData(new(),new(),PlayerAction.Chi) },
+            {typeof(ShouPai),new ShouPai() },
+            {typeof(UserProfile),new UserProfile() },
+        };
 
         ///// <summary>
         ///// 鸣牌数据,存储可进行吃碰杠时,对应的牌的列表和所要鸣的牌,对应的操作
@@ -656,9 +671,9 @@ namespace MaJiangLib
                     return false;
                 }
             }
-            foreach (KeyValuePair<int, List<Group>> keyValuePair in matchInformation.PlayerFuluList)
+            foreach (List<Group> fuluPai in matchInformation.PlayerFuluList)
             {   // 没有别家鸣牌来源自该玩家
-                foreach (Group group in keyValuePair.Value)
+                foreach (Group group in fuluPai)
                 {
                     if (group.GroupType != GroupType.AnKang && group.FuluSource == player)
                     {
@@ -1318,8 +1333,12 @@ namespace MaJiangLib
         public static void ReplaceBytes(byte[] targetBytes, byte[] shortBytes, int index)
         {
             if (index < 0 || index + shortBytes.Length > targetBytes.Length)
+            {
+                UnityEngine.Debug.Log(targetBytes.Length);
+                UnityEngine.Debug.Log(shortBytes.Length);
+                UnityEngine.Debug.Log(index);
                 throw new ArgumentOutOfRangeException("替换范围超出目标数组长度");
-
+            }
             Array.Copy(shortBytes, 0, targetBytes, index, shortBytes.Length);
         }
         /// <summary>
@@ -1328,15 +1347,23 @@ namespace MaJiangLib
         /// <typeparam name="T">类型T必须实现IByteable</typeparam>
         /// <param name="list">包含T的列表</param>
         /// <returns>列表成员依次序列化后的字节串</returns>
-        public static byte[] ListToBytes<T>(List<T> list) where T : IByteable
+        public static byte[] ListToBytes<T>(List<T> list) where T : IByteable<T>
         {
-            int byteSize = list[0].ByteSize;
-            byte[] mainBytes = new byte[list.Count * byteSize];
-            for (int i = 0; i < list.Count; i++)
+            if (list.Count == 0)
             {
-                ReplaceBytes(mainBytes, list[i].GetBytes(), i * byteSize);
+                return new byte[0];
             }
-            return mainBytes;
+            else
+            {
+                int byteSize = list[0].ByteSize;
+                byte[] mainBytes = new byte[list.Count * byteSize];
+                for (int i = 0; i < list.Count; i++)
+                {
+                    ReplaceBytes(mainBytes, list[i].GetBytes(), i * byteSize);
+                }
+                return mainBytes;
+            }
+
         }
         public static byte[] ListToBytes(List<bool> list)
         {
@@ -1350,12 +1377,139 @@ namespace MaJiangLib
         public static byte[] ListToBytes(List<int> list)
         {
             byte[] mainBytes = new byte[list.Count * 4];
-            
+
             for (int i = 0; i < list.Count; i++)
             {
-                ReplaceBytes(mainBytes, BitConverter.GetBytes(list[i]), 4*i);
+                ReplaceBytes(mainBytes, BitConverter.GetBytes(list[i]), 4 * i);
             }
             return mainBytes;
+        }
+        public static List<T> BytesToList<T>(byte[] bytes, int startIndex = 0, int count = -1) where T : IByteable<T>
+        {
+            // 因为C# 9.0 的限制,像BytesTo()这样的静态方法无法在接口中声明
+            // 因此对于BytesToList(),其限制where T : IByteable并不保证T可以从字节串转化而来
+            // 对于任何实现了该接口的类型,其必须在ByteableInstanceDict内注册
+            IByteable<T> instance = (IByteable<T>)ByteableInstanceDict[typeof(T)];
+            List<T> list = new List<T>();
+            int listIndex = startIndex;
+            if (count != -1)
+            {
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (bytes[listIndex] == 0)
+                    {
+                        // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                        break;
+                    }
+                    list.Add(instance.BytesTo(bytes, listIndex));
+                    listIndex += instance.ByteSize;
+                }
+            }
+            else
+            {
+                while (true)
+                {
+                    try
+                    {
+                        if (bytes[listIndex] == 0)
+                        {
+                            // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                            break;
+                        }
+                        list.Add(instance.BytesTo(bytes, listIndex));
+                        listIndex += instance.ByteSize;
+                    }
+                    catch
+                    {
+                        // 转化出现错误,停止转化
+                        break;
+                    }
+                }
+            }
+            return list;
+        }
+        public static List<int> BytesToIntList(byte[] bytes, int startIndex = 0, int count = -1)
+        {
+            List<int> list = new();
+            int listIndex = startIndex;
+            if (count != -1)
+            {
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (bytes[listIndex] == 0)
+                    {
+                        // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                        break;
+                    }
+                    list.Add(BitConverter.ToInt32(bytes, listIndex));
+                    listIndex += 4;
+                }
+            }
+            else
+            {
+                while (true)
+                {
+                    try
+                    {
+                        if (bytes[listIndex] == 0)
+                        {
+                            // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                            break;
+                        }
+                        list.Add(BitConverter.ToInt32(bytes, listIndex));
+                        listIndex += 4;
+                    }
+                    catch
+                    {
+                        // 转化出现错误,停止转化
+                        break;
+                    }
+                }
+            }
+            return list;
+        }
+        public static List<bool> BytesToBoolList(byte[] bytes, int startIndex = 0, int count = -1)
+        {
+            List<bool> list = new();
+            int listIndex = startIndex;
+            if (count != -1)
+            {
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (bytes[listIndex] == 0)
+                    {
+                        // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                        break;
+                    }
+                    list.Add(BitConverter.ToBoolean(bytes, listIndex));
+                    listIndex += 4;
+                }
+            }
+            else
+            {
+                while (true)
+                {
+                    try
+                    {
+                        if (bytes[listIndex] == 0)
+                        {
+                            // 将要被转化的元素的首位为0,表示列表已结束,停止转化
+                            break;
+                        }
+                        list.Add(BitConverter.ToBoolean(bytes, listIndex));
+                        listIndex += 4;
+                    }
+                    catch
+                    {
+                        // 转化出现错误,停止转化
+                        break;
+                    }
+                }
+            }
+            return list;
         }
     }
 }

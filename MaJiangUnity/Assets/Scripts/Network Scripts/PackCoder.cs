@@ -13,14 +13,14 @@ namespace MaJiangLib
     {
         /* 1. 包大小固定为1KiB,即1024B.这方面考虑简便直接锁定包大小,避免读取时判断包头尾和循环读取的问题
          * 2. 包结构
-         * (1) 8   bytes "HaxMajPk" 数据包头特定标识,UTF-8编码
+         * (1) 8   bytes [0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50] "\u0002HaxMajP" 数据包头特定标识,UTF-8编码,首位为STX(0x02)从而避免包头误判
          * (2) 8   bytes Unix时间戳,long类型
          * (3) 4   bytes 包来源IP地址,为IPv4地址类型
          * (4) 48  bytes 包来源用户名,为string类型,UTF-8编码,限定最长为12字符,如果不足则补0
          * (5) 4   bytes 版本号([TODO]暂空,未实现)
          * (6) 32  bytes 留空
          * (7) 912 bytes 包主要数据部分(起始于第104处)
-         * (8) 8   bytes "EndPack_" 数据包结束特定标识,UTF-8编码
+         * (8) 8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" 数据包结束特定标识,UTF-8编码,首位为ETX(0x03)从而避免包尾误判
          * 
          * 3. 包不考虑校验,如果子包没有足够空间就再开一个包.
          * 4. 默认制作数据包时先通过EmptyPack()获取一个空包再加工
@@ -39,13 +39,20 @@ namespace MaJiangLib
          * 9. 对于对局信息,目前设定是对于MainMatchControl,其有一个完全转换为Byte[]的方法,但因为信息很多故避免使用此方法
          *    对局信息的更新是按照单次行为在本地的演算来获取的,服务器和用户端之间的对局信息同步则尽可能避免
          *    
-         * 10.
+         * 10.Pai 2 bytes
+         *    Group(Pai) 14 bytes
+         *    PlayActionData(Pai) 16 bytes
+         *    ShouPai(Pai, Group) 96 bytes
+         *    PlayerProfile 96 bytes
+         *    Player(ShouPai, PlayerProfile) 216 bytes
          */
 
-        public static string PackHeadStr { get; set; } = "HaxMajPk";
-        public static string PackEndStr { get; set; } = "EndPack_";
-        public static int PackSize { get; set; } = 1024;
-        public static int PackEndIndex { get; set; } = 1016;
+        public static string PackHeadStr { get; } = "\u0002HaxMajP";
+        public static byte[] PackHeadBytes { get; } = new byte[8] { 0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50 };
+        public static string PackEndStr { get; } = "\u0003EndPack";
+        public static byte[] PackEndBytes { get; } = new byte[8] { 0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B };
+        public static int PackSize { get; } = 1024;
+        public static int PackEndIndex { get; } = 1016;
 
         /// <summary>
         /// 空包生成方法,需要用户名,自身IPv4地址
@@ -56,11 +63,11 @@ namespace MaJiangLib
         public static byte[] EmptyPack(string senderName, IPAddress iPAddress)
         {
             byte[] rawPack = new byte[PackSize];
-            ReplaceBytes(rawPack, Encoding.UTF8.GetBytes(PackHeadStr), 0);
+            ReplaceBytes(rawPack, PackHeadBytes, 0);
             ReplaceBytes(rawPack, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeSeconds()), 8);
             ReplaceBytes(rawPack, iPAddress.GetAddressBytes(), 16);
             ReplaceBytes(rawPack, Encoding.UTF8.GetBytes(senderName), 20);
-            ReplaceBytes(rawPack, Encoding.UTF8.GetBytes(PackEndStr), PackEndIndex);
+            ReplaceBytes(rawPack, PackEndBytes, PackEndIndex);
             return rawPack;
         }
         /// <summary>
@@ -106,7 +113,7 @@ namespace MaJiangLib
         /// <returns></returns>
         public static byte[] PlayerActionPack(byte[] pack, PlayerActionData playerActionData)
         {
-            // 头标识"_PA_" 4 bytes + 子内容大小(int) 4 bytes + 玩家操作 32 bytes
+            // 头标识"_PA_" 4 bytes + 子内容大小(int) 4 bytes + 玩家操作 16 bytes
             byte[] signalByte = Encoding.UTF8.GetBytes("_PA_");
             byte[] playerActionByte = playerActionData;
             int length = signalByte.Length + playerActionByte.Length + 4;
@@ -124,9 +131,15 @@ namespace MaJiangLib
 
             return new byte[0];
         }
+        /// <summary>
+        /// "_MD_" 对局信息包,输出本场比赛所有的公共数据用于同步
+        /// </summary>
+        /// <param name="pack">初始化包</param>
+        /// <param name="mainMatchControl">对局信息</param>
+        /// <returns></returns>
         public static byte[] MatchDataPack(byte[] pack, MainMatchControl mainMatchControl)
         {
-            
+
             byte[] signalByte = Encoding.UTF8.GetBytes("_MD_");
             byte[] matchDataByte = mainMatchControl.GetPublicBytes();
             byte[] finalByte = signalByte.Concat(matchDataByte).ToArray();
@@ -145,7 +158,7 @@ namespace MaJiangLib
             if (Encoding.UTF8.GetString(pack, 104, 4) == "_PA_")
             {
                 int length = BitConverter.ToInt32(pack, 108);
-                playerActionData = PlayerActionData.GetPlayerActionData(pack, 112);
+                playerActionData = PlayerActionData.StaticBytesTo(pack, 112);
                 return true;
             }
             else

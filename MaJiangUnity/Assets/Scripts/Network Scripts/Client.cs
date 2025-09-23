@@ -1,8 +1,11 @@
 using MaJiangLib;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using UnityEngine;
+using Color = MaJiangLib.Color;
 public class Client : MonoBehaviour
 {
     /// <summary>
@@ -22,11 +25,73 @@ public class Client : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        MainMatchControl mainMatchControl = new MainMatchControl(new List<Player>(),MaJiangLib.MatchType.FourMahjongSouth, true,true);
+        mainMatchControl.PlayerFuluList = new()
+        {
+            new(){
+                new Group(GroupType.AnKang,
+                Color.Bamboo,
+                new()
+                {
+                    new (Color.Bamboo,1),
+                    new (Color.Bamboo,1),
+                    new (Color.Bamboo,1)
+                },
+                1,
+                new(Color.Bamboo, 1)
+                )
+            }
+        };
+        mainMatchControl.QiPaiList = new()
+        {
+            new()
+            {
+                new(Color.Wans,2),
+                new(Color.Honor,4),
+            },
+            new()
+            {
+                new(Color.Wans,3),
+                new(Color.Tungs,5),
+            }
+            ,
+            new()
+            {
+                new(Color.Tungs,6),
+                new(Color.Tungs,7),
+            },
+            new()
+            {
+                new(Color.Wans,3),
+                new(Color.Honor,4),
+            },
 
+        };
+        mainMatchControl.Round = 3;
+        mainMatchControl.Honba = 3;
+        mainMatchControl.MatchType = MaJiangLib.MatchType.FourMahjongEast;
+        mainMatchControl.KangCount = 0;
+        mainMatchControl.RemainPaiCount = 44;
+
+        mainMatchControl.IsRiichi = new() { false, false, false, false };
+        mainMatchControl.IsDoubleRiichi = new() { false, false, false, false };
+        mainMatchControl.IsKang = new() { true, false, false, false };
+        mainMatchControl.HaveIppatsu = new() { true, false, false, false };
+
+        mainMatchControl.DoraList = new() { new(Color.Tungs, 4) };
+        mainMatchControl.UraDoraList = new();
+        testBytes = mainMatchControl.GetPublicBytes();
+        pubControl = MainMatchControl.PublicBytesTo(testBytes);
     }
+    public static byte[] testBytes;
+    public static IMatchInformation pubControl;
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyUp(KeyCode.B))
+        {
+            Debug.Log(pubControl.RemainPaiCount);
+        }
         if (Input.GetKeyUp(KeyCode.L))
         {
             TimeOutConnectAsync("127.0.0.1", 23456);
@@ -49,6 +114,7 @@ public class Client : MonoBehaviour
             Debug.Log(MainClient.Connected);
         }
     }
+
 
     /// <summary>
     /// 客户端进行连接的方法,仅在调用此方法并成功连接后才可进行传输,若连接超时则返回false

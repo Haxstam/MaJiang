@@ -80,21 +80,32 @@ public class Server : MonoBehaviour
     {
         // 因为Read读取的覆写性和读取时可能的不连续性,目前通过循环读取,拼接写入处理的方式获取数据
         // 写爆缓冲区的唯一可能是长时间内传输的数据持续不完整且已经到了溢出的地步,此时立刻关闭连接
+
+        // 表示当前数据起始位置,即最后端匹配的"HaxMajPk"字节串
+        int startPointer = 0;
+        // 表示当前将要写入缓存的位置
+        int length = 0;
         while (true)
         {
-            int startPointer = 0;
-            int length = 0;
-            // 每当ReadAsync从数据流中读取数据,都会读取最多512字节的数据,并保证缓冲区中同一时间最多到512字节的数据,且当数据足够512字节时进行处理
-            length += await tcpClient.GetStream().ReadAsync(ClientBufferDictionary[tcpClient], length + startPointer, 512 - length);
-            if (length >= 512)
+            
+            // 每当ReadAsync从数据流中读取数据,都会读取最多1024字节的数据,并保证缓冲区中同一时间最多到1024字节的有用数据,且当数据足够1024字节时进行处理
+            // 如果存在
+            length += await tcpClient.GetStream().ReadAsync(ClientBufferDictionary[tcpClient], length + startPointer, 1024 - length);
+            if (length >= 1024)
             {
-                Debug.Log("Data arrived!");
-                byte[] bytes = new byte[512];
-                Array.Copy(ClientBufferDictionary[tcpClient], 0, bytes, 0, 512);
+                Debug.Log($"Package Arrived:{DateTime.Now}");
+                byte[] bytes = new byte[1024];
+                Array.Copy(ClientBufferDictionary[tcpClient], 0, bytes, 0, 1024);
                 bool isTrue = PackCoder.PlayerActionDecode(bytes, out PlayerActionData playerActionData);
                 Debug.Log(isTrue);
                 length = 0;
             }
         }
+    }
+    public static int MatchBytes(byte[] data, byte[] shortData)
+    {
+        Span<byte> buffer = data;
+        ReadOnlySpan<byte> mB = shortData;
+        return buffer.IndexOf(mB);
     }
 }

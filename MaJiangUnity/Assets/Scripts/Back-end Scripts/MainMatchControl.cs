@@ -6,7 +6,7 @@ using static MaJiangLib.GlobalFunction;
 /// <summary>
 /// 主对局控制类,存储系统操作方法和对局相关信息
 /// </summary>
-public class MainMatchControl : MonoBehaviour, IMatchInformation
+public class MainMatchControl : IMatchInformation
 {
     /*
      *   1.对于麻将王牌的特殊性:
@@ -36,7 +36,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
             PrimePaiList = rawPaiList.GetRange(122, 14);
             rawPaiList.RemoveRange(122, 14);
             MainPaiList = rawPaiList;
-            // 各列表/数值初始化为东一 0本场的开局情况
+            // 各列表/数值初始化为东一 0本场的开局情况,且未开始发牌和掀开宝牌
             QiPaiList = new();
             DoraList = new();
             UraDoraList = new();
@@ -95,7 +95,10 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         CurrentBankerIndex = matchInformation.CurrentBankerIndex;
         PlayerFuluList = matchInformation.PlayerFuluList;
     }
+    public MainMatchControl()
+    {
 
+    }
     /// <summary>
     /// 玩家列表
     /// </summary>
@@ -187,7 +190,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     /// <summary>
     /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
     /// </summary>
-    public Dictionary<int, List<Group>> PlayerFuluList { get; set; }
+    public List<List<Group>> PlayerFuluList { get; set; }
     /// <summary>
     /// 牌山
     /// </summary>
@@ -312,14 +315,14 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     }
 
     /// <summary>
-    /// 对于比赛信息中公共信息的序列化,返回不包含用户名的864Bytes字节串
+    /// 对于比赛信息中公共信息的序列化,返回不包含用户名的512Bytes字节串
     /// </summary>
     /// <returns></returns>
     public byte[] GetPublicBytes()
     {
-        // 对局信息,使用 864 bytes 空间,不包含牌山,也即仅传输用户端会用到的信息
+        // 对局信息,使用 512 bytes 空间,不包含牌山,也即仅传输用户端会用到的信息
         // 前16位,为各种短变量
-        byte[] MainBytes = new byte[864];
+        byte[] MainBytes = new byte[512];
         MainBytes[0] = (byte)MatchType;
         MainBytes[1] = (byte)Wind;
         MainBytes[2] = (byte)Round;
@@ -337,26 +340,75 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         ReplaceBytes(MainBytes, ListToBytes(IsDoubleRiichi), 36); // +4
         ReplaceBytes(MainBytes, ListToBytes(HaveIppatsu), 40); // +4
         ReplaceBytes(MainBytes, ListToBytes(IsKang), 44); // +4
-        // 弃牌堆 48~431
-        // 弃牌堆目前设定单个玩家的弃牌堆大小为24张牌,弃牌堆总大小96张牌,也即 384 bytes,单个玩家的弃牌堆为 96 bytes
+        // 弃牌堆 48~239
+        // 弃牌堆目前设定单个玩家的弃牌堆大小为24张牌,弃牌堆总大小96张牌,也即 192 bytes,单个玩家的弃牌堆为 48 bytes
         // 理论来讲,四人麻将庄家如果单局被吃碰鸣牌12次(三个子家各4次)需要24次过牌(四家总共),剩余48张牌庄家最多摸到12张,也即最多24张过牌
         // 实际弃牌大于20张就足够罕见
         for (int i = 0; i < QiPaiList.Count; i++)
         {
-            ReplaceBytes(MainBytes, ListToBytes(QiPaiList[i]), 48 + i * 96);
+            ReplaceBytes(MainBytes, ListToBytes(QiPaiList[i]), 48 + i * 48);
         }
-        // 宝牌 432~471
-        // 表里宝牌共10张 40 bytes
-        ReplaceBytes(MainBytes, ListToBytes(DoraList), 432);
-        ReplaceBytes(MainBytes, ListToBytes(UraDoraList), 452);
-        // 副露列表 472~855
-        // 存储四家共16个Group,也即 384 bytes,单个玩家的副露列表为 96 bytes
+        // 宝牌 240~259
+        // 表里宝牌共10张 20 bytes
+        ReplaceBytes(MainBytes, ListToBytes(DoraList), 240);
+        ReplaceBytes(MainBytes, ListToBytes(UraDoraList), 250);
+        // 副露列表 260~484
+        // 存储四家共16个Group,也即 224 bytes,单个玩家的副露列表为 56 bytes
         for (int i = 0; i < PlayerFuluList.Count; i++)
         {
-            ReplaceBytes(MainBytes, ListToBytes(PlayerFuluList[i]), 472 + i * 96);
+            ReplaceBytes(MainBytes, ListToBytes(PlayerFuluList[i]), 260 + i * 56);
         }
-        // 目前856~863 留空
-        return new byte[864];
+        // 目前484~511 留空
+        return MainBytes;
+    }
+
+    public static MainMatchControl PublicBytesTo(byte[] bytes, int index = 0)
+    {
+        byte[] shortBytes = new byte[512];
+        Array.Copy(bytes, index, shortBytes, 0, 512);
+        MainMatchControl mainMatchControl = new();
+        // 0-15
+        mainMatchControl.MatchType = (MatchType)shortBytes[0];
+        mainMatchControl.Wind = (WindType)shortBytes[1];
+        mainMatchControl.Round = shortBytes[2];
+        mainMatchControl.Honba = shortBytes[3];
+        mainMatchControl.KangCount = shortBytes[4];
+        mainMatchControl.KangMark = shortBytes[5];
+        mainMatchControl.CurrentPlayerIndex = shortBytes[6];
+        mainMatchControl.CurrentStageType = (StageType)shortBytes[7];
+        mainMatchControl.CurrentBankerIndex = shortBytes[8];
+        mainMatchControl.RemainPaiCount = shortBytes[9];
+        mainMatchControl.FirstCycleIppatsu = BitConverter.ToBoolean(shortBytes, 10);
+        // 16-47
+        mainMatchControl.PlayerPoint = BytesToIntList(shortBytes, 16, 4);
+        mainMatchControl.IsRiichi = BytesToBoolList(shortBytes, 32, 4);
+        mainMatchControl.IsDoubleRiichi = BytesToBoolList(shortBytes, 36, 4);
+        mainMatchControl.HaveIppatsu = BytesToBoolList(shortBytes, 40, 4);
+        mainMatchControl.IsKang = BytesToBoolList(shortBytes, 44, 4);
+        // 48-239,260-484
+
+        mainMatchControl.QiPaiList = new();
+        mainMatchControl.PlayerFuluList = new();
+        if (mainMatchControl.MatchType == MatchType.FourMahjongEast || mainMatchControl.MatchType == MatchType.FourMahjongSouth)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                mainMatchControl.QiPaiList.Add(BytesToList<Pai>(shortBytes, 48 + i * 48, 24));
+                mainMatchControl.PlayerFuluList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
+            }
+        }
+        else
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                mainMatchControl.QiPaiList.Add(BytesToList<Pai>(shortBytes, 48 + i * 48, 24));
+                mainMatchControl.PlayerFuluList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
+            }
+        }
+        mainMatchControl.DoraList = BytesToList<Pai>(shortBytes, 240, 5);
+        mainMatchControl.UraDoraList = BytesToList<Pai>(shortBytes, 250, 5);
+
+        return mainMatchControl;
     }
 
     //public static implicit operator byte[](MainMatchControl mainMatchControl)

@@ -87,6 +87,6 @@ namespace MaJiangLib
         /// <summary>
         /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
         /// </summary>
-        public Dictionary<int, List<Group>> PlayerFuluList { get; set; }
+        public List<List<Group>> PlayerFuluList { get; set; }
     }
 }

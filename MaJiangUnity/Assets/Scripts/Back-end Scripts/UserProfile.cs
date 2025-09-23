@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// 表示用户自己的基本信息
 /// </summary>
-public class UserProfile : IByteable
+public class UserProfile : IByteable<UserProfile>
 {
     /// <summary>
     /// 用户名
@@ -26,5 +26,13 @@ public class UserProfile : IByteable
         GlobalFunction.ReplaceBytes(mainBytes, nameBytes, 0);
         return mainBytes;
     }
+    public static UserProfile StaticBytesTo(byte[] bytes, int index = 0)
+    {
+        string name = Encoding.UTF8.GetString(bytes, index, 48);
+        UserProfile userProfile = new UserProfile();
+        userProfile.Name = name;
+        return userProfile;
+    }
+    public UserProfile BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
     public byte[] GetBytes() => this;
 }

@@ -8,7 +8,7 @@ namespace MaJiangLib
     /// <summary>
     /// 手牌的类,因为副露等原因设定为类
     /// </summary>
-    public class ShouPai : ICloneable, IByteable
+    public class ShouPai : ICloneable, IByteable<ShouPai>
     {
         public ShouPai()
         {
@@ -45,7 +45,7 @@ namespace MaJiangLib
             get { return FuluPaiList.Count <= 0 || FuluPaiList.All(group => group.GroupType == GroupType.AnKang); }
         }
 
-        public int ByteSize { get; set; } = 160;
+        public int ByteSize { get; set; } = 96;
         public object Clone()
         {
             ShouPai shouPai = new ShouPai();
@@ -57,16 +57,34 @@ namespace MaJiangLib
         }
         public static implicit operator byte[](ShouPai shouPai)
         {
-            // 1 byte Player + 1 byte NorthDoraCount + 6 bytes 留空 + 52(13*4) bytes ShouPaiList + 4 bytes SinglePai + 96(4*24) bytes FuluPaiList = 160 bytes
+            // 1 byte Player + 1 byte NorthDoraCount + 10 bytes 留空 + 26(13*2) bytes ShouPaiList + 2 bytes SinglePai + 56(4*14) bytes FuluPaiList = 96 bytes
             // 手牌类的序列化大小暂时先固定,考虑压缩
-            byte[] mainBytes = new byte[160];
+            byte[] mainBytes = new byte[96];
             mainBytes[0] = (byte)shouPai.Player;
             mainBytes[1] = (byte)shouPai.NorthDoraCount;
-            ReplaceBytes(mainBytes, ListToBytes(shouPai.ShouPaiList), 8);
-            ReplaceBytes(mainBytes, shouPai.SinglePai, 60);
-            ReplaceBytes(mainBytes, ListToBytes(shouPai.FuluPaiList), 64);
+            ReplaceBytes(mainBytes, ListToBytes(shouPai.ShouPaiList), 12);
+            ReplaceBytes(mainBytes, shouPai.SinglePai, 38);
+            ReplaceBytes(mainBytes, ListToBytes(shouPai.FuluPaiList), 40);
             return mainBytes;
         }
         public byte[] GetBytes() => this;
+        public static ShouPai StaticBytesTo(byte[] bytes, int index = 0)
+        {
+            byte[] shortByte = new byte[96];
+            Array.Copy(bytes, index, shortByte, 0, 96);
+            int player = shortByte[0];
+            int northDoraCount = shortByte[1];
+            List<Pai> shouPaiList = BytesToList<Pai>(shortByte, 12, 13);
+            Pai singlePai = Pai.StaticBytesTo(shortByte, 38);
+            List<Group> fuluPaiList = BytesToList<Group>(shortByte, 40, 4);
+            ShouPai shouPai = new ShouPai();
+            shouPai.NorthDoraCount = northDoraCount;
+            shouPai.Player = player;
+            shouPai.ShouPaiList= shouPaiList;
+            shouPai.FuluPaiList= fuluPaiList;
+            shouPai.SinglePai = singlePai;
+            return shouPai;
+        }
+        public ShouPai BytesTo(byte[] bytes, int index =  0) => StaticBytesTo(bytes, index);
     }
 }
