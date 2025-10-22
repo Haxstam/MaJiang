@@ -57,6 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Interfaces\IMatchInformaiton.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\MatchServer.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\QiPaiDui.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MainMatchControl.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Player.cs" />
@@ -73,9 +74,13 @@
     <Compile Include="Assets\Scripts\Back-end Scripts\GlobalFunction.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IByteable.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\PackCoder.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\NetworkException.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Server.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\NetworkControl.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\Pack.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerAction.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\PlayerActionData.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\MatchSettingData.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

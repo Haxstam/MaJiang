@@ -3,18 +3,43 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using UnityEditor;
 using UnityEngine;
 
 public class Server : MonoBehaviour
 {
+    /// <summary>
+    /// 用户端连接数据类,包含用户端,延迟,对应玩家座次
+    /// </summary>
+    public class ClientData
+    {
+        public ClientData(TcpClient tcpClient)
+        {
+            TcpClient = tcpClient;
+            ClientStream = TcpClient.GetStream();
+            Ping = 0;
+            Closing = false;
+        }
+        public TcpClient TcpClient { get; set; }
+        public NetworkStream ClientStream { get; set; }
+        public double Ping { get; set; }
+        public int RelativePlayerNumber { get; set; }
+        /// <summary>
+        /// 连接将要被关闭时为true
+        /// </summary>
+        public bool Closing { get; set; }
+    }
     public TcpListener MainServer { get; set; }
     /// <summary>
-    /// 服务端连接缓存字典,当存在新建连接时,将添加连接和其对应的缓存,默认大小8KiB
+    /// 服务端连接缓存字典,当存在新建连接时,将添加连接信息和其对应的缓存,默认大小8KiB
     /// </summary>
-    public Dictionary<TcpClient, byte[]> ClientBufferDictionary { get; set; }
+    public Dictionary<ClientData, byte[]> ClientBufferDictionary { get; set; }
     public bool IsListening { get; set; }
-
-    TcpClient Client { get; set; }
+    /// <summary>
+    /// 连接限制,连接数最大为该值,大于该值会拒绝连接
+    /// </summary>
+    public int ConnectLimit { get; set; }
+    public int ConnectCount { get { return ClientBufferDictionary.Count; } }
     // Start is called before the first frame update
     void Start()
     {
@@ -27,10 +52,6 @@ public class Server : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.P))
         {
             StartServer("127.0.0.1", 23456);
-        }
-        if (Input.GetKeyUp(KeyCode.Q))
-        {
-            Debug.Log(Client.GetStream().DataAvailable);
         }
     }
 
@@ -54,6 +75,10 @@ public class Server : MonoBehaviour
     {
         IsListening = false;
     }
+    public void StopConnection()
+    {
+
+    }
     public async void ListenClientConnectAsync()
     {
         while (IsListening)
@@ -67,45 +92,116 @@ public class Server : MonoBehaviour
                 connectedClient.Close();
                 break;
             }
-            if (connectedClient != null)
+            else
             {
-                Debug.Log("Server Connected!");
-                Client = connectedClient;
-                ClientBufferDictionary[connectedClient] = new byte[8192];
-                SubReadAsync(connectedClient);
+                if (ConnectCount >= ConnectLimit)
+                {
+                    // [TODO] 连接数过多
+                    connectedClient.Close();
+                }
+                if (connectedClient != null)
+                {
+                    // 连接创建后,分配数据缓存并激活读取方法
+                    ClientData clientData = new(connectedClient);
+                    ClientBufferDictionary[clientData] = new byte[8192];
+                    SubReadAsync(clientData);
+                }
             }
+
         }
     }
-    public async void SubReadAsync(TcpClient tcpClient)
+    /// <summary>
+    /// 单连接读取方法
+    /// </summary>
+    /// <param name="tcpClient"></param>
+    public async void SubReadAsync(ClientData clientData)
     {
         // 因为Read读取的覆写性和读取时可能的不连续性,目前通过循环读取,拼接写入处理的方式获取数据
-        // 写爆缓冲区的唯一可能是长时间内传输的数据持续不完整且已经到了溢出的地步,此时立刻关闭连接
+        byte[] clientBuffer = ClientBufferDictionary[clientData];
 
-        // 表示当前数据起始位置,即最后端匹配的"HaxMajPk"字节串
-        int startPointer = 0;
         // 表示当前将要写入缓存的位置
-        int length = 0;
-        while (true)
+        int writeIndex = 0;
+        // 读取循环,如果连接没有被关闭就保持读取
+        while (!clientData.Closing)
         {
-            
-            // 每当ReadAsync从数据流中读取数据,都会读取最多1024字节的数据,并保证缓冲区中同一时间最多到1024字节的有用数据,且当数据足够1024字节时进行处理
-            // 如果存在
-            length += await tcpClient.GetStream().ReadAsync(ClientBufferDictionary[tcpClient], length + startPointer, 1024 - length);
-            if (length >= 1024)
+            // 读取循环
+            // 每当ReadAsync从数据流中读取数据,都会读取最多1024字节的数据,如果写入指针接近上限,则缩小写入大小
+            try
             {
-                Debug.Log($"Package Arrived:{DateTime.Now}");
-                byte[] bytes = new byte[1024];
-                Array.Copy(ClientBufferDictionary[tcpClient], 0, bytes, 0, 1024);
-                bool isTrue = PackCoder.PlayerActionDecode(bytes, out PlayerActionData playerActionData);
-                Debug.Log(isTrue);
-                length = 0;
+                writeIndex += await clientData.ClientStream.ReadAsync(clientBuffer, writeIndex, Math.Min(1024, 8192 - writeIndex));
+            }
+            catch (ObjectDisposedException)
+            {
+                Debug.Log($"尝试读取已关闭的流:{((IPEndPoint)clientData.TcpClient.Client.RemoteEndPoint).Address}");
+            }
+            if (writeIndex >= 1024)
+            {   // 如果存在不少于1024字节的待处理数据,进行处理
+                bool isPackReceived = ReadByteSolve(clientBuffer, ref writeIndex, clientData);
             }
         }
     }
-    public static int MatchBytes(byte[] data, byte[] shortData)
+    /// <summary>
+    /// 通过Span匹配字节串的方法,需要主字节串和短字节串
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="shortData"></param>
+    /// <returns></returns>
+    public int MatchBytes(byte[] mainBytes, byte[] shortBytes)
     {
-        Span<byte> buffer = data;
-        ReadOnlySpan<byte> mB = shortData;
-        return buffer.IndexOf(mB);
+        Span<byte> SpanBytes = mainBytes;
+        ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
+        return SpanBytes.IndexOf(ShortSpanBytes);
+    }
+    /// <summary>
+    /// 数据缓存处理,在方法内部根据判断修改buffer和写入指针
+    /// </summary>
+    /// <param name="buffer">对应连接的接收缓存</param>
+    /// <param name="packBytes">处理后的包</param>
+    /// <param name="writeIndex">当前写入位置</param>
+    /// <returns>当本次处理获取到包时,返回True,如果无数据或无合法包,返回False</returns>
+    public bool ReadByteSolve(byte[] buffer, ref int writeIndex, ClientData clientData)
+    {
+        Span<byte> spanBuffer = buffer.AsSpan();
+        bool isReceivePack = false;
+        while (true)
+        {
+            // 处理循环
+            // 循环判断直到没有任何合法包
+            int endIndex = MatchBytes(buffer, PackCoder.PackEndBytes);
+            if (endIndex == -1)
+            {
+                // 未获取到包尾,返回false
+                return isReceivePack;
+            }
+            else if (endIndex >= 0 && endIndex < 1024)
+            {
+                // 获取到包尾,但位置小于1024,即为残缺的后半个包,修改该标记首位为0x00并将此包尾之后的数据前移
+                buffer[endIndex] = 0x00;
+                spanBuffer.Slice(endIndex + 8, writeIndex - (endIndex + 8)).CopyTo(spanBuffer);
+                writeIndex -= endIndex;
+            }
+            else
+            {
+                // 获取到包尾且位置不小于1024,进行包合法性判断
+                Span<byte> rawPack = spanBuffer.Slice(endIndex - 1016, 1024);
+                if (PackCoder.IsLegalPack(rawPack))
+                {
+                    // 判断成功,标记返回True和所提取的包
+                    byte[] packBytes = rawPack.ToArray();
+                    // 记录延迟,仅此处可以更改连接延迟
+                    clientData.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
+
+                    isReceivePack = true;
+                }
+                else
+                {
+                    // 判断失败
+                }
+                // 无论成功与否,都修改标记首位为0x00并将此包尾之后的数据前移
+                buffer[endIndex] = 0x00;
+                spanBuffer.Slice(endIndex + 8, writeIndex - (endIndex + 8)).CopyTo(spanBuffer);
+                writeIndex -= 1024;
+            }
+        }
     }
 }

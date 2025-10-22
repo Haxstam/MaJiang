@@ -1,11 +1,9 @@
 using MaJiangLib;
-using System.Collections.Generic;
-using System.IO;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using UnityEngine;
-using Color = MaJiangLib.Color;
 public class Client : MonoBehaviour
 {
     /// <summary>
@@ -21,69 +19,14 @@ public class Client : MonoBehaviour
     /// </summary>
     private NetworkStream ClientStream { get; set; }
 
-
     // Start is called before the first frame update
     void Start()
     {
-        MainMatchControl mainMatchControl = new MainMatchControl(new List<Player>(),MaJiangLib.MatchType.FourMahjongSouth, true,true);
-        mainMatchControl.PlayerFuluList = new()
-        {
-            new(){
-                new Group(GroupType.AnKang,
-                Color.Bamboo,
-                new()
-                {
-                    new (Color.Bamboo,1),
-                    new (Color.Bamboo,1),
-                    new (Color.Bamboo,1)
-                },
-                1,
-                new(Color.Bamboo, 1)
-                )
-            }
-        };
-        mainMatchControl.QiPaiList = new()
-        {
-            new()
-            {
-                new(Color.Wans,2),
-                new(Color.Honor,4),
-            },
-            new()
-            {
-                new(Color.Wans,3),
-                new(Color.Tungs,5),
-            }
-            ,
-            new()
-            {
-                new(Color.Tungs,6),
-                new(Color.Tungs,7),
-            },
-            new()
-            {
-                new(Color.Wans,3),
-                new(Color.Honor,4),
-            },
 
-        };
-        mainMatchControl.Round = 3;
-        mainMatchControl.Honba = 3;
-        mainMatchControl.MatchType = MaJiangLib.MatchType.FourMahjongEast;
-        mainMatchControl.KangCount = 0;
-        mainMatchControl.RemainPaiCount = 44;
-
-        mainMatchControl.IsRiichi = new() { false, false, false, false };
-        mainMatchControl.IsDoubleRiichi = new() { false, false, false, false };
-        mainMatchControl.IsKang = new() { true, false, false, false };
-        mainMatchControl.HaveIppatsu = new() { true, false, false, false };
-
-        mainMatchControl.DoraList = new() { new(Color.Tungs, 4) };
-        mainMatchControl.UraDoraList = new();
-        testBytes = mainMatchControl.GetPublicBytes();
-        pubControl = MainMatchControl.PublicBytesTo(testBytes);
     }
+
     public static byte[] testBytes;
+
     public static IMatchInformation pubControl;
     // Update is called once per frame
     void Update()
@@ -102,7 +45,7 @@ public class Client : MonoBehaviour
             byte[] testData = PackCoder.PlayerActionPack(bytes, new
                 (
                 new() { new(MaJiangLib.Color.Bamboo, 4), new(MaJiangLib.Color.Bamboo, 5, true) },
-                new() { new(MaJiangLib.Color.Bamboo, 3) },
+                new(MaJiangLib.Color.Bamboo, 3),
                 PlayerAction.Chi
                 )
                 );
@@ -122,19 +65,18 @@ public class Client : MonoBehaviour
     /// <param name="IP">要连接的IP地址,需要字符串</param>
     /// <param name="Port">所连接的端口</param>
     /// <returns></returns>
-    public async void TimeOutConnectAsync(string IP, int Port)
+    public bool TimeOutConnectAsync(IPAddress IPAddress, int Port)
     {
-        IPAddress IPAddress = IPAddress.Parse(IP);
         // 超时Task,如果10s后仍未连接成功,返回false
         Task timeoutTask = Task.Delay(10000);
         Task connectTask = MainClient.ConnectAsync(IPAddress, Port);
-        Task finishedTask = await Task.WhenAny(timeoutTask, connectTask);
+        Task finishedTask = Task.WhenAny(timeoutTask, connectTask);
         if (finishedTask == connectTask)
         {
             Debug.Log("Client Connected!");
             ClientStream = MainClient.GetStream();
 
-            //return true;
+            return true;
         }
         else
         {
@@ -142,7 +84,90 @@ public class Client : MonoBehaviour
             // [TODO] 但再次连接就必须重启Client
             MainClient.Close();
             Debug.Log("TimeOut!");
-            //return false;
+            return false;
+        }
+    }
+    public bool TimeOutConnectAsync(string IP, int Port) => TimeOutConnectAsync(IPAddress.Parse(IP), Port);
+    public async void SubReadAsync()
+    {
+        // 因为Read读取的覆写性和读取时可能的不连续性,目前通过循环读取,拼接写入处理的方式获取数据
+        byte[] clientBuffer = ClientBuffer;
+
+        // 表示当前将要写入缓存的位置
+        int writeIndex = 0;
+        // 读取循环
+        while (true)
+        {
+            // 读取循环
+            // 每当ReadAsync从数据流中读取数据,都会读取最多1024字节的数据,如果写入指针接近上限,则缩小写入大小
+            writeIndex += await ClientStream.ReadAsync(clientBuffer, writeIndex, Math.Min(1024, 8192 - writeIndex));
+            if (writeIndex >= 1024)
+            {   // 如果存在不少于1024字节的待处理数据,进行处理
+                bool isPackReceived = ReadByteSolve(clientBuffer, ref writeIndex);
+            }
+        }
+    }
+    /// <summary>
+    /// 通过Span匹配字节串的方法,需要主字节串和短字节串
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="shortData"></param>
+    /// <returns></returns>
+    public static int MatchBytes(byte[] mainBytes, byte[] shortBytes)
+    {
+        Span<byte> SpanBytes = mainBytes;
+        ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
+        return SpanBytes.IndexOf(ShortSpanBytes);
+    }
+    /// <summary>
+    /// 数据缓存处理,在方法内部根据判断修改buffer和写入指针
+    /// </summary>
+    /// <param name="buffer">对应连接的接收缓存</param>
+    /// <param name="packBytes">处理后的包</param>
+    /// <param name="writeIndex">当前写入位置</param>
+    /// <returns>当本次处理获取到包时,返回True,如果无数据或无合法包,返回False</returns>
+    public static bool ReadByteSolve(byte[] buffer, ref int writeIndex)
+    {
+        Span<byte> spanBuffer = buffer.AsSpan();
+        bool isReceivePack = false;
+        while (true)
+        {
+            // 处理循环
+            // 循环判断直到没有任何合法包
+            int endIndex = MatchBytes(buffer, PackCoder.PackEndBytes);
+            if (endIndex == -1)
+            {
+                // 未获取到包尾,返回false
+                return isReceivePack;
+            }
+            else if (endIndex >= 0 && endIndex < 1024)
+            {
+                // 获取到包尾,但位置小于1024,即为残缺的后半个包,修改该标记首位为0x00并将此包尾之后的数据前移
+                buffer[endIndex] = 0x00;
+                spanBuffer.Slice(endIndex + 8, writeIndex - (endIndex + 8)).CopyTo(spanBuffer);
+                writeIndex -= endIndex;
+            }
+            else
+            {
+                // 获取到包尾且位置不小于1024,进行包合法性判断
+                Span<byte> rawPack = spanBuffer.Slice(endIndex - 1016, 1024);
+                if (PackCoder.IsLegalPack(rawPack))
+                {
+                    // 判断成功,标记返回True和所提取的包
+                    byte[] packBytes = rawPack.ToArray();
+                    PackCoder.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
+
+                    isReceivePack = true;
+                }
+                else
+                {
+                    // 判断失败
+                }
+                // 无论成功与否,都修改标记首位为0x00并将此包尾之后的数据前移
+                buffer[endIndex] = 0x00;
+                spanBuffer.Slice(endIndex + 8, writeIndex - (endIndex + 8)).CopyTo(spanBuffer);
+                writeIndex -= 1024;
+            }
         }
     }
 }

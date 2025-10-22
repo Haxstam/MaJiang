@@ -67,6 +67,8 @@ namespace MaJiangLib
      * 16.用json实现序列化会使得数据传输量太大,而用自动化反射序列化节省的操作不算多,暂时先为每个类手动实现序列化,将来也许会改
      * 17.因为C# 9.0 的限制,像BytesTo()这样的静态方法无法在接口中声明,因此对于BytesToList(),其限制where T : IByteable并不保证T可以从字节串转化而来
      *    对于任何实现了该接口的类型,其必须在GlobalFunction.ByteableInstanceDict里注册
+     *    
+     * 18.List<>用太多了..考虑优化成数组
      */
 
     /// <summary>
@@ -74,7 +76,7 @@ namespace MaJiangLib
     /// </summary>
     public enum Gender
     {
-        Male,
+        Male = 1,
         Female,
         Other,
     }
@@ -107,9 +109,13 @@ namespace MaJiangLib
     public enum DrawType
     {
         /// <summary>
+        /// 占位符
+        /// </summary>
+        Void = 31,
+        /// <summary>
         /// 荒牌流局:当剩余牌为0时最后一位玩家打出牌后无人和牌时触发,需要判断听牌罚符和流局满贯
         /// </summary>
-        DeadWallDraw,
+        DeadWallDraw = 1,
         /// <summary>
         /// 九种九牌:第一巡无人鸣牌情况下,有玩家手牌包含九种及以上的幺九牌且选择流局时触发
         /// </summary>
@@ -123,7 +129,7 @@ namespace MaJiangLib
         /// </summary>
         FourRiichiDraw,
         /// <summary>
-        /// 四风连打:第一巡无人鸣牌时,庄家和所有子家都打出同一种风牌且北家打出后无人和牌时触发,三麻无此规则
+        /// 四风连打:第一巡无人鸣牌时,庄家和所有子家都打出同一种风牌时触发,三麻无此规则
         /// </summary>
         FourWindsDraw,
     }
@@ -132,7 +138,7 @@ namespace MaJiangLib
     /// </summary>
     public enum MatchType
     {
-        ThreeMahjongEast,
+        ThreeMahjongEast = 1,
         ThreeMahjongSouth,
         FourMahjongEast,
         FourMahjongSouth,
@@ -152,7 +158,7 @@ namespace MaJiangLib
     /// </summary>
     public enum GroupType
     {
-        Straight,
+        Straight = 1,
         Triple,
         MingTriple,
         MingStraight,
@@ -166,7 +172,7 @@ namespace MaJiangLib
     /// </summary>
     public enum FuluType
     {
-        Chi,
+        Chi = 1,
         Peng,
         AnKang,
         MingKang,
@@ -180,7 +186,7 @@ namespace MaJiangLib
         /// <summary>
         /// 手切
         /// </summary>
-        HandCut,
+        HandCut = 1,
         /// <summary>
         /// 摸切
         /// </summary>
@@ -371,7 +377,7 @@ namespace MaJiangLib
             {typeof(Pai), new Pai(Color.Wans, 1) },
             {typeof(Group), new Group(GroupType.Triple, Color.Wans, new())},
             {typeof(Player), new Player() },
-            {typeof(PlayerActionData), new PlayerActionData(new(),new(),PlayerAction.Chi) },
+            {typeof(PlayerActionData), new PlayerActionData(new(),new(Color.Wans,1 ),PlayerAction.Chi) },
             {typeof(ShouPai),new ShouPai() },
             {typeof(UserProfile),new UserProfile() },
         };
@@ -427,7 +433,7 @@ namespace MaJiangLib
         /// <param name="drawType">流局类型</param>
         /// <param name="matchInformation">比赛信息</param>
         /// <returns>返回是否流局</returns>
-        public static bool DrawJudge(out DrawType? drawType, IMatchInformation matchInformation)
+        public static bool DrawJudge(out DrawType drawType, IMatchInformation matchInformation)
         {
             if (matchInformation.CurrentStageType == StageType.EndStage)
             {   // 以上流局判断都必须在结束阶段内进行
@@ -466,15 +472,16 @@ namespace MaJiangLib
                     return true;
                 }
             }
-            // 不符合任何一种流局情况,返回null
-            drawType = null;
+            // 不符合任何一种流局情况,返回Void
+            drawType = DrawType.Void;
             return false;
         }
         /// <summary>
         /// 用于判断其他玩家打出牌时,当前玩家所能进行的操作,需要当前手牌信息,每当玩家切换自己的手牌时更新
         /// </summary>
         /// <param name="shouPai"></param>
-        /// <returns>返回一个字典,以操作为键,可进行的操作(MingPaiData)的list为值</returns>
+        /// <param name="matchInformation"></param>
+        /// <returns>返回一个字典,以操作为键,可进行的操作的list为值</returns>
         public static Dictionary<PlayerAction, List<PlayerActionData>> ClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
         {   // 返回结果是字典-列表-列表的嵌套,考虑优化
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
@@ -483,6 +490,7 @@ namespace MaJiangLib
                 { PlayerAction.Peng, new()},
                 { PlayerAction.Kang, new()},
             };
+            // 排序[可能会破坏原有顺序]
             List<Pai> shouPaiList = shouPai.ShouPaiList;
             shouPaiList.Sort();
             for (int i = 0; i < shouPaiList.Count - 1; i++)
@@ -499,14 +507,14 @@ namespace MaJiangLib
                                 {   // 开杠数大于3则不允许继续开杠
                                     playerActions[PlayerAction.Kang].Add(new(
                                         new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
-                                        new() { shouPaiList[i] },
+                                        shouPaiList[i],
                                         PlayerAction.Kang
                                         ));
                                 }
                             }
                             playerActions[PlayerAction.Peng].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new() { shouPaiList[i] },
+                                shouPaiList[i],
                                 PlayerAction.Peng
                                 ));
                         }
@@ -514,7 +522,7 @@ namespace MaJiangLib
                         {   //是雀头,可以碰
                             playerActions[PlayerAction.Peng].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new() { shouPaiList[i] },
+                                shouPaiList[i],
                                 PlayerAction.Peng
                                 ));
                         }
@@ -522,7 +530,7 @@ namespace MaJiangLib
                 }
                 // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
                 if ((matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
-                    && (matchInformation.CurrentPlayerIndex == shouPai.Player - 1 || matchInformation.CurrentPlayerIndex == shouPai.Player + 3))
+                    && (matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber - 1 || matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber + 3))
                 {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌
                     if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 1) && shouPaiList[i].Color != Color.Honor)
                     {   // 即两面/边张,第一张牌和第二张牌相邻且同色且都不是字牌
@@ -530,7 +538,7 @@ namespace MaJiangLib
                         {   // 是1 2边张
                             playerActions[PlayerAction.Chi].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number + 2) },
+                                new(shouPaiList[i].Color, shouPaiList[i].Number + 2),
                                 PlayerAction.Chi
                                 ));
                         }
@@ -539,15 +547,21 @@ namespace MaJiangLib
                             // 是8 9边张   
                             playerActions[PlayerAction.Chi].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number - 1) },
+                                new(shouPaiList[i].Color, shouPaiList[i].Number - 1),
                                 PlayerAction.Chi
                                 ));
                         }
                         else
                         {   // 即中张两面
+                            // 单一牌型能鸣两张则分别添加鸣牌操作
                             playerActions[PlayerAction.Chi].Add(new(
                                 new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new() { new(shouPaiList[i].Color, shouPaiList[i].Number - 1), new(shouPaiList[i].Color, shouPaiList[i].Number + 2) },
+                                new(shouPaiList[i].Color, shouPaiList[i].Number - 1),
+                                PlayerAction.Chi
+                                ));
+                            playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new(shouPaiList[i].Color, shouPaiList[i].Number + 2),
                                 PlayerAction.Chi
                                 ));
                         }
@@ -556,7 +570,7 @@ namespace MaJiangLib
                     {   // 即坎张,第二张牌比第一张牌点数大2且同色且都不是字牌
                         playerActions[PlayerAction.Chi].Add(new(
                             new() { shouPaiList[i], shouPaiList[i + 1] },
-                            new() { new(shouPaiList[i].Color, shouPaiList[i].Number + 1) },
+                            new(shouPaiList[i].Color, shouPaiList[i].Number + 1),
                             PlayerAction.Chi
                             ));
                     }
@@ -564,8 +578,104 @@ namespace MaJiangLib
             }
             return playerActions;
         }
+
         /// <summary>
-        /// 用于判断当前玩家手牌所能进行的自身操作,需要玩家手牌,当前所摸的牌,判断能否加杠/暗杠/拔北
+        /// 对特定单张牌的响应计算,需要手牌,所鸣单牌和对局信息
+        /// </summary>
+        /// <param name="shouPai"></param>
+        /// <param name="matchInformation"></param>
+        /// <returns></returns>
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, Pai currentPai, IMatchInformation matchInformation)
+        {
+            Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
+            {   // 鸣牌操作仅限吃碰杠
+                { PlayerAction.Chi, new()},
+                { PlayerAction.Peng, new()},
+                { PlayerAction.Kang, new()},
+
+            };
+            // 排序[可能会破坏原有顺序]
+            List<Pai> shouPaiList = shouPai.ShouPaiList;
+            shouPaiList.Sort();
+            for (int i = 0; i < shouPaiList.Count - 1; i++)
+            {   // 从手牌中每张牌进行遍历,按照每两张进行判断
+                if (shouPaiList[i].Color != currentPai.Color)
+                {
+                    // 当前牌花色和待计算牌不同,跳过
+                    continue;
+                }
+                if (shouPaiList[i] == shouPaiList[i + 1] && shouPaiList[i].Number == currentPai.Number)
+                {   // 即雀头/刻子,第一张和第二张牌相同,若有三张相同则为刻子
+                    if (i < shouPaiList.Count - 2)
+                    {   // 至少其后有两张牌
+                        if (shouPaiList[i] == shouPaiList[i + 2])
+                        {   //是刻子,可以碰/杠
+                            if (matchInformation.RemainPaiCount >= 1)
+                            {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
+                                if (matchInformation.KangCount <= 3)
+                                {   // 开杠数大于3则不允许继续开杠
+                                    playerActions[PlayerAction.Kang].Add(new(
+                                        new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
+                                        currentPai,
+                                        PlayerAction.Kang
+                                        ));
+                                }
+                            }
+                            playerActions[PlayerAction.Peng].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                currentPai,
+                                PlayerAction.Peng
+                                ));
+                        }
+                        else
+                        {   //是雀头,可以碰
+                            playerActions[PlayerAction.Peng].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                currentPai,
+                                PlayerAction.Peng
+                                ));
+                        }
+                    }
+                }
+
+                // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
+                if (
+                    (matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
+                    && (matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber - 1 || matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber + 3)
+                    && shouPaiList[i].Color != Color.Honor
+                    && shouPaiList[i].Color == shouPaiList[i + 1].Color
+                    )
+                {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌,手牌中两张牌花色相同,且花色不能为字牌
+                    if (shouPaiList[i].Number == shouPaiList[i + 1].Number + 1 && (currentPai.Number == shouPaiList[i].Number - 1 || currentPai.Number == shouPaiList[i].Number + 2))
+                    {   // 即两面/边张,第一张牌和第二张牌相邻
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                    if (shouPaiList[i].Number == shouPaiList[i + 1].Number + 2 && currentPai.Number == shouPaiList[i].Number + 1)
+                    {   // 即坎张,第二张牌比第一张牌点数大2
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                }
+            }
+            return playerActions;
+        }
+        /// <summary>
+        /// 省略了单张牌,仅根据手牌和对局信息判断
+        /// </summary>
+        /// <param name="shouPai"></param>
+        /// <param name="matchInformation"></param>
+        /// <returns></returns>
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation) 
+            => SingleClaimingAvailableJudge(shouPai, matchInformation.CurrentPai, matchInformation);
+        /// <summary>
+        /// 用于判断当前玩家手牌所能进行的自身操作,需要玩家手牌,当前所摸的牌,判断能否加杠/暗杠/拔北/流局
         /// </summary>
         /// <param name="shouPai"></param>
         /// <returns>返回一个字典,以操作为键,可进行的操作(SelfActionData)的list为值</returns>
@@ -655,7 +765,7 @@ namespace MaJiangLib
         /// <returns>返回能否立直</returns>
         public static bool RiichiJudge(ShouPai shouPai, IMatchInformation matchInformation)
         {
-            return matchInformation.IsRiichi[shouPai.Player] == false && matchInformation.RemainPaiCount >= 4 && matchInformation.PlayerPoint[shouPai.Player] >= 1000 && shouPai.IsClosedHand;
+            return matchInformation.IsRiichi[shouPai.PlayerNumber] == false && matchInformation.RemainPaiCount >= 4 && matchInformation.PlayerPoint[shouPai.PlayerNumber] >= 1000 && shouPai.IsClosedHand;
         }
         /// <summary>
         /// 流局满贯判定,即在荒牌流局的情况下存在玩家,其牌河仅为幺九牌且未被鸣牌
@@ -1341,6 +1451,18 @@ namespace MaJiangLib
             }
             Array.Copy(shortBytes, 0, targetBytes, index, shortBytes.Length);
         }
+        public static void ReplaceBytes(Span<byte> targetBytes, byte[] shortBytes, int index)
+        {
+            if (index < 0 || index + shortBytes.Length > targetBytes.Length)
+            {
+                UnityEngine.Debug.Log(targetBytes.Length);
+                UnityEngine.Debug.Log(shortBytes.Length);
+                UnityEngine.Debug.Log(index);
+                throw new ArgumentOutOfRangeException("替换范围超出目标数组长度");
+            }
+            Span<byte> sliceBytes = targetBytes.Slice(index, shortBytes.Length);
+            shortBytes.CopyTo(sliceBytes);
+        }
         /// <summary>
         /// 对T的列表进行序列化的方法,T必须实现接口IByteable
         /// </summary>
@@ -1356,12 +1478,12 @@ namespace MaJiangLib
             else
             {
                 int byteSize = list[0].ByteSize;
-                byte[] mainBytes = new byte[list.Count * byteSize];
+                Span<byte> mainBytes = new byte[list.Count * byteSize];
                 for (int i = 0; i < list.Count; i++)
                 {
                     ReplaceBytes(mainBytes, list[i].GetBytes(), i * byteSize);
                 }
-                return mainBytes;
+                return mainBytes.ToArray();
             }
 
         }

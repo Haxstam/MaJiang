@@ -20,7 +20,7 @@ namespace MaJiangLib
         /// <summary>
         /// 标记该手牌所属的玩家
         /// </summary>
-        public int Player { get; set; }
+        public int PlayerNumber { get; set; }
         /// <summary>
         /// 手牌列表,不超过13枚
         /// </summary>
@@ -49,7 +49,7 @@ namespace MaJiangLib
         public object Clone()
         {
             ShouPai shouPai = new ShouPai();
-            shouPai.Player = Player;
+            shouPai.PlayerNumber = PlayerNumber;
             shouPai.ShouPaiList = ShouPaiList.ToList();
             shouPai.FuluPaiList = FuluPaiList.ToList();
             shouPai.NorthDoraCount = NorthDoraCount;
@@ -60,7 +60,7 @@ namespace MaJiangLib
             // 1 byte Player + 1 byte NorthDoraCount + 10 bytes 留空 + 26(13*2) bytes ShouPaiList + 2 bytes SinglePai + 56(4*14) bytes FuluPaiList = 96 bytes
             // 手牌类的序列化大小暂时先固定,考虑压缩
             byte[] mainBytes = new byte[96];
-            mainBytes[0] = (byte)shouPai.Player;
+            mainBytes[0] = (byte)shouPai.PlayerNumber;
             mainBytes[1] = (byte)shouPai.NorthDoraCount;
             ReplaceBytes(mainBytes, ListToBytes(shouPai.ShouPaiList), 12);
             ReplaceBytes(mainBytes, shouPai.SinglePai, 38);
@@ -79,7 +79,7 @@ namespace MaJiangLib
             List<Group> fuluPaiList = BytesToList<Group>(shortByte, 40, 4);
             ShouPai shouPai = new ShouPai();
             shouPai.NorthDoraCount = northDoraCount;
-            shouPai.Player = player;
+            shouPai.PlayerNumber = player;
             shouPai.ShouPaiList= shouPaiList;
             shouPai.FuluPaiList= fuluPaiList;
             shouPai.SinglePai = singlePai;

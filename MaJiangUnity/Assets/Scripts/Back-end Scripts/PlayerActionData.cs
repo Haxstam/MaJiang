@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
@@ -14,10 +17,26 @@ namespace MaJiangLib
         /// <param name="pais">手中所要响应的牌</param>
         /// <param name="targetPai">被响应的牌</param>
         /// <param name="playerAction">对应操作</param>
-        public PlayerActionData(List<Pai> pais, List<Pai> targetPai, PlayerAction playerAction)
+        public PlayerActionData(List<Pai> pais, Pai targetPai, PlayerAction playerAction)
         {
             Pais = pais;
-            TargetPais = targetPai;
+            TargetPai = targetPai;
+            PlayerAction = playerAction;
+        }
+        /// <summary>
+        /// 完全实现,需要响应者,被响应者,能响应的牌,目标牌和对应操作
+        /// </summary>
+        /// <param name="selfNumber"></param>
+        /// <param name="targetNumber"></param>
+        /// <param name="pais"></param>
+        /// <param name="targetPai"></param>
+        /// <param name="playerAction"></param>
+        public PlayerActionData(int selfNumber, int targetNumber, List<Pai> pais, Pai targetPai, PlayerAction playerAction)
+        {
+            SelfNumber = selfNumber;
+            TargetPlayerNumber = targetNumber;
+            Pais = pais;
+            TargetPai = targetPai;
             PlayerAction = playerAction;
         }
         /// <summary>
@@ -29,7 +48,7 @@ namespace MaJiangLib
         {
             if (PlayerAction == PlayerAction.Ron || PlayerAction == PlayerAction.Tsumo)
             {
-                TargetPais = pais;
+                TargetPai = pais[0];
             }
             else
             {
@@ -51,9 +70,9 @@ namespace MaJiangLib
         /// </summary>
         public List<Pai> Pais { get; set; }
         /// <summary>
-        /// 被操作的目标牌,注意:当本类存储已确定的操作信息时,TargetPais默认仅包含一个确定对象,成员数最大为2
+        /// 被操作的目标牌,仅一张
         /// </summary>
-        public List<Pai> TargetPais { get; set; }
+        public Pai TargetPai { get; set; }
         /// <summary>
         /// 目标玩家的序号
         /// </summary>
@@ -76,21 +95,22 @@ namespace MaJiangLib
              * 1  byte  操作承受者序号,即被鸣牌者
              * 1  bytes 留空
              * 8  bytes Pais变量的存储,可存储最大4张操作牌,不足则补0
-             * 4  bytes TargetPais的存储,可存储最大2张被操作牌,不足则补0
+             * 2  bytes TargetPais的存储
+             * 2  bytes 留空
              */
             byte[] MainBytes = new byte[16];
             MainBytes[0] = (byte)playerActionData.PlayerAction;
-            // [TODO] 发出者承受者待实现
-
-            if (playerActionData.Pais.Count > 4 || playerActionData.TargetPais.Count > 2)
+            MainBytes[1] = (byte)playerActionData.SelfNumber;
+            MainBytes[2] = (byte)playerActionData.TargetPlayerNumber;
+            if (playerActionData.Pais.Count > 4)
             {
                 // 如果成员数过多将不能转换
-                throw new System.Exception($"玩家操作转换时出现意外牌数目:{playerActionData.Pais},{playerActionData.TargetPais}");
+                throw new System.Exception($"玩家操作转换时出现意外牌数目:{playerActionData.Pais},{playerActionData.TargetPai}");
             }
             else
             {
                 ReplaceBytes(playerActionData, ListToBytes(playerActionData.Pais), 4);
-                ReplaceBytes(playerActionData, ListToBytes(playerActionData.TargetPais), 12);
+                ReplaceBytes(playerActionData, playerActionData.TargetPai, 12);
             }
             return MainBytes;
         }
@@ -106,11 +126,11 @@ namespace MaJiangLib
         {
             byte[] shortBytes = new byte[16];
             Array.Copy(bytes, index, shortBytes, 0, 16);
-            PlayerActionData playerActionData = new(new(), new(), (PlayerAction)bytes[0]);
+            PlayerActionData playerActionData = new(new(), new(Color.Wans, 1), (PlayerAction)bytes[0]);
             playerActionData.SelfNumber = shortBytes[1];
             playerActionData.TargetPlayerNumber = shortBytes[2];
             int paiIndex = 4;
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 5; i++)
             {
                 Pai singlePai = Pai.StaticBytesTo(shortBytes, paiIndex);
                 if (singlePai != null)
@@ -123,7 +143,7 @@ namespace MaJiangLib
                     else
                     {
                         // 后两张是TargetPais
-                        playerActionData.TargetPais.Add(singlePai);
+                        playerActionData.TargetPai = singlePai;
                     }
                 }
                 paiIndex += 4;
@@ -131,5 +151,55 @@ namespace MaJiangLib
             return playerActionData;
         }
         public PlayerActionData BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
+
+        public static bool operator ==(PlayerActionData a, PlayerActionData b)
+        {
+            if ((a as object) == null && (b as object) == null)
+            {
+                return true;
+            }
+            else if ((a as object) == null || (b as object) == null)
+            {
+                return false;
+            }
+            if (a.SelfNumber != b.SelfNumber)
+            {
+                return false;
+            }
+            if (!a.Pais.SequenceEqual(b.Pais))
+            {
+                return false;
+            }
+            if (a.TargetPai != b.TargetPai || a.SelfNumber != b.SelfNumber || a.TargetPlayerNumber != b.TargetPlayerNumber || a.PlayerAction != b.PlayerAction)
+            {
+                return false;
+            }
+            return true;
+        }
+        public static bool operator != (PlayerActionData a, PlayerActionData b) 
+        { 
+            return !(a == b); 
+        }
+        public override bool Equals(object obj)
+        {
+            PlayerActionData playerActionData = obj as PlayerActionData;
+            if (playerActionData != null)
+            {
+                return playerActionData == this;
+            }
+            else 
+            {
+                return false; 
+            }
+        }
+        public override int GetHashCode()
+        {
+            HashCode paisHash = new();
+            foreach (Pai listPai in Pais)
+            {
+                paisHash.Add(listPai.GetHashCode());
+            }
+            return HashCode.Combine(SelfNumber, TargetPlayerNumber, paisHash.ToHashCode(), TargetPai, PlayerAction);
+        }
     }
 }

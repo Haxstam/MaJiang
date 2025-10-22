@@ -34,7 +34,19 @@ namespace MaJiangLib
             }
             public override bool Equals(object obj)
             {
-                return this == (FanData)obj;
+                FanData fanData = obj as FanData;
+                if (fanData == null)
+                {
+                    return false;
+                }
+                else
+                {
+                    return this == fanData;
+                }
+            }
+            public override int GetHashCode()
+            {
+                return HashCode.Combine(Fan, Yaku);
             }
         }
         /// <summary>
@@ -244,7 +256,7 @@ namespace MaJiangLib
             {   // 没有役满
                 switch (fanCount)
                 {
-                    case 13:
+                    case >= 13:
                         basePoint = 8000;
                         break;
                     case 11:
@@ -272,7 +284,10 @@ namespace MaJiangLib
                         basePoint = 0;
                         break;
                 }
+
                 // 符的计算
+
+                // 标记是否跳过计算
                 bool isFuSkip = false;
                 foreach (FanData fanData in YakuList)
                 {
@@ -286,12 +301,13 @@ namespace MaJiangLib
                     {   // 平和自摸锁定20符
                         fu = 20;
                         isFuSkip = true;
+                        break;
                     }
-                    else if (!haveTriple && !hePaiData.IsIsumo && !hePaiData.IsClosedHand)
-                    {   // 无刻子,副露平和型荣和,锁定30符
-                        fu = 30;
-                        isFuSkip = true;
-                    }
+                }
+                if (!haveTriple && !hePaiData.IsIsumo && !hePaiData.IsClosedHand)
+                {   // 无刻子,副露平和型荣和,锁定30符
+                    fu = 30;
+                    isFuSkip = true;
                 }
                 if (!isFuSkip)
                 {
@@ -300,43 +316,56 @@ namespace MaJiangLib
                     foreach (Group group in hePaiData.Groups)
                     {
                         // 面子符的计算:首先,根据刻杠增加次方数,明刻暗刻明杠暗杠分别为+1到+4,若为幺九则再+1
-                        // 根据次方数计算该面子的符:2/4/8/16/32,顺子不加符
-                        int tempFuCount = 0;
-                        if (group.GroupType == GroupType.MingTriple)
+                        // 根据次方数计算该面子的符:
+                        // 2(中张明刻)
+                        // 4(中张暗刻/幺九明刻)
+                        // 8(中张明杠/幺九暗刻)
+                        // 16(中张暗杠/幺九明杠)
+                        // 32(幺九暗杠)
+                        // 顺子不加符
+                        if (group.IsTriple)
                         {
-                            tempFuCount += 1;
-                        }
-                        else if (group.GroupType == GroupType.Triple)
-                        {
-                            tempFuCount += 2;
-                        }
-                        else if (group.GroupType == GroupType.MingKang || group.GroupType == GroupType.JiaKang)
-                        {
-                            tempFuCount += 3;
-                        }
-                        else if (group.GroupType == GroupType.AnKang)
-                        {
-                            tempFuCount += 4;
-                        }
-                        if (group.IsTriple || group.Pais[0].Number == 1 || group.Pais[0].Number == 9 || group.Color == Color.Honor)
-                        {
-                            tempFuCount += 1;
-                        }
-                        if (tempFuCount != 0)
-                        {
+                            int tempFuCount = 0;
+                            if (group.GroupType == GroupType.MingTriple)
+                            {
+                                tempFuCount += 1;
+                            }
+                            else if (group.GroupType == GroupType.Triple)
+                            {
+                                tempFuCount += 2;
+                            }
+                            else if (group.GroupType == GroupType.MingKang || group.GroupType == GroupType.JiaKang)
+                            {
+                                tempFuCount += 3;
+                            }
+                            else if (group.GroupType == GroupType.AnKang)
+                            {
+                                tempFuCount += 4;
+                            }
+                            if (group.Pais[0].Number == 1 || group.Pais[0].Number == 9 || group.Color == Color.Honor)
+                            {
+                                tempFuCount += 1;
+                            }
                             fu += (int)Math.Pow(2, tempFuCount);
                         }
                     }
-                    if (IsYiPai(MatchInformation, pairGroup.Pais[0], hePaiData.Player))
-                    {   // 如果雀头是役牌,记2符,连风也为2符
-                        fu += 2;
+                    if (IsYiPai(MatchInformation, pairGroup.Pais[0], hePaiData.PlayerNumber))
+                    {   // 如果雀头是役牌,记2符
+                        if (pairGroup.Pais[0].Number == (int)MatchInformation.Wind && pairGroup.Pais[0].Number == hePaiData.PlayerNumber)
+                        {   // 雀头既是场风,又是自风,计4符
+                            fu += 4;
+                        }
+                        else
+                        {
+                            fu += 2;
+                        }
                     }
                     if (hePaiData.IsClosedHand && !hePaiData.IsIsumo)
                     {   //门前清荣和加10符
                         fu += 10;
                     }
                     if (hePaiData.IsIsumo)
-                    {   // 自摸加2符
+                    {   // 非平和自摸加2符
                         fu += 2;
                     }
                     if (pairGroup.Pais[0] == hePaiData.SinglePai)
@@ -365,6 +394,8 @@ namespace MaJiangLib
                     }
                     if (!hePaiData.IsClosedHand && fu < 30)
                     {
+                        // 标记
+                        Console.WriteLine("前述判定按理已经包含所有情况,但结果触发了下限");
                         // 副露后符数下限为30
                         fu = 30;
                     }
@@ -503,7 +534,7 @@ namespace MaJiangLib
         internal static FanData UraDora(HePaiData data)
         {
             // 必须立直
-            if (MatchInformation.IsRiichi[data.Player] == true)
+            if (MatchInformation.IsRiichi[data.PlayerNumber] == true)
             {
                 int doraCount = 0;
                 List<Pai> doraList = DoraListCalculator(MatchInformation.DoraList);
@@ -574,7 +605,7 @@ namespace MaJiangLib
                             fanList.Add(new(1, YakuType.Chun));
                         }
                     }
-                    if (group.Pais[0].Number == (data.Player - MatchInformation.Round + 1))
+                    if (group.Pais[0].Number == (data.PlayerNumber - MatchInformation.Round + 1))
                     {
                         fanList.Add(new(1, YakuType.Jikaze));
                     }
@@ -593,11 +624,11 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData RiichiAndDoubleRiichi(HePaiData data)
         {
-            if (MatchInformation.IsDoubleRiichi[data.Player] == true)
+            if (MatchInformation.IsDoubleRiichi[data.PlayerNumber] == true)
             {
                 return new(2, YakuType.DoubleRiichi);
             }
-            else if (MatchInformation.IsRiichi[data.Player] == true)
+            else if (MatchInformation.IsRiichi[data.PlayerNumber] == true)
             {
                 return new(1, YakuType.Riichi);
             }
@@ -613,7 +644,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Ippatsu(HePaiData data)
         {
-            if (MatchInformation.HaveIppatsu[data.Player] == true && MatchInformation.IsRiichi[data.Player] == true)
+            if (MatchInformation.HaveIppatsu[data.PlayerNumber] == true && MatchInformation.IsRiichi[data.PlayerNumber] == true)
             {
                 return new(1, YakuType.Ippatsu);
             }
@@ -629,7 +660,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Tsumo(HePaiData data)
         {
-            if (data.IsClosedHand && MatchInformation.CurrentPlayerIndex == data.Player)
+            if (data.IsClosedHand && MatchInformation.CurrentPlayerIndex == data.PlayerNumber)
             {
                 return new(1, YakuType.Tsumo);
             }
@@ -670,7 +701,7 @@ namespace MaJiangLib
             {
                 if (group.GroupType == GroupType.Pair)
                 {
-                    if (GlobalFunction.IsYiPai(MatchInformation, group.Pais[0], data.Player))
+                    if (GlobalFunction.IsYiPai(MatchInformation, group.Pais[0], data.PlayerNumber))
                     {
                         return new(0, YakuType.Empty);
                     }
@@ -704,7 +735,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Rinshankaiho(HePaiData data)
         {
-            if (MatchInformation.IsKang[data.Player])
+            if (MatchInformation.IsKang[data.PlayerNumber])
             {
                 return new(1, YakuType.Rinshankaiho);
             }
@@ -1345,7 +1376,7 @@ namespace MaJiangLib
         {
             if (MatchInformation.FirstCycleIppatsu && data.IsIsumo)
             {
-                if (data.Player == MatchInformation.CurrentBankerIndex)
+                if (data.PlayerNumber == MatchInformation.CurrentBankerIndex)
                 {
                     return new(13, YakuType.Tenho);
                 }

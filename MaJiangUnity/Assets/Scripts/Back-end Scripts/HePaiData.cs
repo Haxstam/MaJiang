@@ -9,7 +9,7 @@ namespace MaJiangLib
     {
         public HePaiData(ShouPai shouPai, Pai singlePai, bool isIsumo, bool isClosedHand, List<Group> group)
         {
-            Player = shouPai.Player;
+            PlayerNumber = shouPai.PlayerNumber;
             ShouPai = shouPai;
             SinglePai = singlePai;
             IsIsumo = isIsumo;
@@ -19,7 +19,7 @@ namespace MaJiangLib
         /// <summary>
         /// 和牌者的序号
         /// </summary>
-        public int Player { get; set; }
+        public int PlayerNumber { get; set; }
         /// <summary>
         /// 手牌列表
         /// </summary>

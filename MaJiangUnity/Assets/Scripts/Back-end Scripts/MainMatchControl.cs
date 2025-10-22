@@ -1,7 +1,7 @@
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using System.Linq;
 using static MaJiangLib.GlobalFunction;
 /// <summary>
 /// 主对局控制类,存储系统操作方法和对局相关信息
@@ -30,32 +30,14 @@ public class MainMatchControl : IMatchInformation
         if (MatchType == MatchType.FourMahjongEast || MatchType == MatchType.FourMahjongSouth)
         {
             PlayerList = playerList;
-            // 牌山设定:通过随机数生成牌山,取前122张作为手牌,后14张作为王牌
-            List<Pai> rawPaiList = RandomCardGenerator(out int randomNumber, true, true, true);
-            PrimePaiIndex = 0;
-            PrimePaiList = rawPaiList.GetRange(122, 14);
-            rawPaiList.RemoveRange(122, 14);
-            MainPaiList = rawPaiList;
+            FourInit();
             // 各列表/数值初始化为东一 0本场的开局情况,且未开始发牌和掀开宝牌
-            QiPaiList = new();
-            DoraList = new();
-            UraDoraList = new();
-            KangCount = 0;
-            KangMark = 0;
             Wind = WindType.East;
             Round = 1;
             Honba = 0;
-            PlayerPoint = new();
-            IsRiichi = new() { false, false, false, false };
-            IsDoubleRiichi = new() { false, false, false, false };
-            IsKang = new() { false, false, false, false };
-            HaveIppatsu = new() { false, false, false, false };
-            FirstCycleIppatsu = true;
+            PlayerPoint = new() { 25000, 25000, 25000, 25000 };
             CurrentBankerIndex = 0;
-            CurrentPlayerIndex = 0;
-            CurrentStageType = StageType.StartStage;
-            CurrentPaiIndex = 0;
-            RemainPaiCount = 122;
+            CurrentPlayerIndex = CurrentBankerIndex;
         }
         else
         {
@@ -148,33 +130,9 @@ public class MainMatchControl : IMatchInformation
     /// </summary>
     public List<int> PlayerPoint { get; set; }
     /// <summary>
-    /// 记录是否立直,立直者对应序号的值为true
-    /// </summary>
-    public List<bool> IsRiichi { get; set; }
-    /// <summary>
-    /// 记录是否为两立直,此变量对应序号为True时,IsRiichi对应的序号也必须为True
-    /// </summary>
-    public List<bool> IsDoubleRiichi { get; set; }
-    /// <summary>
-    /// 牌山下一张牌在牌山中的位置,当摸牌时获取对应牌山位置的牌
-    /// </summary>
-    public int CurrentPaiIndex { get; set; }
-    /// <summary>
     /// 剩余牌的数目,用于判断河底海底等
     /// </summary>
     public int RemainPaiCount { get; set; }
-    /// <summary>
-    /// 一发的判断,某人立直后设定其序号对应的为True,有人鸣牌或其本人再打出一张后设定为False
-    /// </summary>
-    public List<bool> HaveIppatsu { get; set; }
-    /// <summary>
-    /// 第一巡的指示,用于判断两立直天地和,开局设定为True,有人鸣牌或庄家再摸牌后设定为False
-    /// </summary>
-    public bool FirstCycleIppatsu { get; set; }
-    /// <summary>
-    /// 刚摸完岭上牌的状态,拔北或开杠后设定为True,打出牌后设定为False
-    /// </summary>
-    public List<bool> IsKang { get; set; }
     /// <summary>
     /// 当前正进行回合的玩家的序号,当前玩家结束阶段完毕后,转至下一玩家的舍牌阶段
     /// </summary>
@@ -191,6 +149,37 @@ public class MainMatchControl : IMatchInformation
     /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
     /// </summary>
     public List<List<Group>> PlayerFuluList { get; set; }
+
+    // 标记类变量
+
+    /// <summary>
+    /// 第一巡的指示,用于判断两立直天地和,开局设定为True,有人鸣牌或庄家再摸牌后设定为False
+    /// </summary>
+    public bool FirstCycleIppatsu { get; set; }
+    /// <summary>
+    /// 记录是否立直,立直者对应序号的值为true
+    /// </summary>
+    public List<bool> IsRiichi { get; set; }
+    /// <summary>
+    /// 记录是否为两立直,此变量对应序号为True时,IsRiichi对应的序号也必须为True
+    /// </summary>
+    public List<bool> IsDoubleRiichi { get; set; }
+    /// <summary>
+    /// 一发的判断,某人立直后设定其序号对应的为True,有人鸣牌或其本人再打出一张后设定为False
+    /// </summary>
+    public List<bool> HaveIppatsu { get; set; }
+    /// <summary>
+    /// 刚摸完岭上牌的状态,拔北或开杠后设定为True,打出牌后设定为False
+    /// </summary>
+    public List<bool> IsKang { get; set; }
+    public Pai CurrentPai { get; set; }
+
+    // 内部信息,不作为接口成员
+
+    /// <summary>
+    /// 牌山下一张牌在牌山中的位置,当摸牌时获取对应牌山位置的牌
+    /// </summary>
+    public int CurrentPaiIndex { get; set; }
     /// <summary>
     /// 牌山
     /// </summary>
@@ -314,6 +303,102 @@ public class MainMatchControl : IMatchInformation
         return false;
     }
 
+
+    ///// <summary>
+    ///// 当前舍牌下所有用户可进行的操作,东一庄家序号为0,每次舍牌都进行计算并更新此列表用于判断
+    ///// </summary>
+    //public List<Dictionary<PlayerAction, List<PlayerActionData>>> CurrentPlayerActionDict { get; private set; } = new();
+    ///// <summary>
+    ///// 当前等待舍牌的用户可以进行的非副露操作,每当用户摸牌时更新
+    ///// </summary>
+    //public Dictionary<PlayerAction, List<PlayerActionData>> CurrentPlayerSelfActionDict { get; private set; } = new();
+    ///// <summary>
+    ///// 用户鸣牌操作更新方法,调用以更新操作列表
+    ///// </summary>
+    ///// <returns></returns>
+    //public void PlayerActionFullRefresh(Pai currentPai)
+    //{
+    //    foreach (Player player in PlayerList)
+    //    {
+    //        CurrentPlayerActionDict[player.PlayerNumber] = ClaimingAvailableJudge(player.ShouPai, this);
+    //    }
+    //}
+    ///// <summary>
+    ///// 用户自身操作更新方法,一般每回合都必须被调用
+    ///// </summary>
+    ///// <param name="currentPai"></param>
+    //public void PlayerSelfActionRefresh(Pai currentPai)
+    //{
+    //    CurrentPlayerSelfActionDict = SelfAvailableJudge(PlayerList[CurrentPlayerIndex].ShouPai, currentPai, this);
+    //}
+    /// <summary>
+    /// 四麻通用初始化:生成新牌山,分配王牌,重置所有标记,但还未掀开宝牌和分发起始手牌
+    /// </summary>
+    public void FourInit()
+    {
+        // 牌山设定:通过随机数生成牌山,取前122张作为手牌,后14张作为王牌
+        List<Pai> rawPaiList = RandomCardGenerator(out int randomNumber, true, true, true);
+        PrimePaiIndex = 0;
+        PrimePaiList = rawPaiList.GetRange(122, 14);
+        rawPaiList.RemoveRange(122, 14);
+        MainPaiList = rawPaiList;
+        QiPaiList = new();
+        DoraList = new();
+        UraDoraList = new();
+        IsRiichi = new() { false, false, false, false };
+        IsDoubleRiichi = new() { false, false, false, false };
+        IsKang = new() { false, false, false, false };
+        HaveIppatsu = new() { false, false, false, false };
+        PlayerFuluList = new();
+        FirstCycleIppatsu = true;
+        CurrentStageType = StageType.StartStage;
+        CurrentPaiIndex = 0;
+        RemainPaiCount = 122;
+        KangCount = 0;
+        KangMark = 0;
+    }
+    /// <summary>
+    /// 四麻庄家连庄状态下的场况更新
+    /// </summary>
+    public void FourNewHonba()
+    {
+        FourInit();
+        Honba++;
+    }
+    /// <summary>
+    /// 四麻庄家下庄时的场况更新
+    /// </summary>
+    public void FourNewRound()
+    {
+        FourInit();
+        Honba = 0;
+        if (Round == 4)
+        {
+            Wind++;
+            Round = 0;
+            CurrentBankerIndex = 0;
+            CurrentPlayerIndex = CurrentBankerIndex;
+        }
+        else
+        {
+            Round++;
+            CurrentBankerIndex++;
+            CurrentPlayerIndex = CurrentBankerIndex;
+        }
+    }
+    /// <summary>
+    /// 开始前的手牌分发并掀开宝牌
+    /// </summary>
+    public void FourBasePaiSend()
+    {
+        for (int i = 0; i< 4; i++)
+        {
+            for(int j = 0; j < 13; j++)
+            {
+
+            }
+        }
+    }
     /// <summary>
     /// 对于比赛信息中公共信息的序列化,返回不包含用户名的512Bytes字节串
     /// </summary>
@@ -361,7 +446,6 @@ public class MainMatchControl : IMatchInformation
         // 目前484~511 留空
         return MainBytes;
     }
-
     public static MainMatchControl PublicBytesTo(byte[] bytes, int index = 0)
     {
         byte[] shortBytes = new byte[512];

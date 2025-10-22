@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
 using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
@@ -261,7 +262,32 @@ namespace MaJiangLib
                 }
             }
         }
-        
+        /// <summary>
+        /// ==包装,不考虑是否为红宝牌
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public override bool Equals(object obj)
+        {
+            Pai pai = obj as Pai;
+            if (pai != null)
+            {
+                return pai == this;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        [Description("注意:GetHashCode()会考虑到是否为红宝牌,因此其返回会和Equals(),==,!=有所不同")]
+        /// <summary>
+        /// 注意:GetHashCode()会考虑到是否为红宝牌,因此其返回会和Equals(),==,!=有所不同
+        /// </summary>
+        /// <returns></returns>
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Color, Number, IsRedDora);
+        }
     }
     /// <summary>
     /// 牌花色的枚举:万,筒,索,字牌

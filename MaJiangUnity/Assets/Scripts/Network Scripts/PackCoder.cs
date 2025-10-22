@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -14,7 +15,7 @@ namespace MaJiangLib
         /* 1. 包大小固定为1KiB,即1024B.这方面考虑简便直接锁定包大小,避免读取时判断包头尾和循环读取的问题
          * 2. 包结构
          * (1) 8   bytes [0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50] "\u0002HaxMajP" 数据包头特定标识,UTF-8编码,首位为STX(0x02)从而避免包头误判
-         * (2) 8   bytes Unix时间戳,long类型
+         * (2) 8   bytes Unix毫秒时间戳,long类型
          * (3) 4   bytes 包来源IP地址,为IPv4地址类型
          * (4) 48  bytes 包来源用户名,为string类型,UTF-8编码,限定最长为12字符,如果不足则补0
          * (5) 4   bytes 版本号([TODO]暂空,未实现)
@@ -53,13 +54,67 @@ namespace MaJiangLib
         public static byte[] PackEndBytes { get; } = new byte[8] { 0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B };
         public static int PackSize { get; } = 1024;
         public static int PackEndIndex { get; } = 1016;
+        /// <summary>
+        /// 延迟,仅TcpClinet在处理包时被修改,单位为毫秒
+        /// </summary>
+        public static double Ping { get; set; }
+        
+        /// <summary>
+        /// 用于判断包是否合法(包头尾正确,大小正确),如果合法则返回True,反之则返回False
+        /// </summary>
+        /// <param name="pack"></param>
+        /// <returns>如果合法则返回True,反之则返回False</returns>
+        public static bool IsLegalPack(byte[] pack)
+        {
+            if (pack.Length == PackSize)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    if (pack[i] == PackHeadBytes[i] && pack[i + PackEndIndex] == PackEndBytes[i])
+                    {
 
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public static bool IsLegalPack(Span<byte> pack)
+        {
+            if (pack.Length == PackSize)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    if (pack[i] == PackHeadBytes[i] && pack[i + PackEndIndex] == PackEndBytes[i])
+                    {
+
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
         /// <summary>
         /// 空包生成方法,需要用户名,自身IPv4地址
         /// </summary>
         /// <param name="senderName">自身用户名</param>
         /// <param name="iPAddress">自身IPv4地址</param>
         /// <returns></returns>
+        [Obsolete]
         public static byte[] EmptyPack(string senderName, IPAddress iPAddress)
         {
             byte[] rawPack = new byte[PackSize];
@@ -70,29 +125,7 @@ namespace MaJiangLib
             ReplaceBytes(rawPack, PackEndBytes, PackEndIndex);
             return rawPack;
         }
-        /// <summary>
-        /// 用于判断包是否合法(包头尾正确,大小正确),如果合法则返回True,反之则返回False
-        /// </summary>
-        /// <param name="pack"></param>
-        /// <returns>如果合法则返回True,反之则返回False</returns>
-        public static bool IsLegalPack(byte[] pack)
-        {
-            if (pack.Length == PackSize && Encoding.UTF8.GetString(pack, 0, 8) == PackHeadStr && Encoding.UTF8.GetString(pack, PackEndIndex, 8) == PackEndStr)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        /// <summary>
-        /// "_RW_" 在房间内聊天室的语言子包,考虑到UTF-8编码限制,限定最长单句话为64字符,也即最大长度为256bytes
-        /// </summary>
-        /// <param name="pack">待加工包</param>
-        /// <param name="word">所要传输的内容,限定最长为64字符</param>
-        /// <param name="roomNumber">目标房间号,避免潜在的冲突</param>
-        /// <returns></returns>
+        [Obsolete]
         public static byte[] RoomWordPack(byte[] pack, string word, int roomNumber)
         {
             // 头标识"_RW_" 4 bytes + 房间号(int) 4 bytes + 子内容大小(int) 4 bytes + 内容
@@ -111,6 +144,7 @@ namespace MaJiangLib
         /// <param name="pack">待加工包</param>
         /// <param name="playerActionData">玩家所进行的操作</param>
         /// <returns></returns>
+        [Obsolete]
         public static byte[] PlayerActionPack(byte[] pack, PlayerActionData playerActionData)
         {
             // 头标识"_PA_" 4 bytes + 子内容大小(int) 4 bytes + 玩家操作 16 bytes
@@ -123,9 +157,10 @@ namespace MaJiangLib
             return pack;
         }
         /// <summary>
-        /// "_IN_" 初始化包,包含对局开始时起始手牌的数据,宝牌等数据
+        /// "_IN_" 初始化包,包含对局开始时起始手牌的数据
         /// </summary>
         /// <returns></returns>
+        [Obsolete]
         public static byte[] InitPack(byte[] pack, Player player)
         {
 
@@ -137,6 +172,7 @@ namespace MaJiangLib
         /// <param name="pack">初始化包</param>
         /// <param name="mainMatchControl">对局信息</param>
         /// <returns></returns>
+        [Obsolete]
         public static byte[] MatchDataPack(byte[] pack, MainMatchControl mainMatchControl)
         {
 
@@ -152,20 +188,7 @@ namespace MaJiangLib
         /// <param name="pack">要解的包</param>
         /// <param name="playerActionData">输出的玩家数据类型</param>
         /// <returns>如果解包成功,结构正确则返回True,反之返回False</returns>
-        public static bool PlayerActionDecode(byte[] pack, out PlayerActionData playerActionData)
-        {
-            playerActionData = null;
-            if (Encoding.UTF8.GetString(pack, 104, 4) == "_PA_")
-            {
-                int length = BitConverter.ToInt32(pack, 108);
-                playerActionData = PlayerActionData.StaticBytesTo(pack, 112);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
+        
     }
-
+    
 }

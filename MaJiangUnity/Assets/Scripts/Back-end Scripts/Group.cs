@@ -91,14 +91,14 @@ namespace MaJiangLib
             return str;
         }
         /// <summary>
-        /// "=="重载,仅当两组面子完全相同,即花色,牌型和序号都相同时成立
+        /// "=="重载,仅当两组面子完全相同,即花色,牌型和序号都相同时成立,对于吃牌,已知鸣牌两张中较小的那张和所鸣牌即可确定鸣牌
         /// </summary>
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
         public static bool operator ==(Group a, Group b)
         {
-            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Pais[0] == b.Pais[0])
+            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Pais[0] == b.Pais[0] && a.SinglePai == b.SinglePai)
             {
                 return true;
             }
@@ -153,6 +153,27 @@ namespace MaJiangLib
             return new(groupType, color, pais, fuluSource, singlePai);
         }
         public Group BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
+        public override bool Equals(object obj)
+        {
+            Group group = obj as Group;
+            if (group != null)
+            {
+                return group == this;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public override int GetHashCode()
+        {
+            HashCode listHash = new();
+            foreach (Pai listPai in Pais)
+            {
+                listHash.Add(listPai.GetHashCode());
+            }
+            return HashCode.Combine(GroupType, listHash.ToHashCode(), Color, FuluSource, SinglePai);
+        }
     }
 
 }
