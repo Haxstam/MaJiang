@@ -44,8 +44,8 @@ namespace MaJiangLib
         {
             get { return FuluPaiList.Count <= 0 || FuluPaiList.All(group => group.GroupType == GroupType.AnKang); }
         }
-
-        public int ByteSize { get; set; } = 96;
+        public const int byteSize = 96;
+        public int ByteSize { get => byteSize; }
         public object Clone()
         {
             ShouPai shouPai = new ShouPai();
@@ -59,13 +59,13 @@ namespace MaJiangLib
         {
             // 1 byte Player + 1 byte NorthDoraCount + 10 bytes 留空 + 26(13*2) bytes ShouPaiList + 2 bytes SinglePai + 56(4*14) bytes FuluPaiList = 96 bytes
             // 手牌类的序列化大小暂时先固定,考虑压缩
-            byte[] mainBytes = new byte[96];
+            Span<byte> mainBytes = new byte[96];
             mainBytes[0] = (byte)shouPai.PlayerNumber;
             mainBytes[1] = (byte)shouPai.NorthDoraCount;
             ReplaceBytes(mainBytes, ListToBytes(shouPai.ShouPaiList), 12);
             ReplaceBytes(mainBytes, shouPai.SinglePai, 38);
             ReplaceBytes(mainBytes, ListToBytes(shouPai.FuluPaiList), 40);
-            return mainBytes;
+            return mainBytes.ToArray();
         }
         public byte[] GetBytes() => this;
         public static ShouPai StaticBytesTo(byte[] bytes, int index = 0)

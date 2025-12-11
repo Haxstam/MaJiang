@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using static MaJiangLib.GlobalFunction;
@@ -44,15 +44,36 @@ namespace MaJiangLib
                     return this == fanData;
                 }
             }
+            /// <summary>
+            /// 实现CompareTo()是为了在最后报番的时候,能够将番种按一定顺序排列,这个直接根据YakuType枚举的顺序判断
+            /// </summary>
+            /// <param name="fanData"></param>
+            /// <returns></returns>
+            public int CompareTo(FanData fanData)
+            {
+                if ((int)Yaku > (int)fanData.Yaku)
+                {
+                    return 1;
+                }
+                else if ((int)Yaku < (int)fanData.Yaku)
+                {
+                    return -1;
+                }
+                else
+                {
+                    // [TODO] 一次和牌番种列表出现了两个相同的番!?报警告
+                    return 0;
+                }
+            }
             public override int GetHashCode()
             {
                 return HashCode.Combine(Fan, Yaku);
             }
         }
         /// <summary>
-        /// 比赛信息
+        /// 对局信息,创建新对局时被赋值
         /// </summary>
-        public static IMatchInformation MatchInformation { get; set; }
+        public static MainMatchControl MatchInformation { get; set; }
 
         /*
          * [TODO]
@@ -108,7 +129,7 @@ namespace MaJiangLib
         {
             Tanyao,
             Chiitoitsu,
-            HonitsuAndChinitsuAndRyuiishokuAndCHurenPoto,
+            HonitsuAndChinitsuAndRyuiishokuAndChurenPoto,
             ChantaAndJunchan,
             KokushiMusou,
         };
@@ -533,11 +554,11 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData UraDora(HePaiData data)
         {
-            // 必须立直
+            // 必须立直,仅
             if (MatchInformation.IsRiichi[data.PlayerNumber] == true)
             {
                 int doraCount = 0;
-                List<Pai> doraList = DoraListCalculator(MatchInformation.DoraList);
+                List<Pai> doraList = DoraListCalculator(MatchInformation.UraDoraList);
                 // 如果存在多张相同的宝牌,对于每张宝牌要单独计算
                 foreach (Pai doraPai in doraList)
                 {
@@ -1165,7 +1186,7 @@ namespace MaJiangLib
         /// </summary>
         /// <param name="data"></param>
         /// <returns></returns>
-        internal static FanData HonitsuAndChinitsuAndRyuiishokuAndCHurenPoto(HePaiData data)
+        internal static FanData HonitsuAndChinitsuAndRyuiishokuAndChurenPoto(HePaiData data)
         {
             bool isHonitsu = true;
             bool isChinitsu = true;
@@ -1255,7 +1276,7 @@ namespace MaJiangLib
                         }
                         else
                         {
-                            return new(13, YakuType.CHurenPoto);
+                            return new(13, YakuType.ChurenPoto);
                         }
                     }
                     else

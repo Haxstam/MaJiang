@@ -68,8 +68,8 @@ namespace MaJiangLib
                 return GroupType == GroupType.Triple || GroupType == GroupType.MingTriple || GroupType == GroupType.AnKang || GroupType == GroupType.MingKang || GroupType == GroupType.JiaKang;
             }
         }
-
-        public int ByteSize { get; } = 14;
+        public const int byteSize = 14;
+        public int ByteSize { get => byteSize; }
 
         
 
@@ -131,13 +131,13 @@ namespace MaJiangLib
         public static implicit operator byte[](Group group)
         {
             // 1 byte(GroupType) + 1 byte(Color) + 1 byte(FuluSource) + 1 byte 留白 + 2 bytes(SinglePai) + 8 bytes(Pais) = 14 bytes
-            byte[] mainBytes = new byte[14];
+            Span<byte> mainBytes = new byte[14];
             mainBytes[0] = (byte)group.GroupType;
             mainBytes[1] = (byte)group.Color;
             mainBytes[2] = (byte)group.FuluSource;
             ReplaceBytes(mainBytes, group.SinglePai, 4);
             ReplaceBytes(mainBytes, ListToBytes(group.Pais), 6);
-            return mainBytes;
+            return mainBytes.ToArray();
         }
         public byte[] GetBytes() => this;
         public static Group StaticBytesTo(byte[] bytes, int index = 0)

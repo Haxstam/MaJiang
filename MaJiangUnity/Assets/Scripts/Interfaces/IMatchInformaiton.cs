@@ -89,5 +89,6 @@ namespace MaJiangLib
         /// </summary>
         public List<List<Group>> PlayerFuluList { get; set; }
         public Pai CurrentPai { get; set; }
+        public MatchSettingData MatchSettingData { get; set; }
     }
 }

@@ -2,6 +2,7 @@ using MaJiangLib;
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using static MaJiangLib.GlobalFunction;
@@ -9,14 +10,43 @@ using static MaJiangLib.PackCoder;
 
 public class Pack
 {
+    /*
+     * åŒ…ç»“æ„
+     * (1) 8   bytes [0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50] "\u0002HaxMajP" æ•°æ®åŒ…å¤´ç‰¹å®šæ ‡è¯†,UTF-8ç¼–ç ,é¦–ä½ä¸ºSTX(0x02)ä»è€Œé¿å…åŒ…å¤´è¯¯åˆ¤
+     * (2) 8   bytes Unixæ¯«ç§’æ—¶é—´æˆ³,longç±»å‹
+     * (3) 4   bytes åŒ…æ¥æºIPåœ°å€,ä¸ºIPv4åœ°å€ç±»å‹
+     * (4) 48  bytes åŒ…æ¥æºç”¨æˆ·å,ä¸ºstringç±»å‹,UTF-8ç¼–ç ,é™å®šæœ€é•¿ä¸º12å­—ç¬¦,å¦‚æœä¸è¶³åˆ™è¡¥0
+     * (5) 4   bytes ç‰ˆæœ¬å·([TODO]æš‚ç©º,æœªå®ç°)
+     * (6) 16  bytes MD5æ ¡éªŒ(72~87)
+     * (7) 4   bytes åŒ…ç±»å‹
+     * (8) 12  bytes ç•™ç©º
+     * (9) 912 bytes åŒ…ä¸»è¦æ•°æ®éƒ¨åˆ†(èµ·å§‹äºç¬¬104å¤„)
+     * (10)8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" æ•°æ®åŒ…ç»“æŸç‰¹å®šæ ‡è¯†,UTF-8ç¼–ç ,é¦–ä½ä¸ºETX(0x03)ä»è€Œé¿å…åŒ…å°¾è¯¯åˆ¤
+     */
     /// <summary>
-    /// ¿Õ°ü´´½¨·½·¨,ĞèÒª·¢ËÍÕßµÄÃû³ÆºÍIPµØÖ·
+    /// æ ¹æ®æœ¬å®¢æˆ·ç«¯çš„å±æ€§åˆ›å»ºçš„åˆå§‹åŒ–åŒ…
+    /// </summary>
+    public Pack()
+    {
+        Bytes = new byte[PackSize];
+        Span<byte> spanBytes = Bytes;
+
+        PackHeadBytes.CopyTo(spanBytes);
+        ReplaceBytes(spanBytes, PackHeadBytes, 0);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), 8);
+        ReplaceBytes(spanBytes, NetworkControl.SelfIPAddress.GetAddressBytes(), 16);
+        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(NetworkControl.SelfProfile.Name), 20);
+        ReplaceBytes(spanBytes, PackEndBytes, PackEndIndex);
+        PackType = PackType.Empty;
+    }
+    /// <summary>
+    /// ç©ºåŒ…åˆ›å»ºæ–¹æ³•,éœ€è¦å‘é€è€…çš„åç§°å’ŒIPåœ°å€
     /// </summary>
     /// <param name="senderName"></param>
     /// <param name="iPAddress"></param>
     public Pack(string senderName, IPAddress iPAddress)
     {
-        byte[] Bytes = new byte[PackSize];
+        Bytes = new byte[PackSize];
         Span<byte> spanBytes = Bytes;
 
         PackHeadBytes.CopyTo(spanBytes);
@@ -28,7 +58,7 @@ public class Pack
         PackType = PackType.Empty;
     }
     /// <summary>
-    /// ´ÓÏÖÓĞ×Ö½Ú´®´´½¨°üµÄ·½·¨
+    /// ä»ç°æœ‰å­—èŠ‚ä¸²åˆ›å»ºåŒ…çš„æ–¹æ³•
     /// </summary>
     /// <param name="bytes"></param>
     /// <exception cref="Exception"></exception>
@@ -38,69 +68,77 @@ public class Pack
         Span<byte> spanBytes = Bytes;
         try
         {
-            PackType = (PackType)spanBytes[104];
+            PackType = (PackType)spanBytes[PackTypeIndex];
         }
         catch (Exception)
         {
-            Debug.Log("×Ó°ü±êÊ¶ÎŞ¶ÔÓ¦ÀàĞÍ");
+            Debug.Log("å­åŒ…æ ‡è¯†æ— å¯¹åº”ç±»å‹");
             throw;
         }
     }
     /// <summary>
-    /// °ü±¾ÉíµÄ×Ö½Ú´®
+    /// åŒ…æœ¬èº«çš„å­—èŠ‚ä¸²
     /// </summary>
     public byte[] Bytes { get; set; }
+    /// <summary>
+    /// åŒ…çš„MD5æ ¡éªŒç 
+    /// </summary>
+    public byte[] MD5Code { get; set; }
+    public const int PackTypeIndex = 88;
     public PackType PackType { get; set; }
     /// <summary>
-    /// ÔÚ·¿¼äÄÚÁÄÌìÊÒµÄÓïÑÔ×Ó°ü,¿¼ÂÇµ½UTF-8±àÂëÏŞÖÆ,ÏŞ¶¨×î³¤µ¥¾ä»°Îª64×Ö·û,Ò²¼´×î´ó³¤¶ÈÎª256bytes
+    /// åœ¨æˆ¿é—´å†…èŠå¤©å®¤çš„è¯­è¨€å­åŒ…,è€ƒè™‘åˆ°UTF-8ç¼–ç é™åˆ¶,é™å®šæœ€é•¿å•å¥è¯ä¸º64å­—ç¬¦,ä¹Ÿå³æœ€å¤§é•¿åº¦ä¸º256bytes
     /// </summary>
-    /// <param name="pack">´ı¼Ó¹¤°ü</param>
-    /// <param name="word">ËùÒª´«ÊäµÄÄÚÈİ,ÏŞ¶¨×î³¤Îª64×Ö·û</param>
-    /// <param name="roomNumber">Ä¿±ê·¿¼äºÅ,±ÜÃâÇ±ÔÚµÄ³åÍ»</param>
+    /// <param name="pack">å¾…åŠ å·¥åŒ…</param>
+    /// <param name="word">æ‰€è¦ä¼ è¾“çš„å†…å®¹,é™å®šæœ€é•¿ä¸º64å­—ç¬¦</param>
+    /// <param name="roomNumber">ç›®æ ‡æˆ¿é—´å·,é¿å…æ½œåœ¨çš„å†²çª</param>
     /// <returns></returns>
-    public bool RoomWordPack(string word, int roomNumber)
+    public bool RoomWordPack(int roomNumber, string word)
     {
-        // Í·±êÊ¶ 4 bytes + ·¿¼äºÅ(int) 4 bytes + ÄÚÈİ
+        // å¤´æ ‡è¯† 4 bytes + æˆ¿é—´å·(int) 4 bytes + å†…å®¹
         PackType = PackType.RoomWord;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.RoomWord;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 108);
-        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(word), 116);
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 104);
+        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(word), 112);
+        AddMD5();
         return true;
     }
     /// <summary>
-    /// Íæ¼Ò½øĞĞ²Ù×÷Ê±Ëù·¢ËÍµÄ²Ù×÷×Ó°ü
+    /// ç©å®¶è¿›è¡Œæ“ä½œæ—¶æ‰€å‘é€çš„æ“ä½œå­åŒ…
     /// </summary>
-    /// <param name="pack">´ı¼Ó¹¤°ü</param>
-    /// <param name="playerActionData">Íæ¼ÒËù½øĞĞµÄ²Ù×÷</param>
+    /// <param name="pack">å¾…åŠ å·¥åŒ…</param>
+    /// <param name="playerActionData">ç©å®¶æ‰€è¿›è¡Œçš„æ“ä½œ</param>
     /// <returns></returns>
     public bool PlayerActionPack(PlayerActionData playerActionData)
     {
-        // Í·±êÊ¶ 4 bytes + Íæ¼Ò²Ù×÷ 16 bytes
+        // å¤´æ ‡è¯† 4 bytes + ç©å®¶æ“ä½œ 16 bytes
         PackType = PackType.PlayerAction;
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.PlayerAction;
-        ReplaceBytes(spanBytes, playerActionData.GetBytes(), 108);
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, playerActionData.GetBytes(), 104);
+        AddMD5();
         return true;
     }
     /// <summary>
-    /// "_MD_" ¶Ô¾ÖĞÅÏ¢°ü,Êä³ö±¾³¡±ÈÈüËùÓĞµÄ¹«¹²Êı¾İÓÃÓÚÍ¬²½
+    /// "_MD_" å¯¹å±€ä¿¡æ¯åŒ…,è¾“å‡ºæœ¬åœºæ¯”èµ›æ‰€æœ‰çš„å…¬å…±æ•°æ®ç”¨äºåŒæ­¥
     /// </summary>
-    /// <param name="pack">³õÊ¼»¯°ü</param>
-    /// <param name="mainMatchControl">¶Ô¾ÖĞÅÏ¢</param>
+    /// <param name="pack">åˆå§‹åŒ–åŒ…</param>
+    /// <param name="mainMatchControl">å¯¹å±€ä¿¡æ¯</param>
     /// <returns></returns>
     public bool MatchDataPack(MainMatchControl mainMatchControl)
     {
         PackType = PackType.MatchData;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.MatchData;
-        ReplaceBytes(spanBytes, mainMatchControl.GetPublicBytes(), 108);
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, mainMatchControl.GetPublicBytes(), 104);
+        AddMD5();
         return true;
     }
     /// <summary>
-    /// ÆğÊÖ13ÕÅÅÆµÄ³õÊ¼»¯
+    /// èµ·æ‰‹13å¼ ç‰Œçš„åˆå§‹åŒ–
     /// </summary>
     /// <param name="pais"></param>
     /// <param name="player"></param>
@@ -110,19 +148,20 @@ public class Pack
         PackType = PackType.Init;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.Init;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 108);
-        ReplaceBytes(spanBytes, ListToBytes(pais), 112);
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
+        ReplaceBytes(spanBytes, ListToBytes(pais), 108);
+        AddMD5();
         return true;
     }
     public bool AvailableActionPack(Dictionary<PlayerAction, List<PlayerActionData>> avaliableActions, int player)
     {
         PackType = PackType.AvailableAction;
-        // ÕâÀïµ¥¶ÀÊµÏÖ×Öµä->byte[]µÄ×ª»»
+        // è¿™é‡Œå•ç‹¬å®ç°å­—å…¸->byte[]çš„è½¬æ¢
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.AvailableAction;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 108);
-        int index = 112;
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
+        int index = 108;
         foreach (var pair in avaliableActions)
         {
             if (pair.Value.Count == 0)
@@ -131,62 +170,100 @@ public class Pack
             }
             else
             {
-                // ×ÖµäĞòÁĞ»¯²»±ê¼ÇÀàĞÍ,Êµ¼ÊÉÏ´æ´¢ÎªÁĞ±í
+                // å­—å…¸åºåˆ—åŒ–ä¸æ ‡è®°ç±»å‹,å®é™…ä¸Šå­˜å‚¨ä¸ºåˆ—è¡¨
                 byte[] listBytes = ListToBytes(pair.Value);
                 ReplaceBytes(spanBytes, listBytes, index);
                 index += listBytes.Length;
             }
         }
+        AddMD5();
         return true;
     }
-    public bool SignalPack(SignalType signalType, int player)
+    public bool SignalPack(SignalType signalType)
     {
-        PackType = PackType.Acknowledge;
+        PackType = PackType.Signal;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[104] = (byte)PackType.Acknowledge;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 108);
-        spanBytes[112] = (byte)signalType;
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        spanBytes[104] = (byte)signalType;
+        AddMD5();
         return true;
     }
+    /// <summary>
+    /// è¿æ¥æˆ¿é—´æ—¶æ‰€ç”¨åŒ…,å‘é€æˆ¿é—´å·å’Œè‡ªèº«ä¿¡æ¯
+    /// </summary>
+    /// <param name="roomNumber"></param>
+    /// <param name="playerInformation"></param>
+    /// <returns></returns>
+    public bool ConnectRoomPack(int roomNumber, UserProfile playerInformation)
+    {
+        PackType = PackType.SystemInformation;
 
+        Span<byte> spanBytes = Bytes;
+        spanBytes[PackTypeIndex] = (byte)PackType;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 104);
+        ReplaceBytes(spanBytes, playerInformation.GetBytes(), 108);
+        AddMD5();
+        return true;
+    }
+    /// <summary>
+    /// ä¸ºåŒ…æ·»åŠ MD5æ ‡è¯†,ä»…åœ¨åŒ…è®¾å®šå®Œå…¨åç”Ÿæˆ
+    /// </summary>
+    public void AddMD5()
+    {
+        MD5Code = MD5.Create().ComputeHash(Bytes);
+        Span<byte> spanBytes = Bytes;
+        ReplaceBytes(spanBytes, MD5Code, 72);
+    }
+    /// <summary>
+    /// ä¿¡å·åŒ…è§£ç ,ä»…éœ€ä¸€ä¸ªå­—èŠ‚
+    /// </summary>
+    /// <returns></returns>
+    public SignalType SignalPackDecode()
+    {
+        return (SignalType)Bytes[104];
+    }
 }
 public enum PackType : byte
 {
     /// <summary>
-    /// ¿Õ°ü,»ò×Ó°üÄÚÈİ²»ºÏ¹æ
+    /// ç©ºåŒ…,æˆ–å­åŒ…å†…å®¹ä¸åˆè§„
     /// </summary>
     Empty = 1,
     /// <summary>
-    /// ÏµÍ³ĞÅÏ¢
+    /// ä¿¡å·
+    /// </summary>
+    Signal,
+    /// <summary>
+    /// ç³»ç»Ÿä¿¡æ¯
     /// </summary>
     SystemInformation,
     /// <summary>
-    /// È·ÈÏĞÅÏ¢
+    /// ç¡®è®¤ä¿¡æ¯
     /// </summary>
     Acknowledge,
     /// <summary>
-    /// ¶Ô¾Ö³õÊ¼»¯
+    /// å¯¹å±€åˆå§‹åŒ–
     /// </summary>
     Init,
     /// <summary>
-    /// ¶Ô¾ÖĞÅÏ¢
+    /// å¯¹å±€ä¿¡æ¯
     /// </summary>
     MatchData,
     /// <summary>
-    /// Íæ¼ÒĞĞÎª
+    /// ç©å®¶è¡Œä¸º
     /// </summary>
     PlayerAction,
     /// <summary>
-    /// Íæ¼Ò¿É½øĞĞµÄĞĞÎª
+    /// ç©å®¶å¯è¿›è¡Œçš„è¡Œä¸º
     /// </summary>
     AvailableAction,
     /// <summary>
-    /// ·¿¼äÄÚ¶Ô»°
+    /// æˆ¿é—´å†…å¯¹è¯
     /// </summary>
     RoomWord,
     /// <summary>
-    /// Éç½»ĞĞÎª
+    /// ç¤¾äº¤è¡Œä¸º
     /// </summary>
     SocialAction,
 }

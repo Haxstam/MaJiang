@@ -65,12 +65,14 @@ namespace MaJiangLib
      * 15.为了便于传输,尽量所有使得涉及到传输的数据避免使用负数作为标记
      * 
      * 16.用json实现序列化会使得数据传输量太大,而用自动化反射序列化节省的操作不算多,暂时先为每个类手动实现序列化,将来也许会改
+     * 
      * 17.因为C# 9.0 的限制,像BytesTo()这样的静态方法无法在接口中声明,因此对于BytesToList(),其限制where T : IByteable并不保证T可以从字节串转化而来
-     *    对于任何实现了该接口的类型,其必须在GlobalFunction.ByteableInstanceDict里注册
+     *    对于任何实现了该接口的类型,其必须在GlobalFunction.ByteableInstanceDict里注册,类自身用属性包装常量byteSize字段
      *    
      * 18.List<>用太多了..考虑优化成数组
      */
 
+    #region *枚举定义*
     /// <summary>
     /// 性别:男,女,保密..
     /// </summary>
@@ -182,11 +184,15 @@ namespace MaJiangLib
     /// 玩家所能进行的操作,包含切牌,吃,碰,杠,立直,拔北,荣和,自摸,流局
     /// </summary>
     public enum PlayerAction : byte
-    {
+    {// 必须吃<碰<荣和
+        /// <summary>
+        /// 跳过
+        /// </summary>
+        Skip = 1,
         /// <summary>
         /// 手切
         /// </summary>
-        HandCut = 1,
+        HandCut = 2,
         /// <summary>
         /// 摸切
         /// </summary>
@@ -229,58 +235,76 @@ namespace MaJiangLib
     /// </summary>
     public enum YakuType : byte
     {
-        Empty,  // 占位符
-        Dora,  // 宝牌
-        AkaDora, // 红宝牌
-        UraDora,  // 里宝牌
-        NorthAkaDora,  // 拔北宝牌
+        // 因为也用于番种排序,此处声明位置顺序有意义,相似番种定义相近
+
+        Empty = 1,  // 占位符
         Riichi,  // 立直-1
+        DoubleRiichi,  // 两立直-2
         Ippatsu,  // 一发-1
         Tsumo,  // 门前清自摸和-1
-        Pinfu,  // 平和-1
-        Tanyao,  // 断幺-1
-        Iipeikou,  // 一杯口-1
+
+        Rinshankaiho,  // 岭上开花-1
+        HaiteiRaoyui,  // 海底捞月-1
+        HoteiRaoyui,  // 河底捞鱼-1
+        Chankan,  // 枪杠-1
+
         Jikaze,  // 自风牌-1
         Bakaze,  // 场风牌-1
         Haku,  // 役牌 白-1
         Hatsu,  // 役牌 发-1
         Chun,  // 役牌 中-1
-        Rinshankaiho,  // 岭上开花-1
-        HaiteiRaoyui,  // 海底捞月-1
-        HoteiRaoyui,  // 河底捞鱼-1
-        Chankan,  // 枪杠-1
+
+        Pinfu,  // 平和-1
+        Tanyao,  // 断幺-1
+        Iipeikou,  // 一杯口-1
+        Ryanpeiko,  // 两杯口-3
         Ittsu,  // 一气通贯-2(1)
-        Toitoi,  // 对对和-2
         SanshokuDoujun,  // 三色同顺-2(1)
-        SanshokuDoukou,  // 三色同刻-2
+
         Chanta,  // 混全带幺九-2(1)
+        Junchan,  // 纯全带幺九-3(2)
+
+        SanshokuDoukou,  // 三色同刻-2
         Chiitoitsu,  // 七对子-2
+        Toitoi,  // 对对和-2
         Honroutou,  // 混老头-2
         Sananko,  // 三暗刻-2
         Sankantsu,  // 三杠子-2
         ShoSanGen,  // 小三元-2
-        DoubleRiichi,  // 两立直-2
+
         Honitsu,  // 混一色-3(2)
-        Junchan,  // 纯全带幺九-3(2)
-        Ryanpeiko,  // 两杯口-3
         Chinitsu,  // 清一色-6(5)
+
         Suuankou,  // 四暗刻-13
-        KokushiMusou,  // 国士无双-13
+        SuuankouTanki,  // 四暗刻单骑-26
+
+        Tsuuiiso,  // 字一色-13
         DaiSanGen,  // 大三元-13
         ShoSuuShii,  // 小四喜-13
-        Tsuuiiso,  // 字一色-13
+        DaiSuuShii,  // 大四喜-26
+
         Ryuiishoku,  // 绿一色-13
         Chinroto,  // 清老头-13
-        CHurenPoto,  // 九莲宝灯-13
         Suukantsu,  // 四杠子-13
+
         Tenho,  // 天和-13
         Chiiho,  // 地和-13
-        DaiSuuShii,  // 大四喜-26
-        SuuankouTanki,  // 四暗刻单骑-26
+
+        ChurenPoto,  // 九莲宝灯-13
         ChuurenPoutou,  // 纯正九莲宝灯-26
+
+        KokushiMusou,  // 国士无双-13
         KokushiMusouThirteenOrphans,  // 国士无双十三面-26
+
         NagashiMangan,  // 流局满贯-5
+
+        Dora,  // 宝牌
+        AkaDora, // 红宝牌
+        NorthAkaDora,  // 拔北宝牌
+        UraDora,  // 里宝牌
     }
+    #endregion
+
     /// <summary>
     /// 公用的方法类,这些方法应当可以被所有用户访问,且保持静态
     /// </summary>
@@ -371,7 +395,7 @@ namespace MaJiangLib
         /// <summary>
         /// 为实现实例方法调用的注册字典,任何实现IByteable的类都要注册于此
         /// </summary>
-        public static Dictionary<Type, object> ByteableInstanceDict = new Dictionary<Type, object>()
+        public static Dictionary<Type, object> ByteableInstanceDict { get; } = new Dictionary<Type, object>()
         {
             // 仅用于调用接口方法,具体实现不影响
             {typeof(Pai), new Pai(Color.Wans, 1) },
@@ -381,51 +405,6 @@ namespace MaJiangLib
             {typeof(ShouPai),new ShouPai() },
             {typeof(UserProfile),new UserProfile() },
         };
-
-        ///// <summary>
-        ///// 鸣牌数据,存储可进行吃碰杠时,对应的牌的列表和所要鸣的牌,对应的操作
-        ///// </summary>
-        //public class MingPaiData
-        //{
-        //    /// <summary>
-        //    /// 需要手牌中能响应的牌,目标牌和进行的操作
-        //    /// </summary>
-        //    /// <param name="pais">手牌中所能鸣牌的牌</param>
-        //    /// <param name="targetPai">能被鸣牌响应的别家牌</param>
-        //    /// <param name="playerAction">所进行的操作</param>
-        //    public MingPaiData(List<Pai> pais, List<Pai> targetPai, PlayerAction playerAction)
-        //    {
-        //        Pais = pais;
-        //        TargetPai = targetPai;
-        //        PlayerAction = playerAction;
-        //    }
-        //    /// <summary>
-        //    /// 存储在手牌中的,能和TargetPai中的牌组成顺刻杠的牌
-        //    /// </summary>
-        //    public List<Pai> Pais { get; set; }
-        //    /// <summary>
-        //    /// 目标牌,即能够被吃碰杠响应的牌
-        //    /// </summary>
-        //    public List<Pai> TargetPai { get; set; }
-        //    /// <summary>
-        //    /// 所对应的操作
-        //    /// </summary>
-        //    public PlayerAction PlayerAction { get; set; }
-        //}
-        ///// <summary>
-        ///// 玩家在自己切牌时的非副露行为,目前仅包含加杠/暗杠/拔北
-        ///// </summary>
-        //public class SelfActionData
-        //{
-        //    public SelfActionData(List<Pai> pais, PlayerAction playerAction)
-        //    {
-        //        Pais = pais;
-        //        PlayerAction = playerAction;
-        //    }
-        //    public List<Pai> Pais { get; set; }
-        //    public PlayerAction PlayerAction { get; set; }
-        //}
-
 
         /// <summary>
         /// 流局判断,判断荒牌流局,四风连打,四杠散了,四家立直,九种九牌属于玩家的主动操作,不在此处判断
@@ -482,6 +461,7 @@ namespace MaJiangLib
         /// <param name="shouPai"></param>
         /// <param name="matchInformation"></param>
         /// <returns>返回一个字典,以操作为键,可进行的操作的list为值</returns>
+        [Obsolete]
         public static Dictionary<PlayerAction, List<PlayerActionData>> ClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
         {   // 返回结果是字典-列表-列表的嵌套,考虑优化
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
@@ -578,7 +558,6 @@ namespace MaJiangLib
             }
             return playerActions;
         }
-
         /// <summary>
         /// 对特定单张牌的响应计算,需要手牌,所鸣单牌和对局信息
         /// </summary>
@@ -594,76 +573,167 @@ namespace MaJiangLib
                 { PlayerAction.Kang, new()},
 
             };
-            // 排序[可能会破坏原有顺序]
-            List<Pai> shouPaiList = shouPai.ShouPaiList;
-            shouPaiList.Sort();
-            for (int i = 0; i < shouPaiList.Count - 1; i++)
-            {   // 从手牌中每张牌进行遍历,按照每两张进行判断
-                if (shouPaiList[i].Color != currentPai.Color)
+            // 对手牌中所有牌进行统计,根据统计进行可行鸣牌判断
+            // 每个数列第0位为红宝牌标记,1~9为对应序数牌标记,字牌第0位暂空,1~7为对应字牌顺序
+            Dictionary<Color, int[]> paiCountDict = new Dictionary<Color, int[]>()
+            {
+                {Color.Wans, new int[10] },
+                {Color.Tungs, new int [10] },
+                {Color.Bamboo, new int [10] },
+                {Color.Honor, new int [8] },
+            };
+            foreach (Pai pai in shouPai.ShouPaiList)
+            {
+                if (pai.IsRedDora)
                 {
-                    // 当前牌花色和待计算牌不同,跳过
-                    continue;
+                    // 目前仅考虑红五宝牌的情况,如果有红宝牌则在0上+1
+                    paiCountDict[pai.Color][0]++;
                 }
-                if (shouPaiList[i] == shouPaiList[i + 1] && shouPaiList[i].Number == currentPai.Number)
-                {   // 即雀头/刻子,第一张和第二张牌相同,若有三张相同则为刻子
-                    if (i < shouPaiList.Count - 2)
-                    {   // 至少其后有两张牌
-                        if (shouPaiList[i] == shouPaiList[i + 2])
-                        {   //是刻子,可以碰/杠
-                            if (matchInformation.RemainPaiCount >= 1)
-                            {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
-                                if (matchInformation.KangCount <= 3)
-                                {   // 开杠数大于3则不允许继续开杠
-                                    playerActions[PlayerAction.Kang].Add(new(
-                                        new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
-                                        currentPai,
-                                        PlayerAction.Kang
-                                        ));
-                                }
-                            }
-                            playerActions[PlayerAction.Peng].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                currentPai,
-                                PlayerAction.Peng
-                                ));
-                        }
-                        else
-                        {   //是雀头,可以碰
-                            playerActions[PlayerAction.Peng].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                currentPai,
-                                PlayerAction.Peng
-                                ));
-                        }
-                    }
+                else
+                {
+                    paiCountDict[pai.Color][pai.Number]++;
                 }
+            }
+            Color color = currentPai.Color;
+            int num = currentPai.Number;
 
-                // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
-                if (
-                    (matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
-                    && (matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber - 1 || matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber + 3)
-                    && shouPaiList[i].Color != Color.Honor
-                    && shouPaiList[i].Color == shouPaiList[i + 1].Color
-                    )
-                {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌,手牌中两张牌花色相同,且花色不能为字牌
-                    if (shouPaiList[i].Number == shouPaiList[i + 1].Number + 1 && (currentPai.Number == shouPaiList[i].Number - 1 || currentPai.Number == shouPaiList[i].Number + 2))
-                    {   // 即两面/边张,第一张牌和第二张牌相邻
+            // 判断逻辑,考虑到此方法主要用于数据传输,因此新建牌实例
+
+            // 碰杠的逻辑
+            int count = paiCountDict[color][num];
+            if (num == 5 && color != Color.Honor && count != 0)
+            {   // 如果是5万筒索,额外判断有红宝牌时的情况
+                if (count == 1)
+                {
+                    playerActions[PlayerAction.Peng].Add(new(
+                                new() { new(color, num), new(color, num, true) },
+                                currentPai,
+                                PlayerAction.Peng
+                                ));
+                }
+                if (count == 2)
+                {
+                    playerActions[PlayerAction.Kang].Add(new(
+                                new() { new(color, num), new(color, num), new(color, num, true) },
+                                currentPai,
+                                PlayerAction.Kang
+                                ));
+                }
+            }
+            if (count == 2)
+            {
+                playerActions[PlayerAction.Peng].Add(new(
+                                new() { new(color, num), new(color, num) },
+                                currentPai,
+                                PlayerAction.Peng
+                                ));
+            }
+            if (count == 3)
+            {
+                playerActions[PlayerAction.Peng].Add(new(
+                                new() { new(color, num), new(color, num) },
+                                currentPai,
+                                PlayerAction.Peng
+                                ));
+                playerActions[PlayerAction.Kang].Add(new(
+                                new() { new(color, num), new(color, num), new(color, num) },
+                                currentPai,
+                                PlayerAction.Kang
+                                ));
+            }
+            // 吃的逻辑
+            // 结合红宝牌,理论上最多可以有5种鸣牌方式(如234506鸣4,有23,35,30,56,06)
+            if (color != Color.Honor)
+            {
+                // 牌的左侧
+                if (num >= 3 && paiCountDict[color][num - 1] != 0 && paiCountDict[color][num - 2] != 0)
+                {
+                    playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, num - 1), new(color, num - 2) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                }
+                // 牌的右侧
+                if (num <= 7 && paiCountDict[color][num + 1] != 0 && paiCountDict[color][num + 2] != 0)
+                {
+                    playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, num + 1), new(color, num + 2) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                }
+                // 坎张
+                if (num >= 2 && num <= 8 && paiCountDict[color][num - 1] != 0 && paiCountDict[color][num + 1] != 0)
+                {
+                    playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, num - 1), new(color, num + 1) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                }
+                // 如果存在对应花色的红宝牌,进行额外判断
+                if (paiCountDict[color][0] != 0)
+                {
+                    // 暂时用挨个判断添加的方式处理红宝牌相关的吃牌问题
+                    // 考虑修改为当红宝牌存在,对应序号牌才存在并再判断的方式来实现即使不是红5也可判断吃的鸣牌
+                    if (num == 3 && paiCountDict[color][4] != 0)
+                    {
+                        // 为3,右侧
                         playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { new(color, 4), new(color, 5, true) },
                                 currentPai,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (shouPaiList[i].Number == shouPaiList[i + 1].Number + 2 && currentPai.Number == shouPaiList[i].Number + 1)
-                    {   // 即坎张,第二张牌比第一张牌点数大2
+                    if (num == 4 && paiCountDict[color][6] != 0)
+                    {
+                        // 为4,右侧
                         playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
+                                new() { new(color, 5, true), new(color, 6) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                    if (num == 4 && paiCountDict[color][3] != 0)
+                    {
+                        // 为4,坎张
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, 3), new(color, 5, true) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                    if (num == 6 && paiCountDict[color][4] != 0)
+                    {
+                        // 为6,左侧
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, 4), new(color, 5, true) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                    if (num == 6 && paiCountDict[color][7] != 0)
+                    {
+                        // 为6,坎张
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, 5, true), new(color, 7) },
+                                currentPai,
+                                PlayerAction.Chi
+                                ));
+                    }
+                    if (num == 7 && paiCountDict[color][6] != 0)
+                    {
+                        // 为7,左侧
+                        playerActions[PlayerAction.Chi].Add(new(
+                                new() { new(color, 5, true), new(color, 6) },
                                 currentPai,
                                 PlayerAction.Chi
                                 ));
                     }
                 }
             }
+
             return playerActions;
         }
         /// <summary>
@@ -672,7 +742,7 @@ namespace MaJiangLib
         /// <param name="shouPai"></param>
         /// <param name="matchInformation"></param>
         /// <returns></returns>
-        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation) 
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
             => SingleClaimingAvailableJudge(shouPai, matchInformation.CurrentPai, matchInformation);
         /// <summary>
         /// 用于判断当前玩家手牌所能进行的自身操作,需要玩家手牌,当前所摸的牌,判断能否加杠/暗杠/拔北/流局
@@ -1177,6 +1247,7 @@ namespace MaJiangLib
             }
 
         }
+        #region *DFS算法块*
         /// <summary>
         /// DFS算法,Node定义,实现 IComparable 从而可比较
         /// </summary>
@@ -1432,7 +1503,9 @@ namespace MaJiangLib
                 return TripleDFS(countList);
             }
         }
+        #endregion
 
+        #region *序列化方法*
         /// <summary>
         /// 字节替换,需要目标字节,短字节和索引
         /// </summary>
@@ -1449,8 +1522,17 @@ namespace MaJiangLib
                 UnityEngine.Debug.Log(index);
                 throw new ArgumentOutOfRangeException("替换范围超出目标数组长度");
             }
-            Array.Copy(shortBytes, 0, targetBytes, index, shortBytes.Length);
+            Span<byte> spanBytes = targetBytes;
+            Span<byte> sliceBytes = spanBytes.Slice(index, shortBytes.Length);
+            spanBytes.CopyTo(sliceBytes);
         }
+        /// <summary>
+        /// 使用Span<>的字节替换,需要目标Span<>,短字节和索引
+        /// </summary>
+        /// <param name="targetBytes">Span<byte>类型的字节段</param>
+        /// <param name="shortBytes">短字节</param>
+        /// <param name="index">索引</param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public static void ReplaceBytes(Span<byte> targetBytes, byte[] shortBytes, int index)
         {
             if (index < 0 || index + shortBytes.Length > targetBytes.Length)
@@ -1489,23 +1571,31 @@ namespace MaJiangLib
         }
         public static byte[] ListToBytes(List<bool> list)
         {
-            byte[] mainBytes = new byte[list.Count];
+            Span<byte> mainBytes = new byte[list.Count];
             for (int i = 0; i < list.Count; i++)
             {
                 mainBytes[i] = BitConverter.GetBytes(list[i])[0];
             }
-            return mainBytes;
+            return mainBytes.ToArray();
         }
         public static byte[] ListToBytes(List<int> list)
         {
-            byte[] mainBytes = new byte[list.Count * 4];
+            Span<byte> mainBytes = new byte[list.Count * 4];
 
             for (int i = 0; i < list.Count; i++)
             {
                 ReplaceBytes(mainBytes, BitConverter.GetBytes(list[i]), 4 * i);
             }
-            return mainBytes;
+            return mainBytes.ToArray();
         }
+        /// <summary>
+        /// 从字节串到列表的转换方法,列表成员类型必须实现IByteable接口
+        /// </summary>
+        /// <typeparam name="T">类型T必须实现IByteable接口并于GlobalFunction.ByteableInstanceDict中注册</typeparam>
+        /// <param name="bytes">待输入的字节串</param>
+        /// <param name="startIndex">转换起始索引</param>
+        /// <param name="count">要转换的最大数量,如果转换达到该值则返回,如果遇到首位为0也返回,-1为尽可能转换直到遇到0</param>
+        /// <returns></returns>
         public static List<T> BytesToList<T>(byte[] bytes, int startIndex = 0, int count = -1) where T : IByteable<T>
         {
             // 因为C# 9.0 的限制,像BytesTo()这样的静态方法无法在接口中声明
@@ -1633,5 +1723,6 @@ namespace MaJiangLib
             }
             return list;
         }
+        #endregion
     }
 }

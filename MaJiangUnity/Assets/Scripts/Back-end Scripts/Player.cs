@@ -1,12 +1,11 @@
 using MaJiangLib;
 using System;
-using UnityEngine;
 using static MaJiangLib.GlobalFunction;
 
 /// <summary>
 /// 玩家的类,当开始对局时,就会为每个玩家创建这个类
 /// </summary>
-public class Player :IPlayerInformation, IByteable<Player>
+public class Player : IPlayerInformation, IByteable<Player>
 {
     /// <summary>
     /// 经由玩家外显信息创建玩家个人信息,用于用户端创建对局信息
@@ -54,18 +53,18 @@ public class Player :IPlayerInformation, IByteable<Player>
 
         return false;
     }
-
-    public int ByteSize { get; set; } = 216;
+    public const int byteSize = 216;
+    public int ByteSize { get=> byteSize; }
     public static implicit operator byte[](Player player)
     {
         // 96 bytes PlayerProfile + 1 byte PlayerNumber + 1 byte CurrentStageType + 18 bytes 留空 + 4 bytes Point + 96 bytes ShouPai = 216 bytes
-        byte[] MainBytes = new byte[216];
+        Span<byte> MainBytes = new byte[216];
         ReplaceBytes(MainBytes, player.PlayerProfile, 0);
         MainBytes[96] = (byte)player.PlayerNumber;
         MainBytes[97] = (byte)player.CurrentStageType;
         ReplaceBytes(MainBytes, BitConverter.GetBytes(player.Point), 116);
         ReplaceBytes(MainBytes, player.ShouPai, 120);
-        return MainBytes;
+        return MainBytes.ToArray();
     }
     public static Player StaticBytesTo(byte[] bytes, int index = 0)
     {

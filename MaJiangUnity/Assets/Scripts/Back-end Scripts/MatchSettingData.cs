@@ -1,8 +1,10 @@
 using MaJiangLib;
+using System;
+using System.Collections.Specialized;
 /// <summary>
 /// 指定当前对局设置的类,包含各类基本属性如对局类型,长考时间的设置
 /// </summary>
-public class MatchSettingData
+public class MatchSettingData : IByteable<MatchSettingData>
 {
     /// <summary>
     /// 默认的对局,即20+5,初始25000点,一番缚,有赤宝,有食断,无古役
@@ -13,9 +15,11 @@ public class MatchSettingData
         ThinkingTime = 20;
         BaseTime = 5;
         BasePoint = 25000;
+        FinishPoint = 30000;
         MinimumYakuFan = 1;
         OpenTanyao = true;
         HaveRedDora = true;
+        HaveBankrupt = true;
         HaveLocalYaku = false;
     }
     /// <summary>
@@ -29,15 +33,17 @@ public class MatchSettingData
     /// <param name="openTanyao"></param>
     /// <param name="haveRedDora"></param>
     /// <param name="haveLocalYaku"></param>
-    public MatchSettingData(MatchType matchType, int thinkTime, int baseTime, int basePoint, int minimumFan, bool openTanyao, bool haveRedDora, bool haveLocalYaku)
+    public MatchSettingData(MatchType matchType, int thinkTime, int baseTime, int basePoint, int finishPoint, int minimumFan, bool openTanyao, bool haveRedDora, bool haveBankrupt, bool haveLocalYaku)
     {
         MatchType = matchType;
         ThinkingTime = thinkTime;
         BaseTime = baseTime;
         BasePoint = basePoint;
+        FinishPoint = finishPoint;
         MinimumYakuFan = minimumFan;
         OpenTanyao = openTanyao;
         HaveRedDora = haveRedDora;
+        HaveBankrupt = haveBankrupt;
         HaveLocalYaku = haveLocalYaku;
     }
     /// <summary>
@@ -61,6 +67,10 @@ public class MatchSettingData
     /// </summary>
     public int BasePoint { get; set; }
     /// <summary>
+    /// 终局所需点数,若最后一本场下庄且存在至少一名玩家达到此点数,则终局,若没有玩家达到则南入/西入
+    /// </summary>
+    public int FinishPoint { get; set; }
+    /// <summary>
     /// 能否食断,即断幺九能否在副露下成立,若为false,则断幺九门清限定,默认为true
     /// </summary>
     public bool OpenTanyao { get; set; }
@@ -69,7 +79,47 @@ public class MatchSettingData
     /// </summary>
     public bool HaveRedDora { get; set; }
     /// <summary>
+    /// 是否有击飞,即当某玩家结算点数后为负数时是否立刻终止对局
+    /// </summary>
+    public bool HaveBankrupt { get; set; }
+    /// <summary>
     /// 是否包含古役,即标准役种的役种,默认为false
     /// </summary>
     public bool HaveLocalYaku { get; set; }
+    public const int byteSize = 16;
+
+    public int ByteSize
+    {
+        get { return byteSize; }
+    }
+    public byte[] GetBytes()
+    {
+        Span<byte> mainBytes = new byte[16];
+        mainBytes[0] = (byte)MatchType;
+        mainBytes[1] = (byte)ThinkingTime;
+        mainBytes[2] = (byte)BaseTime;
+        mainBytes[3] = (byte)MinimumYakuFan;
+        mainBytes[4] = BitConverter.GetBytes(OpenTanyao)[0];
+        mainBytes[5] = BitConverter.GetBytes(HaveRedDora)[0];
+        mainBytes[6] = BitConverter.GetBytes(HaveBankrupt)[0];
+        mainBytes[7] = BitConverter.GetBytes(HaveLocalYaku)[0];
+        GlobalFunction.ReplaceBytes(mainBytes, BitConverter.GetBytes(BasePoint), 8);
+        GlobalFunction.ReplaceBytes(mainBytes, BitConverter.GetBytes(FinishPoint), 12);
+        return mainBytes.ToArray();
+    }
+
+    public MatchSettingData BytesTo(byte[] bytes, int index)
+    {
+        MatchType matchType = (MatchType)bytes[index];
+        int thinkTime = bytes[index + 1];
+        int baseTime = bytes[index + 2];
+        int minimumYakuFan = bytes[index + 3];
+        bool openTanyao = BitConverter.ToBoolean(bytes, index + 4);
+        bool haveRedDora = BitConverter.ToBoolean(bytes, index + 5);
+        bool haveBankrupt = BitConverter.ToBoolean(bytes,index + 6);
+        bool haveLocalYaku = BitConverter.ToBoolean(bytes, index + 7);
+        int basePoint = BitConverter.ToInt32(bytes, index + 8);
+        int finishPoint = BitConverter.ToInt32(bytes,index + 12);
+        return new(matchType, thinkTime, baseTime, basePoint, finishPoint, minimumYakuFan, openTanyao, haveRedDora, haveBankrupt, haveLocalYaku);
+    }
 }

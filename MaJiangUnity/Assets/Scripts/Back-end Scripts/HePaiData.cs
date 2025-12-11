@@ -7,13 +7,25 @@ namespace MaJiangLib
     /// </summary>
     public class HePaiData
     {
-        public HePaiData(ShouPai shouPai, Pai singlePai, bool isIsumo, bool isClosedHand, List<Group> group)
+        public HePaiData(ShouPai shouPai, Pai singlePai, bool isIsumo, List<Group> group)
         {
             PlayerNumber = shouPai.PlayerNumber;
             ShouPai = shouPai;
             SinglePai = singlePai;
             IsIsumo = isIsumo;
-            IsClosedHand = isClosedHand;
+            Groups = group;
+        }
+        /// <summary>
+        /// 副露用构造器
+        /// </summary>
+        /// <param name="mainMatchControl"></param>
+        /// <param name="player"></param>
+        /// <param name="group"></param>
+        public HePaiData(int player, MainMatchControl mainMatchControl, List<Group> group)
+        {
+            ShouPai = mainMatchControl.PlayerList[player].ShouPai;
+            SinglePai = mainMatchControl.CurrentPai;
+            IsIsumo = false;
             Groups = group;
         }
         /// <summary>
@@ -35,7 +47,7 @@ namespace MaJiangLib
         /// <summary>
         /// 是门前清
         /// </summary>
-        public bool IsClosedHand { get; set; }
+        public bool IsClosedHand => ShouPai.IsClosedHand;
         public List<Group> Groups { get; set; }
     }
 }

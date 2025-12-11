@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Reflection;
 using Unity.VisualScripting;
-using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
     /// <summary>
@@ -47,7 +44,11 @@ namespace MaJiangLib
         public int Number { get; set; }
         public bool IsRedDora { get; set; }
 
-        public int ByteSize { get; } = 2;
+        public const int byteSize = 2;
+        public int ByteSize
+        {
+            get => byteSize;
+        }
         /// <summary>
         /// 比较方法,先比较花色(万<筒<索<字牌),再比较数字(比大小),最后比较红宝牌(红宝牌更大)
         /// </summary>
@@ -210,12 +211,25 @@ namespace MaJiangLib
         /// <param name="bytes">要操作的字符串</param>
         /// <param name="index">位置索引</param>
         /// <returns>返回所转换而成的牌</returns>
-        public Pai BytesTo(byte[] bytes, int index = 0)=> StaticBytesTo(bytes, index);
+        public Pai BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
         public static Pai StaticBytesTo(byte[] bytes, int index = 0)
         {
-            byte[] shortBytes = new byte[2];
-            Array.Copy(bytes, index, shortBytes, 0, 2);
-            return shortBytes;
+            if (bytes[index] == 0)
+            {
+                // 序号为0,不存在该牌,判定为null
+                return null;
+            }
+            Color color = (Color)bytes[index+1];
+            if (bytes[index] == 10)
+            {
+                return new(color, 5, true);
+            }
+            else
+            {
+                int num = bytes[index];
+                return new(color, num, false);
+            }
+
         }
         /// <summary>
         /// 从指定字符串中某索引处转换为牌的方法,需求两个字符

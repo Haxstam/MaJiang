@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
@@ -81,12 +79,10 @@ namespace MaJiangLib
         /// 自己的序号
         /// </summary>
         public int SelfNumber { get; set; }
-        public int ByteSize { get; set; } = 16;
-        /// <summary>
-        /// 从玩家操作信息到字节的隐式转换,长度固定16Bytes,不允许过大成员数的转换
-        /// </summary>
-        /// <param name="playerAction">目标操作</param>
-        public static implicit operator byte[](PlayerActionData playerActionData)
+        public const int byteSize = 16;
+        public int ByteSize { get => byteSize; }
+
+        public byte[] GetBytes()
         {
             /*
              * 结构:
@@ -98,23 +94,22 @@ namespace MaJiangLib
              * 2  bytes TargetPais的存储
              * 2  bytes 留空
              */
-            byte[] MainBytes = new byte[16];
-            MainBytes[0] = (byte)playerActionData.PlayerAction;
-            MainBytes[1] = (byte)playerActionData.SelfNumber;
-            MainBytes[2] = (byte)playerActionData.TargetPlayerNumber;
-            if (playerActionData.Pais.Count > 4)
+            Span<byte> MainBytes = new byte[16];
+            MainBytes[0] = (byte)PlayerAction;
+            MainBytes[1] = (byte)SelfNumber;
+            MainBytes[2] = (byte)TargetPlayerNumber;
+            if (Pais.Count > 4)
             {
                 // 如果成员数过多将不能转换
-                throw new System.Exception($"玩家操作转换时出现意外牌数目:{playerActionData.Pais},{playerActionData.TargetPai}");
+                throw new System.Exception($"玩家操作转换时出现意外牌数目:{Pais},{TargetPai}");
             }
             else
             {
-                ReplaceBytes(playerActionData, ListToBytes(playerActionData.Pais), 4);
-                ReplaceBytes(playerActionData, playerActionData.TargetPai, 12);
+                ReplaceBytes(MainBytes, ListToBytes(Pais), 4);
+                ReplaceBytes(MainBytes, TargetPai, 12);
             }
-            return MainBytes;
+            return MainBytes.ToArray();
         }
-        public byte[] GetBytes() => this;
 
         /// <summary>
         /// 从指定字节串中某索引处转换为操作类型的方法,需要目标字节串和索引
@@ -176,9 +171,9 @@ namespace MaJiangLib
             }
             return true;
         }
-        public static bool operator != (PlayerActionData a, PlayerActionData b) 
-        { 
-            return !(a == b); 
+        public static bool operator !=(PlayerActionData a, PlayerActionData b)
+        {
+            return !(a == b);
         }
         public override bool Equals(object obj)
         {
@@ -187,9 +182,9 @@ namespace MaJiangLib
             {
                 return playerActionData == this;
             }
-            else 
+            else
             {
-                return false; 
+                return false;
             }
         }
         public override int GetHashCode()

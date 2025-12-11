@@ -19,20 +19,14 @@ namespace MaJiangLib
          * (3) 4   bytes 包来源IP地址,为IPv4地址类型
          * (4) 48  bytes 包来源用户名,为string类型,UTF-8编码,限定最长为12字符,如果不足则补0
          * (5) 4   bytes 版本号([TODO]暂空,未实现)
-         * (6) 32  bytes 留空
-         * (7) 912 bytes 包主要数据部分(起始于第104处)
-         * (8) 8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" 数据包结束特定标识,UTF-8编码,首位为ETX(0x03)从而避免包尾误判
+         * (7) 16  bytes MD5校验
+         * (6) 16  bytes 留空
+         * (8) 912 bytes 包主要数据部分(起始于第104处)
+         * (9) 8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" 数据包结束特定标识,UTF-8编码,首位为ETX(0x03)从而避免包尾误判
          * 
          * 3. 包不考虑校验,如果子包没有足够空间就再开一个包.
          * 4. 默认制作数据包时先通过EmptyPack()获取一个空包再加工
          * 5. 对于包内主要数据部分的内容,所有类型的内容必须标注其本身的总大小并具有一个标识,从而使得单个包内可以存储多个信息
-         * 6. 子内容结构标识
-         * (1) "_RW_" 房间内对话/表情包等信息
-         * (2) "_IN_" 对局初始化包,包含对局开始时起始手牌的数据,宝牌等数据
-         * (3) "_PA_" 玩家行为,表示为局内玩家的操作
-         * (4) "_SI_" 系统信息,表示为断连,重连,系统交互的信息
-         * (5) "_SA_" 社交行为,表示为个人信息/好友相关
-         * (6) "_MD_" 比赛信息,表示对局信息同步
          * 
          * 7. 玩家操作传输仅传输其所做出的操作,对于玩家能否进行哪些操作则是玩家本地客户端/服务端同步进行计算,服务端在确定操作合规时再进行
          * 8. [TODO] 考虑修改为工厂形式,重构包生成过程
@@ -149,7 +143,7 @@ namespace MaJiangLib
         {
             // 头标识"_PA_" 4 bytes + 子内容大小(int) 4 bytes + 玩家操作 16 bytes
             byte[] signalByte = Encoding.UTF8.GetBytes("_PA_");
-            byte[] playerActionByte = playerActionData;
+            byte[] playerActionByte = playerActionData.GetBytes();
             int length = signalByte.Length + playerActionByte.Length + 4;
             byte[] lengthByte = BitConverter.GetBytes(length);
             byte[] finalByte = signalByte.Concat(lengthByte).Concat(playerActionByte).ToArray();

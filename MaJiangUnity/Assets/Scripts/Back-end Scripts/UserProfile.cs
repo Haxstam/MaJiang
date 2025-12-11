@@ -1,36 +1,47 @@
 using MaJiangLib;
+using System;
 using System.Text;
-using UnityEngine;
 
 /// <summary>
-/// ±íÊ¾ÓÃ»§×Ô¼ºµÄ»ù±¾ĞÅÏ¢
+/// è¡¨ç¤ºç”¨æˆ·è‡ªå·±çš„åŸºæœ¬ä¿¡æ¯
 /// </summary>
 public class UserProfile : IByteable<UserProfile>
 {
+    public UserProfile()
+    {
+
+    }
+    public UserProfile(string name)
+    {
+        Name = name;
+    }
+
     /// <summary>
-    /// ÓÃ»§Ãû
+    /// ç”¨æˆ·å
     /// </summary>
     public string Name { get; set; }
-
-    public int ByteSize { get; set; } = 96;
+    public const int byteSize = 96;
+    public int ByteSize { get => byteSize; }
 
     public static implicit operator byte[](UserProfile userProfile)
     {
-        // ½éÓÚÓÃ»§ĞÅÏ¢Ö®ºó³¤¶ÈºÜ¿ÉÄÜÔö¼Ó,Òò´ËÁôÒ»¸öºÜ´óµÄÈßÓà
-        byte[] mainBytes = new byte[96];
+        // ä»‹äºç”¨æˆ·ä¿¡æ¯ä¹‹åé•¿åº¦å¾ˆå¯èƒ½å¢åŠ ,å› æ­¤ç•™ä¸€ä¸ªå¾ˆå¤§çš„å†—ä½™
+        Span<byte> mainBytes = new byte[96];
         byte[] nameBytes = Encoding.UTF8.GetBytes(userProfile.Name);
         if (nameBytes.Length > 48)
         {
-            throw new System.Exception("¹ı³¤ÓÃ»§Ãû,³¬¹ı48bytes±àÂëÏŞÖÆ");
+            throw new System.Exception("è¿‡é•¿ç”¨æˆ·å,è¶…è¿‡48bytesç¼–ç é™åˆ¶");
         }
         GlobalFunction.ReplaceBytes(mainBytes, nameBytes, 0);
-        return mainBytes;
+        return mainBytes.ToArray();
     }
     public static UserProfile StaticBytesTo(byte[] bytes, int index = 0)
     {
         string name = Encoding.UTF8.GetString(bytes, index, 48);
-        UserProfile userProfile = new UserProfile();
-        userProfile.Name = name;
+        UserProfile userProfile = new()
+        {
+            Name = name
+        };
         return userProfile;
     }
     public UserProfile BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);

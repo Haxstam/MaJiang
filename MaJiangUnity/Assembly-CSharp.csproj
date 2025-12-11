@@ -58,13 +58,12 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\Interfaces\IMatchInformaiton.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MatchServer.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\QiPaiDui.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\MatchSettingData.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MainMatchControl.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Player.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Group.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Client.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\RonPoint.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\GameSetting.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\HePaiData.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Pai.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\UserProfile.cs" />
@@ -80,7 +79,6 @@
     <Compile Include="Assets\Scripts\Back-end Scripts\Pack.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerAction.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\PlayerActionData.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\MatchSettingData.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
