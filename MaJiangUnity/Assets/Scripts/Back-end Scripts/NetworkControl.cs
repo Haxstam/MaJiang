@@ -4,43 +4,95 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using Unity.Profiling;
 using UnityEngine;
 /// <summary>
 /// 所有玩家都拥有的网络控制类,每个玩家只能有一个此类的实例
 /// </summary>
-public class NetworkControl : MonoBehaviour
+public class NetworkControl : MonoBehaviour, INetworkInformation
 {
+    /*
+     * 1.目前包的发送如果需要Ack返回,则会通过TaskID来确定对应包确实返回了
+     */
+
+
+    // 单例不好调试,先不用了
+
+    ///// <summary>
+    ///// 单例
+    ///// </summary>
+    //public static NetworkControl Instance { get; private set; }
+    private void Awake()
+    {
+        SelfIPAddress = IPAddress.Parse(testIPAddress);
+        SelfProfile = new(testName);
+        Debug.Log($"I'm {testName}");
+    }
     // Start is called before the first frame update
     void Start()
     {
-        CurrentNetworkStatu = NetworkStatu.Offline;
-    }
 
+    }
+    private static readonly ProfilerMarker MyMethodMarker = new ProfilerMarker("MyMethod");
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyUp(KeyCode.P))
+        if (Input.GetKeyDown(KeyCode.N))
         {
-            MainClient.Connect("127.0.0.1", 33455);
+            Debug.Log("OK");
         }
-        if (Input.GetKeyUp(KeyCode.Q))
+        // 用不同标记选择不同用户
+        if (Input.GetKey(clientKeyCode))
         {
-            Pack p = new Pack();
-            p.SignalPack(SignalType.ActionSendAck);
-            MainClient.GetStream().Write(p.Bytes);
-            Debug.Log("Send!");
-        }
-        // 增加所有计时器,计时器超时则删除
-        foreach (var packMD5 in PackTimeOutDict.Keys.ToList())
-        {
-            PackTimeOutDict[packMD5] += Time.deltaTime;
-            if (PackTimeOutDict[packMD5] >= 10f)
+            if (Input.GetKeyDown(KeyCode.T))
             {
-                PackTimeOutDict.Remove(packMD5);
+                Debug.Log($"{testName} here!");
             }
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                Debug.Log($"{testName} Connecting");
+                MainClient.Connect(IPAddress.Parse("127.0.0.1"), 11111);
+                ClientStream = MainClient.GetStream();
+                CurrentNetworkStatu = NetworkStatu.InRoom;
+            }
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                Ready();
+            }
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                UnReady();
+            }
+            //if (Input.GetKeyDown(KeyCode.Y))
+            //{
+            //    using (MyMethodMarker.Auto())
+            //    {
+
+            //        GlobalFunction.MainTastTenhe();
+            //    }
+            //}
         }
+
+
+        SignalDictionaryUpdate();
+        NetworkReceiveUpdate();
     }
 
+    public static void WriteDebug(int a)
+    {
+        Debug.Log(a);
+    }
+    public static void WriteDebug(List<Tile> list)
+    {
+        string a = "";
+        foreach (Tile p in list)
+        {
+            a += p.ToString();
+            a += " ";
+        }
+        Debug.Log(a);
+    }
     #region *Client模块*
 
     /// <summary>
@@ -55,432 +107,398 @@ public class NetworkControl : MonoBehaviour
     /// 客户端TCP数据流
     /// </summary>
     public NetworkStream ClientStream { get; set; }
-
-
-    public static byte[] testBytes;
-
-    public static IMatchInformation pubControl;
+    /// <summary>
+    /// 标记是否连接
+    /// </summary>
     public bool IsConnect { get; set; }
-    public async void SubReadAsync()
-    {
-        // 因为Read读取的覆写性和读取时可能的不连续性,目前通过循环读取,拼接写入处理的方式获取数据
-        byte[] clientBuffer = ClientBuffer;
+    // 表示当前将要写入缓存的位置
+    int writeIndex = 0;
+    //public void ReadUpdate()
+    //{
+    //    byte[] clientBuffer = ClientBuffer;
+    //    try
+    //    {
+    //        // 每当Read从数据流中读取数据,都会读取最多8192字节的数据,如果写入指针接近上限,则缩小写入大小
+    //        if (ClientStream.DataAvailable)
+    //        {
+    //            writeIndex += ClientStream.Read(clientBuffer, writeIndex, 8192 - writeIndex);
+    //        }
+    //        if (writeIndex >= 1024)
+    //        {   // 如果存在不少于1024字节的待处理数据,进行处理
+    //            bool isPackReceived = ReadByteSolve(clientBuffer, ref writeIndex);
+    //        }
+    //    }
+    //    catch (Exception)
+    //    {
+    //        throw;
+    //    }
+    //}
+    ///// <summary>
+    ///// 通过Span匹配字节串的方法,需要主字节串和短字节串
+    ///// </summary>
+    ///// <param name="data"></param>
+    ///// <param name="shortData"></param>
+    ///// <returns></returns>
+    //public static int MatchBytes(byte[] mainBytes, byte[] shortBytes)
+    //{
+    //    Span<byte> SpanBytes = mainBytes;
+    //    ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
+    //    return SpanBytes.IndexOf(ShortSpanBytes);
+    //}
+    ///// <summary>
+    ///// 数据缓存处理,在方法内部根据判断修改buffer和写入指针
+    ///// </summary>
+    ///// <param name="buffer">对应连接的接收缓存</param>
+    ///// <param name="packBytes">处理后的包</param>
+    ///// <param name="writeIndex">当前写入位置</param>
+    ///// <returns>当本次处理获取到包时,返回True,如果无数据或无合法包,返回False</returns>
+    //public bool ReadByteSolve(byte[] buffer, ref int writeIndex)
+    //{
+    //    Span<byte> spanBuffer = buffer.AsSpan();
+    //    bool isReceivePack = false;
+    //    while (true)
+    //    {
+    //        // 处理循环
+    //        // 循环判断直到没有任何合法包
+    //        int endIndex = MatchBytes(buffer, PackCoder.PackEndBytes) + 8;
+    //        if (endIndex == -1)
+    //        {
+    //            if (writeIndex > 7169)
+    //            {
+    //                // 清空
+    //                writeIndex = 0;
+    //            }
+    //            // 未获取到包尾,返回false
+    //            return isReceivePack;
+    //        }
+    //        else if (endIndex >= 0 && endIndex < 1024)
+    //        {
+    //            // 获取到包尾,但位置小于1024,即为残缺的后半个包,修改该标记首位为0x00并将此包尾之后的数据前移
+    //            buffer[endIndex] = 0x00;
+    //            spanBuffer[(endIndex + 8)..].CopyTo(spanBuffer);
+    //            writeIndex -= (endIndex + 8);
+    //        }
+    //        else
+    //        {
+    //            // 获取到包尾且位置不小于1024,进行包合法性判断
+    //            Span<byte> rawPack = spanBuffer.Slice(endIndex - 1024, 1024);
+    //            if (PackCoder.IsLegalPack(rawPack))
+    //            {
+    //                // 判断成功,标记返回True和所提取的包
+    //                byte[] packBytes = rawPack.ToArray();
+    //                PackSolve(packBytes);
+    //                // PackCoder.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
+    //                isReceivePack = true;
+    //            }
+    //            else
+    //            {
+    //                // 判断失败
+    //            }
+    //            // 无论成功与否,都修改标记首位为0x00并将此包尾之后的数据前移
+    //            buffer[endIndex] = 0x00;
+    //            spanBuffer[(endIndex + 8)..].CopyTo(spanBuffer);
+    //            writeIndex -= (endIndex + 8);
+    //        }
+    //    }
+    //}
 
-        // 表示当前将要写入缓存的位置
-        int writeIndex = 0;
-        // 读取循环
-        while (true)
-        {
-            // 读取循环
-            // 每当ReadAsync从数据流中读取数据,都会读取最多1024字节的数据,如果写入指针接近上限,则缩小写入大小
-            writeIndex += await ClientStream.ReadAsync(clientBuffer, writeIndex, Math.Min(1024, 8192 - writeIndex));
-            if (writeIndex >= 1024)
-            {   // 如果存在不少于1024字节的待处理数据,进行处理
-                bool isPackReceived = ReadByteSolve(clientBuffer, ref writeIndex);
-            }
-        }
-    }
     /// <summary>
-    /// 通过Span匹配字节串的方法,需要主字节串和短字节串
+    /// 包信息处理方法
     /// </summary>
-    /// <param name="data"></param>
-    /// <param name="shortData"></param>
-    /// <returns></returns>
-    public static int MatchBytes(byte[] mainBytes, byte[] shortBytes)
-    {
-        Span<byte> SpanBytes = mainBytes;
-        ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
-        return SpanBytes.IndexOf(ShortSpanBytes);
-    }
-    /// <summary>
-    /// 数据缓存处理,在方法内部根据判断修改buffer和写入指针
-    /// </summary>
-    /// <param name="buffer">对应连接的接收缓存</param>
-    /// <param name="packBytes">处理后的包</param>
-    /// <param name="writeIndex">当前写入位置</param>
-    /// <returns>当本次处理获取到包时,返回True,如果无数据或无合法包,返回False</returns>
-    public static bool ReadByteSolve(byte[] buffer, ref int writeIndex)
-    {
-        Span<byte> spanBuffer = buffer.AsSpan();
-        bool isReceivePack = false;
-        while (true)
-        {
-            // 处理循环
-            // 循环判断直到没有任何合法包
-            int endIndex = MatchBytes(buffer, PackCoder.PackEndBytes) + 8;
-            if (endIndex == -1)
-            {
-                // 未获取到包尾,返回false
-                return isReceivePack;
-            }
-            else if (endIndex >= 0 && endIndex < 1024)
-            {
-                // 获取到包尾,但位置小于1024,即为残缺的后半个包,修改该标记首位为0x00并将此包尾之后的数据前移
-                buffer[endIndex] = 0x00;
-                spanBuffer[(endIndex + 8)..].CopyTo(spanBuffer);
-                writeIndex -= endIndex;
-            }
-            else
-            {
-                // 获取到包尾且位置不小于1024,进行包合法性判断
-                Span<byte> rawPack = spanBuffer.Slice(endIndex - 1024, 1024);
-                if (PackCoder.IsLegalPack(rawPack))
-                {
-                    // 判断成功,标记返回True和所提取的包
-                    byte[] packBytes = rawPack.ToArray();
-                    PackCoder.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
-
-                    isReceivePack = true;
-                }
-                else
-                {
-                    // 判断失败
-                }
-                // 无论成功与否,都修改标记首位为0x00并将此包尾之后的数据前移
-                buffer[endIndex] = 0x00;
-                spanBuffer[(endIndex + 8)..].CopyTo(spanBuffer);
-                writeIndex -= 1024;
-            }
-        }
-    }
+    /// <param name="packBytes"></param>
     public void PackSolve(byte[] packBytes)
     {
-
+        Pack pack = new(packBytes);
+        int taskID = pack.TaskID;
+        if (pack.PackType == PackType.Acknowledge)
+        {
+            if (SignalDictionary.TryGetValue(taskID, out TaskData taskData))
+            {
+                taskData.TaskSolve(TaskResult.Finished);
+                SignalDictionary.Remove(taskID);
+            }
+        }
     }
+
+
+    public void NetworkReceiveUpdate()
+    {
+        // 基础安全检查
+        if (MainClient == null || !MainClient.Connected || ClientStream == null)
+        {
+            return;
+        }
+
+        try
+        {
+            // --- 1. 读取阶段：尽可能吸干 Socket 中的数据 ---
+            // 只要流里有数据，且缓冲区没满，就一直读
+            while (ClientStream.DataAvailable && writeIndex < ClientBuffer.Length)
+            {
+                int spaceLeft = ClientBuffer.Length - writeIndex;
+                // 读取数据并存放到 writeIndex 之后的位置
+                int bytesRead = ClientStream.Read(ClientBuffer, writeIndex, spaceLeft);
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+                writeIndex += bytesRead;
+            }
+
+            // --- 2. 解析阶段：循环处理缓冲区中的粘包 ---
+            // 只有数据量达到 1024（最小包长）或发现包尾标识时才有必要处理
+            Span<byte> bufferSpan = ClientBuffer.AsSpan();
+            ReadOnlySpan<byte> endMarker = PackCoder.PackEndBytes;
+
+            while (true)
+            {
+                // 搜索范围严格限制在 0 到 writeIndex 之间，避免扫到旧数据
+                int matchIndex = bufferSpan.Slice(0, writeIndex).IndexOf(endMarker);
+
+                // 如果找不到包尾，说明当前数据不足以构成一个完整的包
+                if (matchIndex == -1)
+                {
+                    // 【缓冲区保护】
+                    // 如果缓冲区已经填满（约 8KB）却依然找不到 8 字节的标识符，
+                    // 说明流中全是垃圾数据或协议不匹配，直接重置防止溢出。
+                    if (writeIndex >= 8100)
+                    {
+                        Debug.LogWarning("清理数据...");
+                        writeIndex = 0;
+                    }
+                    break; // 跳出解析循环，等待下一帧读取更多数据
+                }
+
+                // 计算该段潜在数据的总长度（包含包尾 8 字节）
+                int endPosition = matchIndex + 8;
+
+                // 情况 A：找到标识符，且标识符前有足够的数据（>= 1024 字节）
+                if (endPosition >= 1024)
+                {
+                    // 向前截取固定 1024 字节进行校验
+                    int packStart = endPosition - 1024;
+                    Span<byte> packCandidate = bufferSpan.Slice(packStart, 1024);
+
+                    if (PackCoder.IsLegalPack(packCandidate))
+                    {
+                        // 校验成功，转交业务处理
+                        PackSolve(packCandidate.ToArray());
+                    }
+                    else
+                    {
+                        Debug.LogWarning("Found end marker but packet CRC check failed.");
+                    }
+                }
+                // 情况 B：找到标识符，但标识符太靠前（不足 1024 字节），判定为杂质
+
+                // --- 3. 整理阶段：数据前移 ---
+                // 无论刚才截取的包是否合法，直到 endPosition 为止的数据都已经处理过（或是垃圾）
+                // 将 endPosition 之后的所有有效数据移动到缓冲区的最前面
+                int remainingAfterProcess = writeIndex - endPosition;
+                if (remainingAfterProcess > 0)
+                {
+                    // 使用 Span 的 CopyTo 进行高效内存拷贝
+                    bufferSpan.Slice(endPosition, remainingAfterProcess).CopyTo(bufferSpan);
+                }
+
+                // 更新索引位置
+                writeIndex = remainingAfterProcess;
+
+                // 继续下一轮解析，处理可能存在的后续包（粘包）
+            }
+        }
+        catch (Exception e)
+        {
+            // 如果这里捕获到异常，通常是底层 Socket 断开或资源释放
+            Debug.LogError($"NetworkRead Error: {e.Message}");
+        }
+    }
+
     #endregion
+
+    public NetworkStatu currentNetworkStatu;
 
     /// <summary>
     /// 本端当前网络状态
     /// </summary>
-    public static NetworkStatu CurrentNetworkStatu { get; set; }
+    public NetworkStatu CurrentNetworkStatu
+    {
+        get { return currentNetworkStatu; }
+        set { currentNetworkStatu = value; }
+    }
     /// <summary>
     /// 标记自身是否为房主
     /// </summary>
-    public static bool IsHost { get; set; }
+    public bool IsHost { get; set; }
     /// <summary>
     /// 标记是否在对局中
     /// </summary>
-    public static bool IsPlaying { get; set; }
-    public static float BaseTime { get; set; }
-    public static float ThinkingTime { get; set; }
+    public bool IsPlaying { get; set; }
+    public float BaseTime { get; set; }
+    public float ThinkingTime { get; set; }
     /// <summary>
     /// 自身所在房间的房间号
     /// </summary>
-    public static int RoomNumber { get; set; }
-    /// <summary>
-    /// 正要连接的IP地址
-    /// </summary>
-    public static IPAddress ConnectingIPAddress { get; set; }
-    /// <summary>
-    /// 作为客户端时,为要连接的端口,作为服务端时,为自身房间号
-    /// </summary>
-    public static int ConnectingPort { get; set; }
+    public int RoomNumber { get; set; }
+
+    // 测试用变量
+
+    public string testName;
+    public string testIPAddress;
+    public KeyCode clientKeyCode;
+
     /// <summary>
     /// 自身IP地址
     /// </summary>
-    public static IPAddress SelfIPAddress { get; set; } = IPAddress.Parse("127.0.0.2");
+    public IPAddress SelfIPAddress { get; set; }
     /// <summary>
     /// 自身用户档案
     /// </summary>
-    public static UserProfile SelfProfile { get; set; } = new("CHaxstam");
+    public UserProfile SelfProfile { get; set; }
     /// <summary>
     /// 主对局控制
     /// </summary>
-    public MainMatchControl MainMatchControl { get; set; }
-    /// <summary>
-    /// 为PackCoder.Ping的包装
-    /// </summary>
-    public static double Ping
-    {
-        get { return PackCoder.Ping; }
-    }
-    /// <summary>
-    /// 包超时时间记录,每发送一个包即存储一个标记,用于存储其实际等待时间
-    /// </summary>
-    private Dictionary<TimeOutMark, float> PackTimeOutDict { get; set; } = new();
-    /// <summary>
-    /// 计时回调器
-    /// </summary>
-    private class TimeOutMark
-    {
-        public TimeOutMark(Func<bool> timeOutHandler, Func<bool> finishHandler, byte[] mD5Bytes)
-        {
-            TimeOutHandler = timeOutHandler;
-            FinishHandler = finishHandler;
-            MD5Bytes = mD5Bytes;
-            WaitTime = 20f;
-        }
-        public TimeOutMark(Func<bool> timeOutHandler, Func<bool> finishHandler, byte[] mD5Bytes, SignalType signal)
-        {
-            TimeOutHandler = timeOutHandler;
-            FinishHandler = finishHandler;
-            MD5Bytes = mD5Bytes;
-            WaitTime = 20f;
-            SignalType = signal;
-        }
-        /// <summary>
-        /// 超时处理方法
-        /// </summary>
-        public Func<bool> TimeOutHandler { get; set; }
-        /// <summary>
-        /// 返回处理方法
-        /// </summary>
-        public Func<bool> FinishHandler { get; set; }
-        /// <summary>
-        /// 包标识符,用作往返操作唯一标识
-        /// </summary>
-        public byte[] MD5Bytes { get; set; }
-        public float WaitTime { get; set; }
-        public SignalType SignalType { get; set; }
-    }
+    public MatchServer MatchServer { get; set; }
     #region *方法*
-
     /// <summary>
-    /// 尝试连接方法,仅在当前为Free状态下可用,连接后即尝试开始读取
+    /// 任务ID
     /// </summary>
-    /// <param name="networkException"></param>
+    private int taskSequenceID = 0;
+    /// <summary>
+    /// 任务ID的获取
+    /// </summary>
     /// <returns></returns>
-    public bool Connect(out NetworkException networkException)
+    public int GetTaskID()
     {
-        networkException = null;
-        if (IsHost)
+        return System.Threading.Interlocked.Increment(ref taskSequenceID);
+    }
+
+    public Dictionary<int, TaskData> SignalDictionary { get; set; } = new();
+    public class TaskData
+    {
+        public TaskData(Action<TaskResult> actionSolve, int timeOut = 20)
         {
-            networkException = new("自身为房主,不能连接其他房间");
-            return false;
+            WaitTime = 0f;
+            TimeOut = timeOut;
+            TaskSolve = actionSolve;
         }
-        else if (CurrentNetworkStatu == NetworkStatu.Offline)
+        /// <summary>
+        /// 当前等待时间
+        /// </summary>
+        public float WaitTime { get; set; }
+        /// <summary>
+        /// 超时上限
+        /// </summary>
+        public int TimeOut { get; set; }
+        /// <summary>
+        /// 完成时的回调方法
+        /// </summary>
+        public Action<TaskResult> TaskSolve { get; set; }
+    }
+    /// <summary>
+    /// 对信号记录的处理,每帧更新一次,用于判断方法超时时间
+    /// </summary>
+    public void SignalDictionaryUpdate()
+    {
+        List<int> keyList = SignalDictionary.Keys.ToList();
+        foreach (int key in keyList)
         {
-            networkException = new("当前为离线状态,无法连接");
-            return false;
-        }
-        else if (CurrentNetworkStatu == NetworkStatu.InRoom)
-        {
-            networkException = new("已在房间中,无法连接");
-            return false;
-        }
-        else
-        {
-            if (CurrentNetworkStatu != NetworkStatu.Free)
+            if (SignalDictionary.TryGetValue(key, out TaskData taskData))
             {
-                networkException = new("当前忙碌中,无法连接");
-                return false;
-            }
-            else
-            {
-                CurrentNetworkStatu = NetworkStatu.Connecting;
-                MainClient.ConnectAsync(ConnectingIPAddress, ConnectingPort);
-                return true;
+                taskData.WaitTime += Time.deltaTime;
+                if (taskData.WaitTime >= taskData.TimeOut)
+                {
+                    // 已超时,返回TimeOut并移除对应键值对
+                    taskData.TaskSolve.Invoke(TaskResult.TimeOut);
+                    SignalDictionary.Remove(key);
+                }
             }
         }
     }
-    public bool ConnectTimeOutHandler()
-    {   // 连接超时,断开
-        MainClient.Close();
-        IsConnect = false;
-        return false;
+    /// <summary>
+    /// TODO 等待实现
+    /// </summary>
+    /// <param name="pack"></param>
+    public void PackSend(byte[] pack)
+    {
+        ClientStream.Write(pack, 0, pack.Length);
     }
-    public bool ConnectFinishHandler()
-    {   // 已连接,获取Stream
+    public void Connect(IPAddress iPAddress, int port)
+    {
+        Debug.Log($"{testName} Connecting");
+        if (CurrentNetworkStatu == NetworkStatu.Offline)
+        {
+            var cts = new CancellationTokenSource();
+
+            var a= MainClient.ConnectAsync(iPAddress, port);
+            // TODO 2026/2/6
+        }
+        
         ClientStream = MainClient.GetStream();
-        return true;
-    }
-    /// <summary>
-    /// 加入房间,仅在Connecting状态下可用
-    /// </summary>
-    /// <param name="networkException"></param>
-    /// <param name="roomNumber"></param>
-    /// <returns></returns>
-    public bool JoinRoom(out NetworkException networkException, int roomNumber)
-    {
-        networkException = null;
-        if (CurrentNetworkStatu == NetworkStatu.Connecting)
-        {
-            Pack pack = new();
-            pack.ConnectRoomPack(roomNumber, SelfProfile);
-            ClientStream.WriteAsync(pack.Bytes);
-            PackTimeOutDict[new(JoinRoomTimeOutHandler, JoinRoomFinishHandler, pack.MD5Code)] = 0f;
-            return true;
-        }
-        else
-        {
-            networkException = new("连接状态错误,无法加入房间");
-            return false;
-        }
-    }
-    /// <summary>
-    /// 超时处理调用方法
-    /// </summary>
-    public bool JoinRoomTimeOutHandler()
-    {
-        CurrentNetworkStatu = NetworkStatu.Free;
-        return false;
-    }
-    public bool JoinRoomFinishHandler()
-    {
         CurrentNetworkStatu = NetworkStatu.InRoom;
-        return true;
     }
-    public void RoomWordSend(string word)
+    public void Ready()
     {
-        Pack pack = new();
-        pack.RoomWordPack(RoomNumber, word);
-        ClientStream.WriteAsync(pack.Bytes);
-        PackTimeOutDict[new(RoomWordSendTimeOutHandler, RoomWordSendFinishHandler, pack.MD5Code)] = 0f;
-        // [TODO]
-        Debug.Log(word);
-    }
-    public bool RoomWordSendTimeOutHandler()
-    {
-        Debug.Log("发送失败");
-        return false;
-    }
-    public bool RoomWordSendFinishHandler()
-    {
-        return true;
-    }
-    public void ReadySend()
-    {
-        Pack pack = new();
-        pack.SignalPack(SignalType.Ready);
-        ClientStream.WriteAsync(pack.Bytes);
-        PackTimeOutDict[new(ReadySendTimeOutHandler, ReadySendFinishHandler, pack.MD5Code)] = 0f;
-    }
-    public bool ReadySendTimeOutHandler()
-    {
-        Debug.Log("Ready发送失败");
-        return false;
-    }
-    public bool ReadySendFinishHandler()
-    {
-        Debug.Log("Ready Solve");
-        CurrentNetworkStatu = NetworkStatu.Ready;
-        return true;
-    }
-    public void UnReadySend()
-    {
-        Pack pack = new();
-        pack.SignalPack(SignalType.UnReady);
-        ClientStream.WriteAsync(pack.Bytes);
-        PackTimeOutDict[new(UnReadySendTimeOutHandler, UnReadySendFinishHandler, pack.MD5Code)] = 0f;
-
-    }
-    public bool UnReadySendTimeOutHandler()
-    {
-        Debug.Log("UnReady发送失败");
-        return false;
-    }
-    public bool UnReadySendFinishHandler()
-    {
-        Debug.Log("UnReady Solve");
-        CurrentNetworkStatu = NetworkStatu.InRoom;
-        return true;
-    }
-    #region //弃用
-    public static bool ReadySend(out NetworkException networkException)
-    {
-        networkException = null;
         if (CurrentNetworkStatu == NetworkStatu.InRoom)
         {
-            Pack pack = new();
+            Pack pack = new(this);
             pack.SignalPack(SignalType.Ready);
-
+            SignalDictionary[pack.TaskID] = new(ReadySolve);
             CurrentNetworkStatu = NetworkStatu.ReadyWait;
-
-            return true;
+            PackSend(pack.Bytes);
         }
         else
         {
-            networkException = new("状态错误");
-            return false;
+            Debug.Log("必须在房间中且未准备");
         }
     }
-    public static bool UnReadySend(out NetworkException networkException)
+    public void ReadySolve(TaskResult result)
     {
-        networkException = null;
-        if (CurrentNetworkStatu == NetworkStatu.Ready)
+        if (result == TaskResult.Finished)
         {
-            // [TODO]
-            CurrentNetworkStatu = NetworkStatu.UnReadyWait;
-            return true;
-        }
-        else
-        {
-            networkException = new("在非准备状态下取消准备");
-            return false;
-        }
-    }
-    public static bool StartSolve(out NetworkException networkException)
-    {
-        networkException = null;
-        if (CurrentNetworkStatu == NetworkStatu.Ready)
-        {
-            CurrentNetworkStatu = NetworkStatu.StartWait;
-            return true;
-        }
-        else
-        {
-            networkException = new("在非准备状态下接收到开始确认");
-            return false;
-        }
-    }
-    public static bool DiscardActionSend(out NetworkException networkException, PlayerActionData playerActionData)
-    {
-        networkException = null;
-        if (CurrentNetworkStatu == NetworkStatu.DiscardStage)
-        {
-            // [TODO]
-
-            CurrentNetworkStatu = NetworkStatu.DiscardWait;
-            return true;
-        }
-        else
-        {
-            networkException = new("在不可操作的情况下尝试发送玩家行为");
-            return false;
-        }
-    }
-    public static bool ClaimActionSend()
-    {
-        return false;
-    }
-
-    public static bool EndSolve(out NetworkException networkException)
-    {
-        networkException = null;
-        if (IsPlaying)
-        {
-            CurrentNetworkStatu = NetworkStatu.EndStage;
-            return true;
-        }
-        else
-        {
-            networkException = new("在非对局状态下接收到终止对局信号");
-            return false;
-        }
-    }
-    /// <summary>
-    /// 确认类信息的解决
-    /// </summary>
-    /// <param name="acknowledgeType"></param>
-    /// <returns></returns>
-    public static bool AcknowledgeSolve(SignalType acknowledgeType)
-    {
-        if (CurrentNetworkStatu == NetworkStatu.ReadyWait && acknowledgeType == SignalType.ReadyAck)
-        {
-            // 收到准备确认后,从ReadyWait变为Ready
             CurrentNetworkStatu = NetworkStatu.Ready;
         }
-        else if (CurrentNetworkStatu == NetworkStatu.UnReadyWait && acknowledgeType == SignalType.UnReadyAck)
+        else if (result == TaskResult.TimeOut)
         {
-            // 收到取消准备确认后,从UnReadyWait变为InRoom
             CurrentNetworkStatu = NetworkStatu.InRoom;
         }
-        return false;
+    }
+
+    public void UnReady()
+    {
+        if (CurrentNetworkStatu == NetworkStatu.Ready)
+        {
+            Pack pack = new(this);
+            pack.SignalPack(SignalType.UnReady);
+            SignalDictionary[pack.TaskID] = new(UnReadySolve);
+            CurrentNetworkStatu = NetworkStatu.UnReadyWait;
+            PackSend(pack.Bytes);
+        }
+        else
+        {
+            Debug.Log("必须在房间中且未准备");
+        }
+    }
+    public void UnReadySolve(TaskResult result)
+    {
+        if (result == TaskResult.Finished)
+        {
+            CurrentNetworkStatu = NetworkStatu.InRoom;
+        }
+        else if (result == TaskResult.TimeOut)
+        {
+            CurrentNetworkStatu = NetworkStatu.Ready;
+        }
     }
     #endregion
 
-    #endregion
+    private void OnDestroy()
+    {
+        MainClient.Close();
+    }
 }
+
+
 /// <summary>
 /// 信号枚举,包含所有信号的类型
 /// </summary>
@@ -488,18 +506,17 @@ public enum SignalType : byte
 {
     Error = 1,
     Ready,
-    ReadyAck,
     UnReady,
-    UnReadyAck,
     Start,
-    StartAck,
     Init,
-    InitAck,
     ActionSend,
-    ActionSendAck,
     Action,
+    ReadyAck,
+    UnReadyAck,
+    StartAck,
+    InitAck,
+    ActionSendAck,
     ActionAck,
-
 }
 public enum NetworkStatu
 {
@@ -618,4 +635,9 @@ public enum NetworkStatu
     /// 等待客户端发送信息
     /// </summary>
     ConnectFree,
+}
+public enum TaskResult
+{
+    Finished,
+    TimeOut,
 }

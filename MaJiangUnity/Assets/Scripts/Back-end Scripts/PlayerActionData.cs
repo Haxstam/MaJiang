@@ -5,78 +5,78 @@ using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
     /// <summary>
-    /// Íæ¼Ò½øĞĞ²Ù×÷µÄÀà,°üº¬Íæ¼Ò²Ù×÷Ê±ÊÖÖĞÅÆ,²Ù×÷Ä¿±êÅÆ,Íæ¼Ò²Ù×÷ÀàĞÍ
+    /// ç©å®¶è¿›è¡Œæ“ä½œçš„ç±»,åŒ…å«ç©å®¶æ“ä½œæ—¶æ‰‹ä¸­ç‰Œ,æ“ä½œç›®æ ‡ç‰Œ,ç©å®¶æ“ä½œç±»å‹
     /// </summary>
     public class PlayerActionData : IByteable<PlayerActionData>
     {
         /// <summary>
-        /// ½øĞĞ³ÔÅö¸ÜµÈÃùÅÆ²Ù×÷Ê±µÄÍæ¼ÒĞĞÎª¼ÇÂ¼,ĞèÒªÄÜÏìÓ¦µÄÅÆ,Ä¿±êÅÆºÍ¶ÔÓ¦²Ù×÷
+        /// è¿›è¡Œåƒç¢°æ ç­‰é¸£ç‰Œæ“ä½œæ—¶çš„ç©å®¶è¡Œä¸ºè®°å½•,éœ€è¦èƒ½å“åº”çš„ç‰Œ,ç›®æ ‡ç‰Œå’Œå¯¹åº”æ“ä½œ
         /// </summary>
-        /// <param name="pais">ÊÖÖĞËùÒªÏìÓ¦µÄÅÆ</param>
-        /// <param name="targetPai">±»ÏìÓ¦µÄÅÆ</param>
-        /// <param name="playerAction">¶ÔÓ¦²Ù×÷</param>
-        public PlayerActionData(List<Pai> pais, Pai targetPai, PlayerAction playerAction)
+        /// <param name="tiles">æ‰‹ä¸­æ‰€è¦å“åº”çš„ç‰Œ</param>
+        /// <param name="targetTile">è¢«å“åº”çš„ç‰Œ</param>
+        /// <param name="playerAction">å¯¹åº”æ“ä½œ</param>
+        public PlayerActionData(List<Tile> tiles, Tile targetTile, PlayerAction playerAction)
         {
-            Pais = pais;
-            TargetPai = targetPai;
+            Tiles = tiles;
+            TargetTile = targetTile;
             PlayerAction = playerAction;
         }
         /// <summary>
-        /// ÍêÈ«ÊµÏÖ,ĞèÒªÏìÓ¦Õß,±»ÏìÓ¦Õß,ÄÜÏìÓ¦µÄÅÆ,Ä¿±êÅÆºÍ¶ÔÓ¦²Ù×÷
+        /// å®Œå…¨å®ç°,éœ€è¦å“åº”è€…,è¢«å“åº”è€…,èƒ½å“åº”çš„ç‰Œ,ç›®æ ‡ç‰Œå’Œå¯¹åº”æ“ä½œ
         /// </summary>
         /// <param name="selfNumber"></param>
         /// <param name="targetNumber"></param>
-        /// <param name="pais"></param>
-        /// <param name="targetPai"></param>
+        /// <param name="tiles"></param>
+        /// <param name="targetTile"></param>
         /// <param name="playerAction"></param>
-        public PlayerActionData(int selfNumber, int targetNumber, List<Pai> pais, Pai targetPai, PlayerAction playerAction)
+        public PlayerActionData(int selfNumber, int targetNumber, List<Tile> tiles, Tile targetTile, PlayerAction playerAction)
         {
             SelfNumber = selfNumber;
             TargetPlayerNumber = targetNumber;
-            Pais = pais;
-            TargetPai = targetPai;
+            Tiles = tiles;
+            TargetTile = targetTile;
             PlayerAction = playerAction;
         }
         /// <summary>
-        /// ½øĞĞÇĞÅÆ°Î±±°µ¸Ü¼Ó¸ÜÁ¢Ö±ºÍÅÆµÈ×ÔÉí²Ù×÷Ê±µÄÍæ¼ÒĞĞÎª¼ÇÂ¼,ĞèÒªÄÜ²Ù×÷µÄÅÆºÍ¶ÔÓ¦²Ù×÷,»òÒªºÍÅÆµÄÄ¿±êÅÆ
+        /// è¿›è¡Œåˆ‡ç‰Œæ‹”åŒ—æš—æ åŠ æ ç«‹ç›´å’Œç‰Œç­‰è‡ªèº«æ“ä½œæ—¶çš„ç©å®¶è¡Œä¸ºè®°å½•,éœ€è¦èƒ½æ“ä½œçš„ç‰Œå’Œå¯¹åº”æ“ä½œ,æˆ–è¦å’Œç‰Œçš„ç›®æ ‡ç‰Œ
         /// </summary>
-        /// <param name="pais">ÄÜ²Ù×÷µÄÅÆ</param>
-        /// <param name="playerAction">¶ÔÓ¦²Ù×÷</param>
-        public PlayerActionData(List<Pai> pais, PlayerAction playerAction)
+        /// <param name="tiles">èƒ½æ“ä½œçš„ç‰Œ</param>
+        /// <param name="playerAction">å¯¹åº”æ“ä½œ</param>
+        public PlayerActionData(List<Tile> tiles, PlayerAction playerAction)
         {
             if (PlayerAction == PlayerAction.Ron || PlayerAction == PlayerAction.Tsumo)
             {
-                TargetPai = pais[0];
+                TargetTile = tiles[0];
             }
             else
             {
-                Pais = pais;
+                Tiles = tiles;
             }
             PlayerAction = playerAction;
         }
         /// <summary>
-        /// ½øĞĞÁ÷¾ÖµÈÌØÊâ²Ù×÷µÄÍæ¼ÒĞĞÎª¼ÇÂ¼,ĞèÒªÍæ¼ÒËù½øĞĞµÄ²Ù×÷
+        /// è¿›è¡Œæµå±€ç­‰ç‰¹æ®Šæ“ä½œçš„ç©å®¶è¡Œä¸ºè®°å½•,éœ€è¦ç©å®¶æ‰€è¿›è¡Œçš„æ“ä½œ
         /// </summary>
-        /// <param name="playerAction">¶ÔÓ¦²Ù×÷</param>
+        /// <param name="playerAction">å¯¹åº”æ“ä½œ</param>
         public PlayerActionData(PlayerAction playerAction)
         {
             PlayerAction = playerAction;
         }
         public PlayerAction PlayerAction { get; set; }
         /// <summary>
-        /// ÊÖÅÆÖĞ´ı²Ù×÷µÄÅÆ,³ÉÔ±Êı×î´óÎª4
+        /// æ‰‹ç‰Œä¸­å¾…æ“ä½œçš„ç‰Œ,æˆå‘˜æ•°æœ€å¤§ä¸º4
         /// </summary>
-        public List<Pai> Pais { get; set; }
+        public List<Tile> Tiles { get; set; }
         /// <summary>
-        /// ±»²Ù×÷µÄÄ¿±êÅÆ,½öÒ»ÕÅ
+        /// è¢«æ“ä½œçš„ç›®æ ‡ç‰Œ,ä»…ä¸€å¼ 
         /// </summary>
-        public Pai TargetPai { get; set; }
+        public Tile TargetTile { get; set; }
         /// <summary>
-        /// Ä¿±êÍæ¼ÒµÄĞòºÅ
+        /// ç›®æ ‡ç©å®¶çš„åºå·
         /// </summary>
         public int TargetPlayerNumber { get; set; }
         /// <summary>
-        /// ×Ô¼ºµÄĞòºÅ
+        /// è‡ªå·±çš„åºå·
         /// </summary>
         public int SelfNumber { get; set; }
         public const int byteSize = 16;
@@ -85,37 +85,37 @@ namespace MaJiangLib
         public byte[] GetBytes()
         {
             /*
-             * ½á¹¹:
-             * 1  byte  ²Ù×÷ÀàĞÍ
-             * 1  byte  ²Ù×÷·¢³öÕßĞòºÅ,¼´ÃùÅÆÕß
-             * 1  byte  ²Ù×÷³ĞÊÜÕßĞòºÅ,¼´±»ÃùÅÆÕß
-             * 1  bytes Áô¿Õ
-             * 8  bytes Pais±äÁ¿µÄ´æ´¢,¿É´æ´¢×î´ó4ÕÅ²Ù×÷ÅÆ,²»×ãÔò²¹0
-             * 2  bytes TargetPaisµÄ´æ´¢
-             * 2  bytes Áô¿Õ
+             * ç»“æ„:
+             * 1  byte  æ“ä½œç±»å‹
+             * 1  byte  æ“ä½œå‘å‡ºè€…åºå·,å³é¸£ç‰Œè€…
+             * 1  byte  æ“ä½œæ‰¿å—è€…åºå·,å³è¢«é¸£ç‰Œè€…
+             * 1  bytes ç•™ç©º
+             * 8  bytes Tileså˜é‡çš„å­˜å‚¨,å¯å­˜å‚¨æœ€å¤§4å¼ æ“ä½œç‰Œ,ä¸è¶³åˆ™è¡¥0
+             * 2  bytes TargetTilesçš„å­˜å‚¨
+             * 2  bytes ç•™ç©º
              */
             Span<byte> MainBytes = new byte[16];
             MainBytes[0] = (byte)PlayerAction;
             MainBytes[1] = (byte)SelfNumber;
             MainBytes[2] = (byte)TargetPlayerNumber;
-            if (Pais.Count > 4)
+            if (Tiles.Count > 4)
             {
-                // Èç¹û³ÉÔ±Êı¹ı¶à½«²»ÄÜ×ª»»
-                throw new System.Exception($"Íæ¼Ò²Ù×÷×ª»»Ê±³öÏÖÒâÍâÅÆÊıÄ¿:{Pais},{TargetPai}");
+                // å¦‚æœæˆå‘˜æ•°è¿‡å¤šå°†ä¸èƒ½è½¬æ¢
+                throw new System.Exception($"ç©å®¶æ“ä½œè½¬æ¢æ—¶å‡ºç°æ„å¤–ç‰Œæ•°ç›®:{Tiles},{TargetTile}");
             }
             else
             {
-                ReplaceBytes(MainBytes, ListToBytes(Pais), 4);
-                ReplaceBytes(MainBytes, TargetPai, 12);
+                ReplaceBytes(MainBytes, ListToBytes(Tiles), 4);
+                ReplaceBytes(MainBytes, TargetTile, 12);
             }
             return MainBytes.ToArray();
         }
 
         /// <summary>
-        /// ´ÓÖ¸¶¨×Ö½Ú´®ÖĞÄ³Ë÷Òı´¦×ª»»Îª²Ù×÷ÀàĞÍµÄ·½·¨,ĞèÒªÄ¿±ê×Ö½Ú´®ºÍË÷Òı
+        /// ä»æŒ‡å®šå­—èŠ‚ä¸²ä¸­æŸç´¢å¼•å¤„è½¬æ¢ä¸ºæ“ä½œç±»å‹çš„æ–¹æ³•,éœ€è¦ç›®æ ‡å­—èŠ‚ä¸²å’Œç´¢å¼•
         /// </summary>
-        /// <param name="bytes">Ä¿±ê×Ö½Ú´®</param>
-        /// <param name="index">Ë÷Òı</param>
+        /// <param name="bytes">ç›®æ ‡å­—èŠ‚ä¸²</param>
+        /// <param name="index">ç´¢å¼•</param>
         /// <returns></returns>
         public static PlayerActionData StaticBytesTo(byte[] bytes, int index = 0)
         {
@@ -124,24 +124,24 @@ namespace MaJiangLib
             PlayerActionData playerActionData = new(new(), new(Color.Wans, 1), (PlayerAction)bytes[0]);
             playerActionData.SelfNumber = shortBytes[1];
             playerActionData.TargetPlayerNumber = shortBytes[2];
-            int paiIndex = 4;
+            int tileIndex = 4;
             for (int i = 0; i < 5; i++)
             {
-                Pai singlePai = Pai.StaticBytesTo(shortBytes, paiIndex);
-                if (singlePai != null)
+                Tile singleTile = Tile.StaticBytesTo(shortBytes, tileIndex);
+                if (singleTile != null)
                 {
                     if (i <= 3)
                     {
-                        // Ç°4ÕÅÎªPais
-                        playerActionData.Pais.Add(singlePai);
+                        // å‰4å¼ ä¸ºTiles
+                        playerActionData.Tiles.Add(singleTile);
                     }
                     else
                     {
-                        // ºóÁ½ÕÅÊÇTargetPais
-                        playerActionData.TargetPai = singlePai;
+                        // åä¸¤å¼ æ˜¯TargetTiles
+                        playerActionData.TargetTile = singleTile;
                     }
                 }
-                paiIndex += 4;
+                tileIndex += 4;
             }
             return playerActionData;
         }
@@ -161,11 +161,11 @@ namespace MaJiangLib
             {
                 return false;
             }
-            if (!a.Pais.SequenceEqual(b.Pais))
+            if (!a.Tiles.SequenceEqual(b.Tiles))
             {
                 return false;
             }
-            if (a.TargetPai != b.TargetPai || a.SelfNumber != b.SelfNumber || a.TargetPlayerNumber != b.TargetPlayerNumber || a.PlayerAction != b.PlayerAction)
+            if (a.TargetTile != b.TargetTile || a.SelfNumber != b.SelfNumber || a.TargetPlayerNumber != b.TargetPlayerNumber || a.PlayerAction != b.PlayerAction)
             {
                 return false;
             }
@@ -189,12 +189,12 @@ namespace MaJiangLib
         }
         public override int GetHashCode()
         {
-            HashCode paisHash = new();
-            foreach (Pai listPai in Pais)
+            HashCode tilesHash = new();
+            foreach (Tile listTile in Tiles)
             {
-                paisHash.Add(listPai.GetHashCode());
+                tilesHash.Add(listTile.GetHashCode());
             }
-            return HashCode.Combine(SelfNumber, TargetPlayerNumber, paisHash.ToHashCode(), TargetPai, PlayerAction);
+            return HashCode.Combine(SelfNumber, TargetPlayerNumber, tilesHash.ToHashCode(), TargetTile, PlayerAction);
         }
     }
 }

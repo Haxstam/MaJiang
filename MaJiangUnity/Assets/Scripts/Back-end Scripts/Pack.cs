@@ -19,23 +19,48 @@ public class Pack
      * (5) 4   bytes 版本号([TODO]暂空,未实现)
      * (6) 16  bytes MD5校验(72~87)
      * (7) 4   bytes 包类型
-     * (8) 12  bytes 留空
-     * (9) 912 bytes 包主要数据部分(起始于第104处)
-     * (10)8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" 数据包结束特定标识,UTF-8编码,首位为ETX(0x03)从而避免包尾误判
+     * (8) 4   bytes TaskID(92~95)
+     * (9) 8   bytes 留空
+     * (10)912 bytes 包主要数据部分(起始于第104处)
+     * (11)8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" 数据包结束特定标识,UTF-8编码,首位为ETX(0x03)从而避免包尾误判
+     * 
+     * 1.因为包变量
      */
+
+
     /// <summary>
-    /// 根据本客户端的属性创建的初始化包
+    /// 根据给定信息创建
     /// </summary>
-    public Pack()
+    /// <param name="networkInformation"></param>
+    public Pack(INetworkInformation networkInformation)
     {
         Bytes = new byte[PackSize];
         Span<byte> spanBytes = Bytes;
-
+        int taskID = networkInformation.GetTaskID();
         PackHeadBytes.CopyTo(spanBytes);
         ReplaceBytes(spanBytes, PackHeadBytes, 0);
         ReplaceBytes(spanBytes, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), 8);
-        ReplaceBytes(spanBytes, NetworkControl.SelfIPAddress.GetAddressBytes(), 16);
-        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(NetworkControl.SelfProfile.Name), 20);
+        ReplaceBytes(spanBytes, networkInformation.SelfIPAddress.GetAddressBytes(), 16);
+        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(networkInformation.SelfProfile.Name), 20);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(taskID), 92);
+        ReplaceBytes(spanBytes, PackEndBytes, PackEndIndex);
+        PackType = PackType.Empty;
+    }
+    /// <summary>
+    /// 根据给定信息创建,但指定返回包ID
+    /// </summary>
+    /// <param name="networkInformation"></param>
+    /// <param name="returnTaskID"></param>
+    public Pack(INetworkInformation networkInformation, int returnTaskID)
+    {
+        Bytes = new byte[PackSize];
+        Span<byte> spanBytes = Bytes;
+        PackHeadBytes.CopyTo(spanBytes);
+        ReplaceBytes(spanBytes, PackHeadBytes, 0);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), 8);
+        ReplaceBytes(spanBytes, networkInformation.SelfIPAddress.GetAddressBytes(), 16);
+        ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(networkInformation.SelfProfile.Name), 20);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(returnTaskID), 92);
         ReplaceBytes(spanBytes, PackEndBytes, PackEndIndex);
         PackType = PackType.Empty;
     }
@@ -80,12 +105,29 @@ public class Pack
     /// 包本身的字节串
     /// </summary>
     public byte[] Bytes { get; set; }
+
+    public const int PackTypeIndex = 88;
+
+    // 感觉可以全部写成get;set;的形式,把ReplaceBytes的一部分调用放在里面
+
     /// <summary>
     /// 包的MD5校验码
     /// </summary>
-    public byte[] MD5Code { get; set; }
-    public const int PackTypeIndex = 88;
-    public PackType PackType { get; set; }
+    public byte[] MD5Code { get { return new Span<byte>(Bytes, 72, 16).ToArray(); } }
+    /// <summary>
+    /// 包的类型
+    /// </summary>
+    public PackType PackType
+    {
+        get
+        { return (PackType)Bytes[PackTypeIndex]; }
+        set
+        { Bytes[PackTypeIndex] = (byte)value; }
+    }
+    /// <summary>
+    /// 包所对应的ID
+    /// </summary>
+    public int TaskID { get { return BitConverter.ToInt32(Bytes, 92); } }
     /// <summary>
     /// 在房间内聊天室的语言子包,考虑到UTF-8编码限制,限定最长单句话为64字符,也即最大长度为256bytes
     /// </summary>
@@ -99,7 +141,6 @@ public class Pack
         PackType = PackType.RoomWord;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 104);
         ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(word), 112);
         AddMD5();
@@ -116,7 +157,6 @@ public class Pack
         // 头标识 4 bytes + 玩家操作 16 bytes
         PackType = PackType.PlayerAction;
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, playerActionData.GetBytes(), 104);
         AddMD5();
         return true;
@@ -132,7 +172,6 @@ public class Pack
         PackType = PackType.MatchData;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, mainMatchControl.GetPublicBytes(), 104);
         AddMD5();
         return true;
@@ -140,17 +179,16 @@ public class Pack
     /// <summary>
     /// 起手13张牌的初始化
     /// </summary>
-    /// <param name="pais"></param>
+    /// <param name="tiles"></param>
     /// <param name="player"></param>
     /// <returns></returns>
-    public bool InitPack(List<Pai> pais, int player)
+    public bool InitPack(List<Tile> tiles, int player)
     {
         PackType = PackType.Init;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
-        ReplaceBytes(spanBytes, ListToBytes(pais), 108);
+        ReplaceBytes(spanBytes, ListToBytes(tiles), 108);
         AddMD5();
         return true;
     }
@@ -159,7 +197,6 @@ public class Pack
         PackType = PackType.AvailableAction;
         // 这里单独实现字典->byte[]的转换
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
         int index = 108;
         foreach (var pair in avaliableActions)
@@ -184,7 +221,15 @@ public class Pack
         PackType = PackType.Signal;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
+        spanBytes[104] = (byte)signalType;
+        AddMD5();
+        return true;
+    }
+    public bool AcknowledgePack(SignalType signalType)
+    {
+        PackType = PackType.Acknowledge;
+
+        Span<byte> spanBytes = Bytes;
         spanBytes[104] = (byte)signalType;
         AddMD5();
         return true;
@@ -200,7 +245,6 @@ public class Pack
         PackType = PackType.SystemInformation;
 
         Span<byte> spanBytes = Bytes;
-        spanBytes[PackTypeIndex] = (byte)PackType;
         ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 104);
         ReplaceBytes(spanBytes, playerInformation.GetBytes(), 108);
         AddMD5();
@@ -211,12 +255,12 @@ public class Pack
     /// </summary>
     public void AddMD5()
     {
-        MD5Code = MD5.Create().ComputeHash(Bytes);
+        byte[] MD5Code = MD5.Create().ComputeHash(Bytes);
         Span<byte> spanBytes = Bytes;
         ReplaceBytes(spanBytes, MD5Code, 72);
     }
     /// <summary>
-    /// 信号包解码,仅需一个字节
+    /// 信号包解码
     /// </summary>
     /// <returns></returns>
     public SignalType SignalPackDecode()

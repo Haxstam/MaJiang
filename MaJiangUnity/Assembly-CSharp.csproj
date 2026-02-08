@@ -62,28 +62,30 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\Back-end Scripts\NetworkControl.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\ShouPai.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MatchServer.cs" />
-    <Compile Include="Assets\Scripts\Interfaces\IMatchInformaiton.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Player.cs" />
+    <Compile Include="Assets\Scripts\Interfaces\IMatchInformation.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Group.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\UserProfile.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Client.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\NetworkException.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\HandTile.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IByteable.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\Xoshiro256StarStar.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\Pack.cs" />
+    <Compile Include="Assets\Scripts\Interfaces\INetworkInformation.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\FanCalculator.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerInformation.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\RonData.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\PlayerActionData.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\PackCoder.cs" />
+    <Compile Include="Assets\Scripts\Back-end Scripts\Tile.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MatchSettingData.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\RonPoint.cs" />
     <Compile Include="Assets\Scripts\Network Scripts\Server.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\HePaiData.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\MainMatchControl.cs" />
     <Compile Include="Assets\Scripts\Interfaces\IPlayerAction.cs" />
     <Compile Include="Assets\Scripts\Back-end Scripts\GlobalFunction.cs" />
-    <Compile Include="Assets\Scripts\Back-end Scripts\Pai.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

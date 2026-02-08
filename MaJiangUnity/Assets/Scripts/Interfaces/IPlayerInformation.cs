@@ -3,24 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// Íæ¼Ò¿ÉÍâÏÔµÄĞÅÏ¢,¼´¶Ô¾ÖÖĞËùÓĞÍæ¼Ò¶¼ÄÜ¿´¼ûµÄĞÅÏ¢
+/// ç©å®¶å¯å¤–æ˜¾çš„ä¿¡æ¯,å³å¯¹å±€ä¸­æ‰€æœ‰ç©å®¶éƒ½èƒ½çœ‹è§çš„ä¿¡æ¯
 /// </summary>
 public interface IPlayerInformation
 {
     /// <summary>
-    /// Íæ¼Ò±¾ÉíµÄÓÃ»§ĞÅÏ¢
+    /// ç©å®¶æœ¬èº«çš„ç”¨æˆ·ä¿¡æ¯
     /// </summary>
     public UserProfile PlayerProfile { get; set; }
     /// <summary>
-    /// Íæ¼Ò±àºÅ,Ò²¼´×ù´Î,ÒÔ¶«Ò»Ê±µÄ¶«¼ÒÎª0
+    /// ç©å®¶ç¼–å·,ä¹Ÿå³åº§æ¬¡,ä»¥ä¸œä¸€æ—¶çš„ä¸œå®¶ä¸º0
     /// </summary>
     public int PlayerNumber { get; set; }
     /// <summary>
-    /// Íæ¼ÒÊ£ÓàµãÊı
+    /// ç©å®¶å‰©ä½™ç‚¹æ•°
     /// </summary>
     public int Point { get; set; }
     /// <summary>
-    /// Íæ¼Òµ±Ç°×´Ì¬
+    /// ç©å®¶å½“å‰çŠ¶æ€
     /// </summary>
     public StageType CurrentStageType { get; set; }
 }

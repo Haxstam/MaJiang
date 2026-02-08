@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using Unity.VisualScripting;
 namespace MaJiangLib
@@ -6,7 +6,7 @@ namespace MaJiangLib
     /// <summary>
     /// 牌的类,存储牌的信息
     /// </summary>
-    public class Pai : IComparable<Pai>, IByteable<Pai>
+    public class Tile : IComparable<Tile>, IByteable<Tile>
     {
         // 牌这个类是全程序基础,考虑让其足够灵活
 
@@ -15,7 +15,7 @@ namespace MaJiangLib
         /// </summary>
         /// <param name="color"></param>
         /// <param name="num"></param>
-        public Pai(Color color, int num)
+        public Tile(Color color, int num)
         {
             Color = color;
             Number = num;
@@ -27,7 +27,7 @@ namespace MaJiangLib
         /// <param name="color"></param>
         /// <param name="num"></param>
         /// <param name="isRedDora"></param>
-        public Pai(Color color, int num, bool isRedDora)
+        public Tile(Color color, int num, bool isRedDora)
         {
             Color = color;
             Number = num;
@@ -36,14 +36,19 @@ namespace MaJiangLib
         /// <summary>
         /// 牌的花色
         /// </summary>
-        public Color Color { get; set; }
+        public Color Color { get; private set; }
         /// <summary>
         /// 牌的数字,不可为0,字牌顺序为东-1,南-2,西-3,北-4,白-5,发-6,中-7
         /// --(若为8则为国士无双十三面的标志)
         /// </summary>
-        public int Number { get; set; }
-        public bool IsRedDora { get; set; }
-
+        public int Number { get; private set; }
+        /// <summary>
+        /// 标记是否为红宝牌
+        /// </summary>
+        public bool IsRedDora { get; private set; }
+        /// <summary>
+        /// 牌的序列化返回2字节
+        /// </summary>
         public const int byteSize = 2;
         public int ByteSize
         {
@@ -54,7 +59,7 @@ namespace MaJiangLib
         /// </summary>
         /// <param name="other">所比较的牌</param>
         /// <returns></returns>
-        public int CompareTo(Pai other)
+        public int CompareTo(Tile other)
         {
             if (Color > other.Color)
             {
@@ -122,7 +127,7 @@ namespace MaJiangLib
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static bool operator ==(Pai a, Pai b)
+        public static bool operator ==(Tile a, Tile b)
         {
             // 避免访问null对象的成员
             if ((a as object) == null && (b as object) == null)
@@ -148,34 +153,34 @@ namespace MaJiangLib
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public static bool operator !=(Pai a, Pai b)
+        public static bool operator !=(Tile a, Tile b)
         {
             return !(a == b);
         }
         /// <summary>
         /// 从牌到Byte[]的隐式转换,转换后占用空间为4 Bytes
         /// </summary>
-        /// <param name="pai">目标牌</param>
-        public static implicit operator byte[](Pai pai)
+        /// <param name="Card">目标牌</param>
+        public static implicit operator byte[](Tile Card)
         {
             // 结构:牌序号 1 byte + 牌花色 1 byte,为红宝牌时为10
             byte[] MainBytes = new byte[2];
-            if (pai.IsRedDora)
+            if (Card.IsRedDora)
             {
                 MainBytes[0] = 10;
             }
             else
             {
-                MainBytes[0] = (byte)pai.Number;
+                MainBytes[0] = (byte)Card.Number;
             }
-            MainBytes[1] = (byte)pai.Color;
+            MainBytes[1] = (byte)Card.Color;
             return MainBytes;
         }
         /// <summary>
         /// 从Byte[]到牌的隐式转换,需要2Bytes的字节串
         /// </summary>
         /// <param name="bytes"></param>
-        public static implicit operator Pai(byte[] bytes)
+        public static implicit operator Tile(byte[] bytes)
         {
             if (bytes.Length != 2)
             {
@@ -211,15 +216,15 @@ namespace MaJiangLib
         /// <param name="bytes">要操作的字符串</param>
         /// <param name="index">位置索引</param>
         /// <returns>返回所转换而成的牌</returns>
-        public Pai BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
-        public static Pai StaticBytesTo(byte[] bytes, int index = 0)
+        public Tile BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
+        public static Tile StaticBytesTo(byte[] bytes, int index = 0)
         {
             if (bytes[index] == 0)
             {
                 // 序号为0,不存在该牌,判定为null
                 return null;
             }
-            Color color = (Color)bytes[index+1];
+            Color color = (Color)bytes[index + 1];
             if (bytes[index] == 10)
             {
                 return new(color, 5, true);
@@ -237,7 +242,7 @@ namespace MaJiangLib
         /// <param name="str"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public static Pai BytesTo(string str, int index = 0)
+        public static Tile BytesTo(string str, int index = 0)
         {
             // 或许可以再语法糖一点?
 
@@ -283,10 +288,10 @@ namespace MaJiangLib
         /// <returns></returns>
         public override bool Equals(object obj)
         {
-            Pai pai = obj as Pai;
-            if (pai != null)
+            Tile Card = obj as Tile;
+            if (Card != null)
             {
-                return pai == this;
+                return Card == this;
             }
             else
             {

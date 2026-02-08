@@ -2,11 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 /// <summary>
-/// ÈôÀà¿ÉÒÔ±»×ª»»Îª×Ö½Ú´®,ÔòÊµÏÖ´ËÀà
+/// è‹¥ç±»å¯ä»¥è¢«è½¬æ¢ä¸ºå­—èŠ‚ä¸²,åˆ™å®ç°æ­¤ç±»
 /// </summary>
 public interface IByteable<T>
 {
-    // ÈÎºÎÊµÏÖÁË¸Ã½Ó¿ÚµÄÀà¶¼±ØĞëÔÚGlobalFunction.ByteableInstanceDictÖĞ½øĞĞ×¢²á
+    // ä»»ä½•å®ç°äº†è¯¥æ¥å£çš„ç±»éƒ½å¿…é¡»åœ¨GlobalFunction.ByteableInstanceDictä¸­è¿›è¡Œæ³¨å†Œ
     public int ByteSize { get; }
     public byte[] GetBytes();
     public T BytesTo(byte[] bytes, int index);

@@ -1,21 +1,22 @@
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using UnityEngine;
 using static MaJiangLib.GlobalFunction;
 /// <summary>
-/// Ö÷¶Ô¾Ö¿ØÖÆÀà,´æ´¢ÏµÍ³²Ù×÷·½·¨ºÍ¶Ô¾ÖÏà¹ØĞÅÏ¢
+/// ä¸»å¯¹å±€æ§åˆ¶ç±»,å­˜å‚¨ç³»ç»Ÿæ“ä½œæ–¹æ³•å’Œå¯¹å±€ç›¸å…³ä¿¡æ¯
 /// </summary>
 public class MainMatchControl : MonoBehaviour, IMatchInformation
 {
     /*
-     *   1.¶ÔÓÚÂé½«ÍõÅÆµÄÌØÊâĞÔ:
-     *  ¸ÜÅÆºó´ÓÍõÅÆÖĞÃşÒ»ÕÅ²¢´ÓÅÆÉ½Ä©È¡Ò»ÕÅ²¹×ãÍõÅÆ,±¦ÅÆ¶Ñ(10ÕÅ)¹Ì¶¨²»±ä
-     *  Îª´úÂëÊµÏÖ·½±ã,ÓÃÒ»¸ö±ê¼Ç±êÃ÷ÏÂÒ»ÕÅ´ıÃşÁëÉÏÅÆ,ÍõÅÆÁĞ±íÖ»Ôö¼Ó²»¼õÉÙ
+     *   1.å¯¹äºéº»å°†ç‹ç‰Œçš„ç‰¹æ®Šæ€§:
+     *  æ ç‰Œåä»ç‹ç‰Œä¸­æ‘¸ä¸€å¼ å¹¶ä»ç‰Œå±±æœ«å–ä¸€å¼ è¡¥è¶³ç‹ç‰Œ,å®ç‰Œå †(10å¼ )å›ºå®šä¸å˜
+     *  ä¸ºä»£ç å®ç°æ–¹ä¾¿,ç”¨ä¸€ä¸ªæ ‡è®°æ ‡æ˜ä¸‹ä¸€å¼ å¾…æ‘¸å²­ä¸Šç‰Œ,ç‹ç‰Œåˆ—è¡¨åªå¢åŠ ä¸å‡å°‘
      *  
-     *   2.¶ÔÓÚ¶Ô¾ÖĞÅÏ¢,Ä¿Ç°Éè¶¨ÊÇ¶ÔÓÚMainMatchControl,ÆäÓĞÒ»¸öÍêÈ«×ª»»ÎªByte[]µÄ·½·¨,µ«±ÜÃâÊ¹ÓÃ´Ë·½·¨
-     *     ¶Ô¾ÖĞÅÏ¢µÄ¸üĞÂÊÇ°´ÕÕµ¥´ÎĞĞÎªÔÚ±¾µØµÄÑİËãÀ´»ñÈ¡µÄ,·şÎñÆ÷ºÍÓÃ»§¶ËÖ®¼äµÄ¶Ô¾ÖĞÅÏ¢Í¬²½Ôò¾¡¿ÉÄÜ±ÜÃâ
+     *   2.å¯¹äºå¯¹å±€ä¿¡æ¯,ç›®å‰è®¾å®šæ˜¯å¯¹äºMainMatchControl,å…¶æœ‰ä¸€ä¸ªå®Œå…¨è½¬æ¢ä¸ºByte[]çš„æ–¹æ³•,ä½†é¿å…ä½¿ç”¨æ­¤æ–¹æ³•
+     *     å¯¹å±€ä¿¡æ¯çš„æ›´æ–°æ˜¯æŒ‰ç…§å•æ¬¡è¡Œä¸ºåœ¨æœ¬åœ°çš„æ¼”ç®—æ¥è·å–çš„,æœåŠ¡å™¨å’Œç”¨æˆ·ç«¯ä¹‹é—´çš„å¯¹å±€ä¿¡æ¯åŒæ­¥åˆ™å°½å¯èƒ½é¿å…
      *     
      */
     private void Start()
@@ -28,7 +29,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     }
 
     ///// <summary>
-    ///// Ö÷¶Ô¾Ö¿ØÖÆÀà×Ô¶«Ò»¿ª¾ÖµÄ¹¹ÔìÆ÷,ĞèÒªÖ¸¶¨ÊÇ·ñÓĞºì±¦ÅÆ,ÊÇ·ñÓĞ×ÖÅÆ
+    ///// ä¸»å¯¹å±€æ§åˆ¶ç±»è‡ªä¸œä¸€å¼€å±€çš„æ„é€ å™¨,éœ€è¦æŒ‡å®šæ˜¯å¦æœ‰çº¢å®ç‰Œ,æ˜¯å¦æœ‰å­—ç‰Œ
     ///// </summary>
     ///// <param name="matchType"></param>
     ///// <param name="haveRedDora"></param>
@@ -40,7 +41,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     //    {
     //        PlayerList = playerList;
     //        FourInit();
-    //        // ¸÷ÁĞ±í/ÊıÖµ³õÊ¼»¯Îª¶«Ò» 0±¾³¡µÄ¿ª¾ÖÇé¿ö,ÇÒÎ´¿ªÊ¼·¢ÅÆºÍÏÆ¿ª±¦ÅÆ
+    //        // å„åˆ—è¡¨/æ•°å€¼åˆå§‹åŒ–ä¸ºä¸œä¸€ 0æœ¬åœºçš„å¼€å±€æƒ…å†µ,ä¸”æœªå¼€å§‹å‘ç‰Œå’Œæ€å¼€å®ç‰Œ
     //        Wind = WindType.East;
     //        Round = 1;
     //        Honba = 0;
@@ -63,7 +64,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     //    }
     //}
     ///// <summary>
-    ///// ¾­ÓÉ¹«¹²ĞÅÏ¢´´½¨µÄµ±Ç°±ÈÈüĞÅÏ¢,ÓÃÓÚÓÃ»§¶Ë´´½¨±ÈÈüĞÅÏ¢ÊµÀı
+    ///// ç»ç”±å…¬å…±ä¿¡æ¯åˆ›å»ºçš„å½“å‰æ¯”èµ›ä¿¡æ¯,ç”¨äºç”¨æˆ·ç«¯åˆ›å»ºæ¯”èµ›ä¿¡æ¯å®ä¾‹
     ///// </summary>
     ///// <param name="playerInformation"></param>
     ///// <param name="matchInformation"></param>
@@ -75,7 +76,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     //        PlayerList.Add(new(player));
     //    }
     //    MatchType = matchInformation.MatchType;
-    //    QiPaiList = matchInformation.QiPaiList;
+    //    DiscardTileList = matchInformation.DiscardTileList;
     //    DoraList = matchInformation.DoraList;
     //    UraDoraList = matchInformation.UraDoraList;
     //    KangCount = matchInformation.KangCount;
@@ -86,7 +87,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     //    PlayerPoint = matchInformation.PlayerPoint;
     //    IsRiichi = matchInformation.IsRiichi;
     //    IsDoubleRiichi = matchInformation.IsDoubleRiichi;
-    //    RemainPaiCount = matchInformation.RemainPaiCount;
+    //    RemainTileCount = matchInformation.RemainTileCount;
     //    HaveIppatsu = matchInformation.HaveIppatsu;
     //    FirstCycleIppatsu = matchInformation.FirstCycleIppatsu;
     //    IsKang = matchInformation.IsKang;
@@ -99,140 +100,143 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     {
 
     }
-    #region *¹«¹²ĞÅÏ¢,ËùÓĞÍæ¼Ò¶¼¿É¼û*
+    #region *å…¬å…±ä¿¡æ¯,æ‰€æœ‰ç©å®¶éƒ½å¯è§*
     /// <summary>
-    /// Íæ¼ÒÁĞ±í
+    /// ç©å®¶åˆ—è¡¨,ä»…æå–ä¿¡æ¯
     /// </summary>
     public List<Player> PlayerList { get; set; }
     /// <summary>
-    /// ¼ÇÂ¼µ±Ç°³¡µÄÀàĞÍ
+    /// è®°å½•å½“å‰åœºçš„ç±»å‹
     /// </summary>
     public MatchType MatchType { get; set; }
     /// <summary>
-    /// ÆúÅÆ¶Ñ,´æ´¢ËùÓĞÈËµÄÆúÅÆ,µÚ0Ëù¶ÔÓ¦µÄÍæ¼ÒÎª¶«Ò»³¡µÄÇ×¼Ò
+    /// å¼ƒç‰Œå †,å­˜å‚¨æ‰€æœ‰äººçš„å¼ƒç‰Œ,ç¬¬0æ‰€å¯¹åº”çš„ç©å®¶ä¸ºä¸œä¸€åœºçš„äº²å®¶
     /// </summary>
-    public List<List<Pai>> QiPaiList { get; set; }
+    public List<List<Tile>> DiscardTileList { get; set; }
     /// <summary>
-    /// µ±Ç°ÒÑÕ¹Ê¾µÄ±¦ÅÆÊı
+    /// å½“å‰å·²å±•ç¤ºçš„å®ç‰Œæ•°
     /// </summary>
     public int DoraCount { get; set; }
     /// <summary>
-    /// ±¦ÅÆÖ¸Ê¾ÅÆÁĞ±í,´æ´¢ËùÓĞÒÑ±»Õ¹Ê¾µÄ±¦ÅÆÖ¸Ê¾ÅÆ
+    /// å®ç‰ŒæŒ‡ç¤ºç‰Œåˆ—è¡¨,å­˜å‚¨æ‰€æœ‰å·²è¢«å±•ç¤ºçš„å®ç‰ŒæŒ‡ç¤ºç‰Œ
     /// </summary>
-    public List<Pai> DoraList { get; set; }
+    public List<Tile> DoraList { get; set; }
     /// <summary>
-    /// Àï±¦ÅÆÁĞ±í,ÔİÊ±·ÅÔÚÕâÀï
+    /// é‡Œå®ç‰Œåˆ—è¡¨,æš‚æ—¶æ”¾åœ¨è¿™é‡Œ
     /// </summary>
-    public List<Pai> UraDoraList { get; set; }
+    public List<Tile> UraDoraList { get; set; }
     /// <summary>
-    /// Ä¿Ç°¿ª¸ÜµÄÊıÁ¿
+    /// ç›®å‰å¼€æ çš„æ•°é‡
     /// </summary>
     public int KangCount { get; set; }
     /// <summary>
-    /// ¿ª¸ÜÍæ¼ÒµÄ±ê¼Ç,Í¨¹ı¸Ã±äÁ¿ÅĞ¶ÏÊÇ·ñÓĞ¶à¸öÍæ¼Ò¿ª¸Ü,³õÊ¼Îª6,µÚÒ»Î»Íæ¼Ò¿ª¸ÜÊ±Éè¶¨´ËÎªÍæ¼Ò±àºÅ,Èô´æÔÚÆäËûÍæ¼Ò¿ª¸ÜÔòÉè¶¨Îª5,ÓÃÓÚÅĞ¶ÏËÄ¸ÜÁ÷¾Ö
+    /// å¼€æ ç©å®¶çš„æ ‡è®°,é€šè¿‡è¯¥å˜é‡åˆ¤æ–­æ˜¯å¦æœ‰å¤šä¸ªç©å®¶å¼€æ ,åˆå§‹ä¸º6,ç¬¬ä¸€ä½ç©å®¶å¼€æ æ—¶è®¾å®šæ­¤ä¸ºç©å®¶ç¼–å·,è‹¥å­˜åœ¨å…¶ä»–ç©å®¶å¼€æ åˆ™è®¾å®šä¸º5,ç”¨äºåˆ¤æ–­å››æ æµå±€
     /// </summary>
     public int KangMark { get; set; }
     /// <summary>
-    /// µ±Ç°·ç³¡
+    /// å½“å‰é£åœº
     /// </summary>
     public WindType Wind { get; set; }
     /// <summary>
-    /// µ±Ç°ÎªµÚ¼¸¾Ö
+    /// å½“å‰ä¸ºç¬¬å‡ å±€
     /// </summary>
     public int Round { get; set; }
     /// <summary>
-    /// µ±Ç°Îª¼¸±¾³¡
+    /// å½“å‰ä¸ºå‡ æœ¬åœº
     /// </summary>
     public int Honba { get; set; }
     /// <summary>
-    /// Íæ¼ÒµãÊı
+    /// ç©å®¶ç‚¹æ•°
     /// </summary>
+    /// TODO å’ŒPlayerList.Pointé‡å¤å­˜å‚¨äº†,è€ƒè™‘ä¿®æ”¹
     public List<int> PlayerPoint { get; set; }
     /// <summary>
-    /// Ê£ÓàÅÆµÄÊıÄ¿,ÓÃÓÚÅĞ¶ÏºÓµ×º£µ×µÈ
+    /// å‰©ä½™ç‰Œçš„æ•°ç›®,ç”¨äºåˆ¤æ–­æ²³åº•æµ·åº•ç­‰
     /// </summary>
-    public int RemainPaiCount { get; set; }
+    public int RemainTileCount { get; set; }
     /// <summary>
-    /// µ±Ç°Õı½øĞĞ»ØºÏµÄÍæ¼ÒµÄĞòºÅ,µ±Ç°Íæ¼Ò½áÊø½×¶ÎÍê±Ïºó,×ªÖÁÏÂÒ»Íæ¼ÒµÄÉáÅÆ½×¶Î
+    /// å½“å‰æ­£è¿›è¡Œå›åˆçš„ç©å®¶çš„åºå·,å½“å‰ç©å®¶ç»“æŸé˜¶æ®µå®Œæ¯•å,è½¬è‡³ä¸‹ä¸€ç©å®¶çš„èˆç‰Œé˜¶æ®µ
     /// </summary>
     public int CurrentPlayerIndex { get; set; }
     /// <summary>
-    /// µ±Ç°Õı½øĞĞ»ØºÏµÄÍæ¼ÒµÄ½×¶ÎÀàĞÍ
+    /// å½“å‰æ­£è¿›è¡Œå›åˆçš„ç©å®¶çš„é˜¶æ®µç±»å‹
     /// </summary>
     public StageType CurrentStageType { get; set; }
     /// <summary>
-    /// µ±Ç°¾ÖµÄ×¯¼ÒĞòºÅ
+    /// å½“å‰å±€çš„åº„å®¶åºå·
     /// </summary>
     public int CurrentBankerIndex { get; set; }
     /// <summary>
-    /// ËùÓĞÍæ¼Ò¸±Â¶ÅÆµÄÁĞ±í,ÓÃÓÚÅĞ¶ÏÁ÷¾ÖÂú¹á/ËÄ¸ÜÉ¢ÁËµÈÇé¿ö
+    /// æ‰€æœ‰ç©å®¶å‰¯éœ²ç‰Œçš„åˆ—è¡¨,ç”¨äºåˆ¤æ–­æµå±€æ»¡è´¯/å››æ æ•£äº†ç­‰æƒ…å†µ
     /// </summary>
-    public List<List<Group>> PlayerFuluList { get; set; }
+    public List<List<Group>> PlayerOpenSetList { get; set; }
+    public int RiichiStickCount { get; set; }
     /// <summary>
-    /// ¶Ô¾ÖÉèÖÃÏà¹Ø
+    /// å¯¹å±€è®¾ç½®ç›¸å…³
     /// </summary>
     public MatchSettingData MatchSettingData { get; set; }
     #endregion
 
-    #region *±ê¼ÇÀà±äÁ¿*
+    #region *æ ‡è®°ç±»å˜é‡*
     /// <summary>
-    /// µÚÒ»Ñ²µÄÖ¸Ê¾,ÓÃÓÚÅĞ¶ÏÁ½Á¢Ö±ÌìµØºÍ,¿ª¾ÖÉè¶¨ÎªTrue,ÓĞÈËÃùÅÆ»ò×¯¼ÒÔÙÃşÅÆºóÉè¶¨ÎªFalse
+    /// ç¬¬ä¸€å·¡çš„æŒ‡ç¤º,ç”¨äºåˆ¤æ–­ä¸¤ç«‹ç›´å¤©åœ°å’Œ,å¼€å±€è®¾å®šä¸ºTrue,æœ‰äººé¸£ç‰Œæˆ–åº„å®¶å†æ‘¸ç‰Œåè®¾å®šä¸ºFalse
     /// </summary>
     public bool FirstCycleIppatsu { get; set; }
     /// <summary>
-    /// ¼ÇÂ¼ÊÇ·ñÁ¢Ö±,Á¢Ö±Õß¶ÔÓ¦ĞòºÅµÄÖµÎªtrue
+    /// è®°å½•æ˜¯å¦ç«‹ç›´,ç«‹ç›´è€…å¯¹åº”åºå·çš„å€¼ä¸ºtrue
     /// </summary>
     public List<bool> IsRiichi { get; set; }
     /// <summary>
-    /// ¼ÇÂ¼ÊÇ·ñÎªÁ½Á¢Ö±,´Ë±äÁ¿¶ÔÓ¦ĞòºÅÎªTrueÊ±,IsRiichi¶ÔÓ¦µÄĞòºÅÒ²±ØĞëÎªTrue
+    /// è®°å½•æ˜¯å¦ä¸ºä¸¤ç«‹ç›´,æ­¤å˜é‡å¯¹åº”åºå·ä¸ºTrueæ—¶,IsRiichiå¯¹åº”çš„åºå·ä¹Ÿå¿…é¡»ä¸ºTrue
     /// </summary>
     public List<bool> IsDoubleRiichi { get; set; }
     /// <summary>
-    /// Ò»·¢µÄÅĞ¶Ï,Ä³ÈËÁ¢Ö±ºóÉè¶¨ÆäĞòºÅ¶ÔÓ¦µÄÎªTrue,ÓĞÈËÃùÅÆ»òÆä±¾ÈËÔÙ´ò³öÒ»ÕÅºóÉè¶¨ÎªFalse
+    /// ä¸€å‘çš„åˆ¤æ–­,æŸäººç«‹ç›´åè®¾å®šå…¶åºå·å¯¹åº”çš„ä¸ºTrue,æœ‰äººé¸£ç‰Œæˆ–å…¶æœ¬äººå†æ‰“å‡ºä¸€å¼ åè®¾å®šä¸ºFalse
     /// </summary>
     public List<bool> HaveIppatsu { get; set; }
     /// <summary>
-    /// ¸ÕÃşÍêÁëÉÏÅÆµÄ×´Ì¬,°Î±±»ò¿ª¸ÜºóÉè¶¨ÎªTrue,´ò³öÅÆºóÉè¶¨ÎªFalse
+    /// åˆšæ‘¸å®Œå²­ä¸Šç‰Œçš„çŠ¶æ€,æ‹”åŒ—æˆ–å¼€æ åè®¾å®šä¸ºTrue,æ‰“å‡ºç‰Œåè®¾å®šä¸ºFalse
     /// </summary>
     public List<bool> IsKang { get; set; }
-    public Pai CurrentPai { get; set; }
+    public Tile CurrentTile { get; set; }
     #endregion
 
-    #region *ÄÚ²¿ĞÅÏ¢,²»×÷Îª½Ó¿Ú³ÉÔ±*
+    #region *å†…éƒ¨ä¿¡æ¯,ä¸ä½œä¸ºæ¥å£æˆå‘˜*
     /// <summary>
-    /// ÅÆÉ½ÏÂÒ»ÕÅÅÆÔÚÅÆÉ½ÖĞµÄÎ»ÖÃ,µ±ÃşÅÆÊ±»ñÈ¡¶ÔÓ¦ÅÆÉ½Î»ÖÃµÄÅÆ
+    /// ç‰Œå±±ä¸‹ä¸€å¼ ç‰Œåœ¨ç‰Œå±±ä¸­çš„ä½ç½®,å½“æ‘¸ç‰Œæ—¶è·å–å¯¹åº”ç‰Œå±±ä½ç½®çš„ç‰Œ
     /// </summary>
-    public int CurrentPaiIndex { get; set; }
+    public int CurrentTileIndex { get; set; }
     /// <summary>
-    /// ÅÆÉ½
+    /// ç‰Œå±±
     /// </summary>
-    public List<Pai> MainPaiList { get; set; }
+    public List<Tile> MainTileList { get; set; }
     /// <summary>
-    /// ÍõÅÆ,ºã¶¨14ÕÅ(ËÄÂé)/18ÕÅ(ÈıÂé),Ç°10ÕÅ¹Ì¶¨Îª±¦ÅÆ/Àï±¦ÅÆÖ¸Ê¾ÅÆ,ºó4ÕÅ/8ÕÅÎªÁëÉÏÅÆ
+    /// ç‹ç‰Œ,æ’å®š14å¼ (å››éº»)/18å¼ (ä¸‰éº»),å‰10å¼ å›ºå®šä¸ºå®ç‰Œ/é‡Œå®ç‰ŒæŒ‡ç¤ºç‰Œ,å4å¼ /8å¼ ä¸ºå²­ä¸Šç‰Œ
     /// </summary>
 
-    // ÀíÂÛÉÏÖ»ÒªËùÃşÅÆÊÇ·Ç¹«¿ªµÄ,ÕâÕÅÅÆÔÚÄÄÆäÊµÎŞËùÎ½,Ã»¿ªµÄ±¦ÅÆ/ÅÆÉ½Ëæ±ãÒ»ÕÅ/º£µ××÷Îª±»ÃşµÄÅÆÊÇÍêÈ«µÈ¼ÛµÄ
-    // ÈÕÂéËÄÂéÏÂÍõÅÆ7¶Õ,¿¿½üº£µ×µÄÄÇ²àÎªÇ°,Ç°5¶ÕÎª±¦ÅÆÖ¸Ê¾ÅÆ,ºó2¶ÕÁëÉÏÅÆ,µÚÒ»ÕÅ±¦ÅÆ´Ó¿¿½üÁëÉÏµÄÄÇ²à¿ªÊ¼ÏÆ¿ª,¿ª¸ÜºóÃşÁëÉÏÅÆ²¢ÒÀ´ÎÖ¸¶¨ÓëÍõÅÆÏàÁÚµÄº£µ×ÅÆÎªÍõÅÆ,×îºó²»Ãş
-    public List<Pai> PrimePaiList { get; set; }
+    // ç†è®ºä¸Šåªè¦æ‰€æ‘¸ç‰Œæ˜¯éå…¬å¼€çš„,è¿™å¼ ç‰Œåœ¨å“ªå…¶å®æ— æ‰€è°“,æ²¡å¼€çš„å®ç‰Œ/ç‰Œå±±éšä¾¿ä¸€å¼ /æµ·åº•ä½œä¸ºè¢«æ‘¸çš„ç‰Œæ˜¯å®Œå…¨ç­‰ä»·çš„
+    // æ—¥éº»å››éº»ä¸‹ç‹ç‰Œ7å¢©,é è¿‘æµ·åº•çš„é‚£ä¾§ä¸ºå‰,å‰5å¢©ä¸ºå®ç‰ŒæŒ‡ç¤ºç‰Œ,å2å¢©å²­ä¸Šç‰Œ,ç¬¬ä¸€å¼ å®ç‰Œä»é è¿‘å²­ä¸Šçš„é‚£ä¾§å¼€å§‹æ€å¼€,å¼€æ åæ‘¸å²­ä¸Šç‰Œå¹¶ä¾æ¬¡æŒ‡å®šä¸ç‹ç‰Œç›¸é‚»çš„æµ·åº•ç‰Œä¸ºç‹ç‰Œ,æœ€åä¸æ‘¸
+    public List<Tile> PrimeTileList { get; set; }
     /// <summary>
-    /// ÏÂÒ»ÕÅÁëÉÏÅÆµÄ±ê¼Ç
+    /// ä¸‹ä¸€å¼ å²­ä¸Šç‰Œçš„æ ‡è®°
     /// </summary>
-    public int PrimePaiIndex { get; set; }
+    public int PrimeTileIndex { get; set; }
     /// <summary>
-    /// ±ê¼ÇÊÇ·ñÒÑ³õÊ¼»¯
+    /// æ ‡è®°æ˜¯å¦å·²åˆå§‹åŒ–
     /// </summary>
     public bool Initialized { get; set; } = false;
+    public Xoshiro256StarStar Random { get; set; }
     #endregion
 
-    #region *ĞòÁĞ»¯²¿·Ö*
+    #region *åºåˆ—åŒ–éƒ¨åˆ†*
     /// <summary>
-    /// ¶ÔÓÚ±ÈÈüĞÅÏ¢ÖĞ¹«¹²ĞÅÏ¢µÄĞòÁĞ»¯,·µ»Ø²»°üº¬ÓÃ»§ÃûµÄ512Bytes×Ö½Ú´®
+    /// å¯¹äºæ¯”èµ›ä¿¡æ¯ä¸­å…¬å…±ä¿¡æ¯çš„åºåˆ—åŒ–,è¿”å›ä¸åŒ…å«ç”¨æˆ·åçš„512Byteså­—èŠ‚ä¸²
     /// </summary>
     /// <returns></returns>
     public byte[] GetPublicBytes()
     {
-        // ¶Ô¾ÖĞÅÏ¢,Ê¹ÓÃ 512 bytes ¿Õ¼ä,²»°üº¬ÅÆÉ½,Ò²¼´½ö´«ÊäÓÃ»§¶Ë»áÓÃµ½µÄĞÅÏ¢
-        // Ç°16Î»,Îª¸÷ÖÖ¶Ì±äÁ¿
+        // å¯¹å±€ä¿¡æ¯,ä½¿ç”¨ 512 bytes ç©ºé—´,ä¸åŒ…å«ç‰Œå±±,ä¹Ÿå³ä»…ä¼ è¾“ç”¨æˆ·ç«¯ä¼šç”¨åˆ°çš„ä¿¡æ¯
+        // å‰16ä½,ä¸ºå„ç§çŸ­å˜é‡
         Span<byte> MainBytes = new byte[512];
         MainBytes[0] = (byte)MatchType;
         MainBytes[1] = (byte)Wind;
@@ -243,34 +247,36 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         MainBytes[6] = (byte)CurrentPlayerIndex;
         MainBytes[7] = (byte)CurrentStageType;
         MainBytes[8] = (byte)CurrentBankerIndex;
-        MainBytes[9] = (byte)RemainPaiCount;
+        MainBytes[9] = (byte)RemainTileCount;
         MainBytes[10] = BitConverter.GetBytes(FirstCycleIppatsu)[0];
-        // ±ê¼ÇÁĞ±í 16~47
+        // æ ‡è®°åˆ—è¡¨ 16~47
         ReplaceBytes(MainBytes, ListToBytes(PlayerPoint), 16);  // +16
         ReplaceBytes(MainBytes, ListToBytes(IsRiichi), 32); // +4
         ReplaceBytes(MainBytes, ListToBytes(IsDoubleRiichi), 36); // +4
         ReplaceBytes(MainBytes, ListToBytes(HaveIppatsu), 40); // +4
         ReplaceBytes(MainBytes, ListToBytes(IsKang), 44); // +4
-        // ÆúÅÆ¶Ñ 48~239
-        // ÆúÅÆ¶ÑÄ¿Ç°Éè¶¨µ¥¸öÍæ¼ÒµÄÆúÅÆ¶Ñ´óĞ¡Îª24ÕÅÅÆ,ÆúÅÆ¶Ñ×Ü´óĞ¡96ÕÅÅÆ,Ò²¼´ 192 bytes,µ¥¸öÍæ¼ÒµÄÆúÅÆ¶ÑÎª 48 bytes
-        // ÀíÂÛÀ´½²,ËÄÈËÂé½«×¯¼ÒÈç¹ûµ¥¾Ö±»³ÔÅöÃùÅÆ12´Î(Èı¸ö×Ó¼Ò¸÷4´Î)ĞèÒª24´Î¹ıÅÆ(ËÄ¼Ò×Ü¹²),Ê£Óà48ÕÅÅÆ×¯¼Ò×î¶àÃşµ½12ÕÅ,Ò²¼´×î¶à24ÕÅ¹ıÅÆ
-        // Êµ¼ÊÆúÅÆ´óÓÚ20ÕÅ¾Í×ã¹»º±¼û
-        for (int i = 0; i < QiPaiList.Count; i++)
+        // å¼ƒç‰Œå † 48~239
+        // å¼ƒç‰Œå †ç›®å‰è®¾å®šå•ä¸ªç©å®¶çš„å¼ƒç‰Œå †å¤§å°ä¸º24å¼ ç‰Œ,å¼ƒç‰Œå †æ€»å¤§å°96å¼ ç‰Œ,ä¹Ÿå³ 192 bytes,å•ä¸ªç©å®¶çš„å¼ƒç‰Œå †ä¸º 48 bytes
+        // ç†è®ºæ¥è®²,å››äººéº»å°†åº„å®¶å¦‚æœå•å±€è¢«åƒç¢°é¸£ç‰Œ12æ¬¡(ä¸‰ä¸ªå­å®¶å„4æ¬¡)éœ€è¦24æ¬¡è¿‡ç‰Œ(å››å®¶æ€»å…±),å‰©ä½™48å¼ ç‰Œåº„å®¶æœ€å¤šæ‘¸åˆ°12å¼ ,ä¹Ÿå³æœ€å¤š24å¼ è¿‡ç‰Œ
+        // å®é™…å¼ƒç‰Œå¤§äº20å¼ å°±è¶³å¤Ÿç½•è§
+        for (int i = 0; i < DiscardTileList.Count; i++)
         {
-            ReplaceBytes(MainBytes, ListToBytes(QiPaiList[i]), 48 + i * 48);
+            ReplaceBytes(MainBytes, ListToBytes(DiscardTileList[i]), 48 + i * 48);
         }
-        // ±¦ÅÆ 240~259
-        // ±íÀï±¦ÅÆ¹²10ÕÅ 20 bytes
+        // å®ç‰Œ 240~259
+        // è¡¨é‡Œå®ç‰Œå…±10å¼  20 bytes
         ReplaceBytes(MainBytes, ListToBytes(DoraList), 240);
         ReplaceBytes(MainBytes, ListToBytes(UraDoraList), 250);
-        // ¸±Â¶ÁĞ±í 260~484
-        // ´æ´¢ËÄ¼Ò¹²16¸öGroup,Ò²¼´ 224 bytes,µ¥¸öÍæ¼ÒµÄ¸±Â¶ÁĞ±íÎª 56 bytes
-        for (int i = 0; i < PlayerFuluList.Count; i++)
+        // å‰¯éœ²åˆ—è¡¨ 260~483
+        // å­˜å‚¨å››å®¶å…±16ä¸ªGroup,ä¹Ÿå³ 224 bytes,å•ä¸ªç©å®¶çš„å‰¯éœ²åˆ—è¡¨ä¸º 56 bytes
+        for (int i = 0; i < PlayerOpenSetList.Count; i++)
         {
-            ReplaceBytes(MainBytes, ListToBytes(PlayerFuluList[i]), 260 + i * 56);
+            ReplaceBytes(MainBytes, ListToBytes(PlayerOpenSetList[i]), 260 + i * 56);
         }
+        // 484 ç«‹ç›´æ£’è®¡æ•°
+        MainBytes[484] = (byte)RiichiStickCount;
 
-        // Ä¿Ç°484~511 Áô¿Õ
+        // ç›®å‰484~511 ç•™ç©º
         return MainBytes.ToArray();
     }
     public static MainMatchControl PublicBytesTo(byte[] bytes, int index = 0)
@@ -288,7 +294,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         mainMatchControl.CurrentPlayerIndex = shortBytes[6];
         mainMatchControl.CurrentStageType = (StageType)shortBytes[7];
         mainMatchControl.CurrentBankerIndex = shortBytes[8];
-        mainMatchControl.RemainPaiCount = shortBytes[9];
+        mainMatchControl.RemainTileCount = shortBytes[9];
         mainMatchControl.FirstCycleIppatsu = BitConverter.ToBoolean(shortBytes, 10);
         // 16-47
         mainMatchControl.PlayerPoint = BytesToIntList(shortBytes, 16, 4);
@@ -296,29 +302,32 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         mainMatchControl.IsDoubleRiichi = BytesToBoolList(shortBytes, 36, 4);
         mainMatchControl.HaveIppatsu = BytesToBoolList(shortBytes, 40, 4);
         mainMatchControl.IsKang = BytesToBoolList(shortBytes, 44, 4);
-        // 48-239,260-484
+        // 48-239,260-483
 
-        mainMatchControl.QiPaiList = new();
-        mainMatchControl.PlayerFuluList = new();
+        mainMatchControl.DiscardTileList = new();
+        mainMatchControl.PlayerOpenSetList = new();
         if (mainMatchControl.MatchType == MatchType.FourMahjongEast || mainMatchControl.MatchType == MatchType.FourMahjongSouth)
         {
             for (int i = 0; i < 4; i++)
             {
-                mainMatchControl.QiPaiList.Add(BytesToList<Pai>(shortBytes, 48 + i * 48, 24));
-                mainMatchControl.PlayerFuluList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
+                mainMatchControl.DiscardTileList.Add(BytesToList<Tile>(shortBytes, 48 + i * 48, 24));
+                mainMatchControl.PlayerOpenSetList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
             }
         }
         else
         {
             for (int i = 0; i < 3; i++)
             {
-                mainMatchControl.QiPaiList.Add(BytesToList<Pai>(shortBytes, 48 + i * 48, 24));
-                mainMatchControl.PlayerFuluList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
+                mainMatchControl.DiscardTileList.Add(BytesToList<Tile>(shortBytes, 48 + i * 48, 24));
+                mainMatchControl.PlayerOpenSetList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
             }
         }
-        mainMatchControl.DoraList = BytesToList<Pai>(shortBytes, 240, 5);
-        mainMatchControl.UraDoraList = BytesToList<Pai>(shortBytes, 250, 5);
+        mainMatchControl.DoraList = BytesToList<Tile>(shortBytes, 240, 5);
+        mainMatchControl.UraDoraList = BytesToList<Tile>(shortBytes, 250, 5);
 
+        // 484 ç«‹ç›´æ£’è®¡æ•°
+        mainMatchControl.RiichiStickCount = shortBytes[484];
+        
         return mainMatchControl;
     }
     #endregion

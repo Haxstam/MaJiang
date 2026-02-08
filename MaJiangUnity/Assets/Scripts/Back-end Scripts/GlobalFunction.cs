@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace MaJiangLib
@@ -18,7 +19,7 @@ namespace MaJiangLib
      * 8. 介于红宝牌的特殊性,需要在所有鸣牌操作中对其进行区分
      * 
      * 9. 鸣牌考虑禁止食替,和牌/立直的判断放在一个方法内,吃/碰/明杠作为副露鸣牌放在一个方法内,加杠/暗杠/拔北作为自身行为放在一个方法里
-     * 10.目前将门清/副露听牌的判断定义在CutTingPaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
+     * 10.目前将门清/副露听牌的判断定义在CutTenpaiJudge()中,调用时会根据当前手牌返回切哪张牌可以进入听牌的阶段,对于是否能立直等情况在外层判断
      * 11.流满判断考虑在matchInformation中记录,当某家被鸣牌时设定其为false,从而避免流局时判定
      * 
      * 12.单巡阶段的基准是客户端和服务端之间的交互点
@@ -60,7 +61,7 @@ namespace MaJiangLib
      *    第一巡四家均立直且宣言牌都为同一种风牌,北家立直并支付1000点后如无人荣和按四家立直流局
      *    牌山剩余最后一张,当前已有两人及以上开三杠,玩家开四杠后舍牌时无人荣和,按四杠散了流局,不计算罚符
      *    
-     * 14.因为架构问题,目前考虑取消MaJiangLib
+     * 14.因为架构问题,目前考虑将类重新划分,将公共类放在MaJiangLib中,从而方便运行服务器端
      * 
      * 15.为了便于传输,尽量所有使得涉及到传输的数据避免使用负数作为标记
      * 
@@ -70,6 +71,7 @@ namespace MaJiangLib
      *    对于任何实现了该接口的类型,其必须在GlobalFunction.ByteableInstanceDict里注册,类自身用属性包装常量byteSize字段
      *    
      * 18.List<>用太多了..考虑优化成数组
+     * 19.玩家序号从0开始
      */
 
     #region *枚举定义*
@@ -88,6 +90,10 @@ namespace MaJiangLib
     /// </summary>
     public enum StageType
     {
+        /// <summary>
+        /// 初始化阶段,仅开局时设定
+        /// </summary>
+        InitStage,
         /// <summary>
         /// 开始阶段,仅用于触发摸牌行为/标记,一般立刻结束进入舍牌阶段
         /// </summary>
@@ -216,7 +222,7 @@ namespace MaJiangLib
         /// <summary>
         /// 拔北
         /// </summary>
-        BaBei,
+        Kita,
         /// <summary>
         /// 荣和
         /// </summary>
@@ -310,7 +316,7 @@ namespace MaJiangLib
     /// </summary>
     public static class GlobalFunction
     {
-
+        
         /// <summary>
         /// 洗牌方法,提供列表和随机数种,返回随机打乱后的数组
         /// </summary>
@@ -334,13 +340,14 @@ namespace MaJiangLib
         /// <param name="isFourMahJong">标记生成的牌山是不是四人牌山,若为三人牌山,将会移除2w到8w</param>
         /// <param name="haveRedDora">标记生成的牌山是否包含0w,0p,0s三张红宝牌</param>
         /// <param name="haveHonor">标记生成的牌山是否包含字牌</param>
+        /// <param name="random">随机数产生器</param>
         /// <returns></returns>
-        public static List<Pai> RandomCardGenerator(out int randomNumber, bool isFourMahJong, bool haveRedDora, bool haveHonor)
+        public static List<Tile> RandomCardGenerator(out int randomNumber, bool isFourMahJong, bool haveRedDora, bool haveHonor, Xoshiro256StarStar random)
         {
             // [TODO]暂时先实现四人有赤宝情况
             // 每次生成牌山都要这样生成一个列表,考虑将其作为一个静态变量放在类中跳过生成
             // 对于四人麻将,总共牌数136张,其中王牌14张
-            List<Pai> paiList = new List<Pai>();
+            List<Tile> tileList = new List<Tile>();
             for (int i = 1; i < 10; i++)
             {   // 添加1w~9w,1p~9p,1s~9s,其中5w,5p,5s中有一张牌分别被一张0w,0p,0s替代
                 foreach (Color color in new List<Color>() { Color.Wans, Color.Tungs, Color.Bamboo })
@@ -349,15 +356,15 @@ namespace MaJiangLib
                     {
                         for (int j = 0; j < 3; j++)
                         {
-                            paiList.Add(new(color, i, false));
+                            tileList.Add(new(color, i, false));
                         }
-                        paiList.Add(new(color, i, true));
+                        tileList.Add(new(color, i, true));
                     }
                     else
                     {
                         for (int j = 0; j < 4; j++)
                         {
-                            paiList.Add(new(color, i));
+                            tileList.Add(new(color, i));
                         }
                     }
                 }
@@ -366,17 +373,15 @@ namespace MaJiangLib
             {   // 添加1z~7z,分别代表东南西北白发中
                 for (int j = 0; j < 4; j++)
                 {
-                    paiList.Add(new(Color.Honor, i, false));
+                    tileList.Add(new(Color.Honor, i, false));
                 }
             }
-            Random random = new Random();
-            randomNumber = random.Next();
-            Shuffle(paiList, randomNumber);
-            return paiList;
+            randomNumber = random.NextInt32();
+            Shuffle(tileList, randomNumber);
+            return tileList;
         }
-
         // 暂时用一个列表去存储国士无双的牌来判断国士,流满和九种九牌
-        public static List<Pai> kokuShiList = new()
+        public static List<Tile> kokushiList = new()
             {
                 new(Color.Wans,1),
                 new(Color.Wans,9),
@@ -398,11 +403,11 @@ namespace MaJiangLib
         public static Dictionary<Type, object> ByteableInstanceDict { get; } = new Dictionary<Type, object>()
         {
             // 仅用于调用接口方法,具体实现不影响
-            {typeof(Pai), new Pai(Color.Wans, 1) },
+            {typeof(Tile), new Tile(Color.Wans, 1) },
             {typeof(Group), new Group(GroupType.Triple, Color.Wans, new())},
             {typeof(Player), new Player() },
             {typeof(PlayerActionData), new PlayerActionData(new(),new(Color.Wans,1 ),PlayerAction.Chi) },
-            {typeof(ShouPai),new ShouPai() },
+            {typeof(HandTile),new HandTile() },
             {typeof(UserProfile),new UserProfile() },
         };
 
@@ -416,7 +421,7 @@ namespace MaJiangLib
         {
             if (matchInformation.CurrentStageType == StageType.EndStage)
             {   // 以上流局判断都必须在结束阶段内进行
-                List<List<Pai>> qiPaiList = matchInformation.QiPaiList;
+                List<List<Tile>> discardTileList = matchInformation.DiscardTileList;
 
                 if (matchInformation.KangCount == 4 && matchInformation.KangMark == 5)
                 {   // 存在两名及以上玩家开四杠,按四杠散了流局,为最优先判断
@@ -435,17 +440,17 @@ namespace MaJiangLib
                     ) // 无人鸣牌,四人麻将,是北家的结束阶段,判断四风连打
                 {
                     if (
-                        qiPaiList[0][0].Color == Color.Honor && qiPaiList[0][0].Number >= 1 && qiPaiList[0][0].Number <= 4 &&
-                        qiPaiList[1][0] == qiPaiList[0][0] &&
-                        qiPaiList[2][0] == qiPaiList[0][0] &&
-                        qiPaiList[3][0] == qiPaiList[0][0]
+                        discardTileList[0][0].Color == Color.Honor && discardTileList[0][0].Number >= 1 && discardTileList[0][0].Number <= 4 &&
+                        discardTileList[1][0] == discardTileList[0][0] &&
+                        discardTileList[2][0] == discardTileList[0][0] &&
+                        discardTileList[3][0] == discardTileList[0][0]
                         ) // 庄家第一张舍牌为风牌,且子家的第一张舍牌与其相同,分开以避免在第一巡访问到不存在的子家舍牌
                     {
                         drawType = DrawType.FourWindsDraw;
                         return true;
                     }
                 }
-                else if (matchInformation.RemainPaiCount == 0) // 进入结束阶段且剩余牌为0,为荒牌流局,优先级最低
+                else if (matchInformation.RemainTileCount == 0) // 进入结束阶段且剩余牌为0,为荒牌流局,优先级最低
                 {
                     drawType = DrawType.DeadWallDraw;
                     return true;
@@ -458,11 +463,11 @@ namespace MaJiangLib
         /// <summary>
         /// 用于判断其他玩家打出牌时,当前玩家所能进行的操作,需要当前手牌信息,每当玩家切换自己的手牌时更新
         /// </summary>
-        /// <param name="shouPai"></param>
+        /// <param name="handTile"></param>
         /// <param name="matchInformation"></param>
         /// <returns>返回一个字典,以操作为键,可进行的操作的list为值</returns>
         [Obsolete]
-        public static Dictionary<PlayerAction, List<PlayerActionData>> ClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
+        public static Dictionary<PlayerAction, List<PlayerActionData>> ClaimingAvailableJudge(HandTile handTile, IMatchInformation matchInformation)
         {   // 返回结果是字典-列表-列表的嵌套,考虑优化
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
             {   // 鸣牌操作仅限吃碰杠
@@ -471,38 +476,38 @@ namespace MaJiangLib
                 { PlayerAction.Kang, new()},
             };
             // 排序[可能会破坏原有顺序]
-            List<Pai> shouPaiList = shouPai.ShouPaiList;
-            shouPaiList.Sort();
-            for (int i = 0; i < shouPaiList.Count - 1; i++)
+            List<Tile> handTileList = handTile.HandTileList;
+            handTileList.Sort();
+            for (int i = 0; i < handTileList.Count - 1; i++)
             {   // 从手牌中每张牌进行遍历,按照每两张进行判断
-                if (shouPaiList[i] == shouPaiList[i + 1])
+                if (handTileList[i] == handTileList[i + 1])
                 {   // 即雀头/刻子,第一张和第二张牌相同,若有三张相同则为刻子
-                    if (i < shouPaiList.Count - 2)
+                    if (i < handTileList.Count - 2)
                     {   // 至少其后有两张牌
-                        if (shouPaiList[i] == shouPaiList[i + 2])
+                        if (handTileList[i] == handTileList[i + 2])
                         {   //是刻子,可以碰/杠
-                            if (matchInformation.RemainPaiCount >= 1)
+                            if (matchInformation.RemainTileCount >= 1)
                             {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
                                 if (matchInformation.KangCount <= 3)
                                 {   // 开杠数大于3则不允许继续开杠
                                     playerActions[PlayerAction.Kang].Add(new(
-                                        new() { shouPaiList[i], shouPaiList[i + 1], shouPaiList[i + 2] },
-                                        shouPaiList[i],
+                                        new() { handTileList[i], handTileList[i + 1], handTileList[i + 2] },
+                                        handTileList[i],
                                         PlayerAction.Kang
                                         ));
                                 }
                             }
                             playerActions[PlayerAction.Peng].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                shouPaiList[i],
+                                new() { handTileList[i], handTileList[i + 1] },
+                                handTileList[i],
                                 PlayerAction.Peng
                                 ));
                         }
                         else
                         {   //是雀头,可以碰
                             playerActions[PlayerAction.Peng].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                shouPaiList[i],
+                                new() { handTileList[i], handTileList[i + 1] },
+                                handTileList[i],
                                 PlayerAction.Peng
                                 ));
                         }
@@ -510,24 +515,24 @@ namespace MaJiangLib
                 }
                 // 因为同一张牌可以同时实现吃碰杠,这里不能使用else
                 if ((matchInformation.MatchType == MatchType.FourMahjongEast || matchInformation.MatchType == MatchType.FourMahjongSouth)
-                    && (matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber - 1 || matchInformation.CurrentPlayerIndex == shouPai.PlayerNumber + 3))
+                    && (matchInformation.CurrentPlayerIndex == handTile.PlayerNumber - 1 || matchInformation.CurrentPlayerIndex == handTile.PlayerNumber + 3))
                 {   // 只有四人麻将可以吃牌,且只能吃上家(即座位序号比自身小1或比自身大3)的牌
-                    if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 1) && shouPaiList[i].Color != Color.Honor)
+                    if ((handTileList[i].Color == handTileList[i + 1].Color && handTileList[i].Number == handTileList[i + 1].Number + 1) && handTileList[i].Color != Color.Honor)
                     {   // 即两面/边张,第一张牌和第二张牌相邻且同色且都不是字牌
-                        if (shouPaiList[i].Number == 1)
+                        if (handTileList[i].Number == 1)
                         {   // 是1 2边张
                             playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new(shouPaiList[i].Color, shouPaiList[i].Number + 2),
+                                new() { handTileList[i], handTileList[i + 1] },
+                                new(handTileList[i].Color, handTileList[i].Number + 2),
                                 PlayerAction.Chi
                                 ));
                         }
-                        else if (shouPaiList[i].Number == 8)
+                        else if (handTileList[i].Number == 8)
                         {
                             // 是8 9边张   
                             playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new(shouPaiList[i].Color, shouPaiList[i].Number - 1),
+                                new() { handTileList[i], handTileList[i + 1] },
+                                new(handTileList[i].Color, handTileList[i].Number - 1),
                                 PlayerAction.Chi
                                 ));
                         }
@@ -535,22 +540,22 @@ namespace MaJiangLib
                         {   // 即中张两面
                             // 单一牌型能鸣两张则分别添加鸣牌操作
                             playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new(shouPaiList[i].Color, shouPaiList[i].Number - 1),
+                                new() { handTileList[i], handTileList[i + 1] },
+                                new(handTileList[i].Color, handTileList[i].Number - 1),
                                 PlayerAction.Chi
                                 ));
                             playerActions[PlayerAction.Chi].Add(new(
-                                new() { shouPaiList[i], shouPaiList[i + 1] },
-                                new(shouPaiList[i].Color, shouPaiList[i].Number + 2),
+                                new() { handTileList[i], handTileList[i + 1] },
+                                new(handTileList[i].Color, handTileList[i].Number + 2),
                                 PlayerAction.Chi
                                 ));
                         }
                     }
-                    if ((shouPaiList[i].Color == shouPaiList[i + 1].Color && shouPaiList[i].Number == shouPaiList[i + 1].Number + 2) && shouPaiList[i].Color != Color.Honor)
+                    if ((handTileList[i].Color == handTileList[i + 1].Color && handTileList[i].Number == handTileList[i + 1].Number + 2) && handTileList[i].Color != Color.Honor)
                     {   // 即坎张,第二张牌比第一张牌点数大2且同色且都不是字牌
                         playerActions[PlayerAction.Chi].Add(new(
-                            new() { shouPaiList[i], shouPaiList[i + 1] },
-                            new(shouPaiList[i].Color, shouPaiList[i].Number + 1),
+                            new() { handTileList[i], handTileList[i + 1] },
+                            new(handTileList[i].Color, handTileList[i].Number + 1),
                             PlayerAction.Chi
                             ));
                     }
@@ -561,10 +566,10 @@ namespace MaJiangLib
         /// <summary>
         /// 对特定单张牌的响应计算,需要手牌,所鸣单牌和对局信息
         /// </summary>
-        /// <param name="shouPai"></param>
+        /// <param name="handTile"></param>
         /// <param name="matchInformation"></param>
         /// <returns></returns>
-        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, Pai currentPai, IMatchInformation matchInformation)
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(HandTile handTile, Tile currentTile, IMatchInformation matchInformation)
         {
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
             {   // 鸣牌操作仅限吃碰杠
@@ -575,39 +580,39 @@ namespace MaJiangLib
             };
             // 对手牌中所有牌进行统计,根据统计进行可行鸣牌判断
             // 每个数列第0位为红宝牌标记,1~9为对应序数牌标记,字牌第0位暂空,1~7为对应字牌顺序
-            Dictionary<Color, int[]> paiCountDict = new Dictionary<Color, int[]>()
+            Dictionary<Color, int[]> tileCountDict = new Dictionary<Color, int[]>()
             {
                 {Color.Wans, new int[10] },
                 {Color.Tungs, new int [10] },
                 {Color.Bamboo, new int [10] },
                 {Color.Honor, new int [8] },
             };
-            foreach (Pai pai in shouPai.ShouPaiList)
+            foreach (Tile tile in handTile.HandTileList)
             {
-                if (pai.IsRedDora)
+                if (tile.IsRedDora)
                 {
                     // 目前仅考虑红五宝牌的情况,如果有红宝牌则在0上+1
-                    paiCountDict[pai.Color][0]++;
+                    tileCountDict[tile.Color][0]++;
                 }
                 else
                 {
-                    paiCountDict[pai.Color][pai.Number]++;
+                    tileCountDict[tile.Color][tile.Number]++;
                 }
             }
-            Color color = currentPai.Color;
-            int num = currentPai.Number;
+            Color color = currentTile.Color;
+            int num = currentTile.Number;
 
             // 判断逻辑,考虑到此方法主要用于数据传输,因此新建牌实例
 
             // 碰杠的逻辑
-            int count = paiCountDict[color][num];
+            int count = tileCountDict[color][num];
             if (num == 5 && color != Color.Honor && count != 0)
             {   // 如果是5万筒索,额外判断有红宝牌时的情况
                 if (count == 1)
                 {
                     playerActions[PlayerAction.Peng].Add(new(
                                 new() { new(color, num), new(color, num, true) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Peng
                                 ));
                 }
@@ -615,7 +620,7 @@ namespace MaJiangLib
                 {
                     playerActions[PlayerAction.Kang].Add(new(
                                 new() { new(color, num), new(color, num), new(color, num, true) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Kang
                                 ));
                 }
@@ -624,7 +629,7 @@ namespace MaJiangLib
             {
                 playerActions[PlayerAction.Peng].Add(new(
                                 new() { new(color, num), new(color, num) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Peng
                                 ));
             }
@@ -632,12 +637,12 @@ namespace MaJiangLib
             {
                 playerActions[PlayerAction.Peng].Add(new(
                                 new() { new(color, num), new(color, num) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Peng
                                 ));
                 playerActions[PlayerAction.Kang].Add(new(
                                 new() { new(color, num), new(color, num), new(color, num) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Kang
                                 ));
             }
@@ -646,88 +651,88 @@ namespace MaJiangLib
             if (color != Color.Honor)
             {
                 // 牌的左侧
-                if (num >= 3 && paiCountDict[color][num - 1] != 0 && paiCountDict[color][num - 2] != 0)
+                if (num >= 3 && tileCountDict[color][num - 1] != 0 && tileCountDict[color][num - 2] != 0)
                 {
                     playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, num - 1), new(color, num - 2) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                 }
                 // 牌的右侧
-                if (num <= 7 && paiCountDict[color][num + 1] != 0 && paiCountDict[color][num + 2] != 0)
+                if (num <= 7 && tileCountDict[color][num + 1] != 0 && tileCountDict[color][num + 2] != 0)
                 {
                     playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, num + 1), new(color, num + 2) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                 }
                 // 坎张
-                if (num >= 2 && num <= 8 && paiCountDict[color][num - 1] != 0 && paiCountDict[color][num + 1] != 0)
+                if (num >= 2 && num <= 8 && tileCountDict[color][num - 1] != 0 && tileCountDict[color][num + 1] != 0)
                 {
                     playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, num - 1), new(color, num + 1) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                 }
                 // 如果存在对应花色的红宝牌,进行额外判断
-                if (paiCountDict[color][0] != 0)
+                if (tileCountDict[color][0] != 0)
                 {
                     // 暂时用挨个判断添加的方式处理红宝牌相关的吃牌问题
                     // 考虑修改为当红宝牌存在,对应序号牌才存在并再判断的方式来实现即使不是红5也可判断吃的鸣牌
-                    if (num == 3 && paiCountDict[color][4] != 0)
+                    if (num == 3 && tileCountDict[color][4] != 0)
                     {
                         // 为3,右侧
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 4), new(color, 5, true) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (num == 4 && paiCountDict[color][6] != 0)
+                    if (num == 4 && tileCountDict[color][6] != 0)
                     {
                         // 为4,右侧
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 5, true), new(color, 6) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (num == 4 && paiCountDict[color][3] != 0)
+                    if (num == 4 && tileCountDict[color][3] != 0)
                     {
                         // 为4,坎张
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 3), new(color, 5, true) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (num == 6 && paiCountDict[color][4] != 0)
+                    if (num == 6 && tileCountDict[color][4] != 0)
                     {
                         // 为6,左侧
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 4), new(color, 5, true) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (num == 6 && paiCountDict[color][7] != 0)
+                    if (num == 6 && tileCountDict[color][7] != 0)
                     {
                         // 为6,坎张
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 5, true), new(color, 7) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
-                    if (num == 7 && paiCountDict[color][6] != 0)
+                    if (num == 7 && tileCountDict[color][6] != 0)
                     {
                         // 为7,左侧
                         playerActions[PlayerAction.Chi].Add(new(
                                 new() { new(color, 5, true), new(color, 6) },
-                                currentPai,
+                                currentTile,
                                 PlayerAction.Chi
                                 ));
                     }
@@ -739,73 +744,73 @@ namespace MaJiangLib
         /// <summary>
         /// 省略了单张牌,仅根据手牌和对局信息判断
         /// </summary>
-        /// <param name="shouPai"></param>
+        /// <param name="handTile"></param>
         /// <param name="matchInformation"></param>
         /// <returns></returns>
-        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(ShouPai shouPai, IMatchInformation matchInformation)
-            => SingleClaimingAvailableJudge(shouPai, matchInformation.CurrentPai, matchInformation);
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SingleClaimingAvailableJudge(HandTile handTile, IMatchInformation matchInformation)
+            => SingleClaimingAvailableJudge(handTile, matchInformation.CurrentTile, matchInformation);
         /// <summary>
         /// 用于判断当前玩家手牌所能进行的自身操作,需要玩家手牌,当前所摸的牌,判断能否加杠/暗杠/拔北/流局
         /// </summary>
-        /// <param name="shouPai"></param>
+        /// <param name="handTile"></param>
         /// <returns>返回一个字典,以操作为键,可进行的操作(SelfActionData)的list为值</returns>
-        public static Dictionary<PlayerAction, List<PlayerActionData>> SelfAvailableJudge(ShouPai shouPai, Pai singlePai, IMatchInformation matchInformation)
+        public static Dictionary<PlayerAction, List<PlayerActionData>> SelfAvailableJudge(HandTile handTile, Tile singleTile, IMatchInformation matchInformation)
         {
 
             // 将刚摸的牌添加进去,并判断
-            List<Pai> paiList = shouPai.ShouPaiList.ToList();
-            paiList.Add(singlePai);
-            paiList.Sort();
+            List<Tile> tileList = handTile.HandTileList.ToList();
+            tileList.Add(singleTile);
+            tileList.Sort();
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
             {
                  { PlayerAction.Kang, new()},
-                 { PlayerAction.BaBei, new()},
+                 { PlayerAction.Kita, new()},
                  { PlayerAction.Draw, new()},
             };
             if (matchInformation.FirstCycleIppatsu)
             {   // 在第一巡时,判断能否九种九牌流局
-                List<Pai> HonorPai = new();
-                foreach (Pai pai in paiList)
+                List<Tile> HonorTile = new();
+                foreach (Tile tile in tileList)
                 {
-                    if (kokuShiList.Contains(pai) && !HonorPai.Contains(pai))
+                    if (kokushiList.Contains(tile) && !HonorTile.Contains(tile))
                     {
-                        HonorPai.Add(pai);
+                        HonorTile.Add(tile);
                     }
                 }
-                if (HonorPai.Count >= 9)
+                if (HonorTile.Count >= 9)
                 {
                     // 流局不需要选定手牌,设定可以流局时,流局操作对应列表不为空
-                    playerActions[PlayerAction.Draw] = new List<PlayerActionData>() { new(new() { HonorPai[0] }, PlayerAction.Draw) };
+                    playerActions[PlayerAction.Draw] = new List<PlayerActionData>() { new(new() { HonorTile[0] }, PlayerAction.Draw) };
                 }
             }
-            if (matchInformation.RemainPaiCount >= 1)
+            if (matchInformation.RemainTileCount >= 1)
             {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
                 if (matchInformation.KangCount <= 3)
                 {   // 开杠数大于3则不允许继续开杠
-                    List<Pai> KangPaiList = new();
-                    foreach (Group fuluGroup in shouPai.FuluPaiList)
+                    List<Tile> KangTileList = new();
+                    foreach (Group openGroup in handTile.OpenTileList)
                     {   // 获取所有副露的明刻,从而获取那几张牌可以用来加杠
-                        if (fuluGroup.GroupType == GroupType.Triple)
+                        if (openGroup.GroupType == GroupType.Triple)
                         {
-                            KangPaiList.Add(fuluGroup.Pais[0]);
+                            KangTileList.Add(openGroup.Tiles[0]);
                         }
                     }
-                    for (int i = 0; i < paiList.Count; i++)
+                    for (int i = 0; i < tileList.Count; i++)
                     {
-                        if (i < paiList.Count - 3)
+                        if (i < tileList.Count - 3)
                         {   // 暗杠,如果存在四张相同的牌,那么可以进行暗杠
-                            if (paiList[i] == paiList[i + 1] && paiList[i] == paiList[i + 2] && paiList[i] == paiList[i + 3])
+                            if (tileList[i] == tileList[i + 1] && tileList[i] == tileList[i + 2] && tileList[i] == tileList[i + 3])
                             {
                                 playerActions[PlayerAction.Kang].Add(new(
-                                    new() { paiList[i], paiList[i + 1], paiList[i + 2], paiList[i + 3], },
+                                    new() { tileList[i], tileList[i + 1], tileList[i + 2], tileList[i + 3], },
                                     PlayerAction.Kang
                                     ));
                             }
                         }
-                        if (KangPaiList.Contains(paiList[i]))
+                        if (KangTileList.Contains(tileList[i]))
                         {   // 加杠,如果存在和刻子相同的牌,则可以进行加杠
                             playerActions[PlayerAction.Kang].Add(new(
-                                 new() { paiList[i], },
+                                 new() { tileList[i], },
                                  PlayerAction.Kang
                                  ));
                         }
@@ -813,13 +818,13 @@ namespace MaJiangLib
                 }
                 if (matchInformation.MatchType == MatchType.ThreeMahjongEast || matchInformation.MatchType == MatchType.ThreeMahjongSouth)
                 {   // 三人场才允许拔北
-                    for (int i = 0; i < paiList.Count; i++)
+                    for (int i = 0; i < tileList.Count; i++)
                     {
-                        if (paiList[i].Color == Color.Honor && paiList[i].Number == 4)
+                        if (tileList[i].Color == Color.Honor && tileList[i].Number == 4)
                         {   // 所有北牌等效
-                            playerActions[PlayerAction.BaBei].Add(new(
-                                 new() { paiList[i], },
-                                 PlayerAction.BaBei
+                            playerActions[PlayerAction.Kita].Add(new(
+                                 new() { tileList[i], },
+                                 PlayerAction.Kita
                                  ));
                         }
                     }
@@ -830,12 +835,12 @@ namespace MaJiangLib
         /// <summary>
         /// 立直的判定,当前玩家未立直且有1000点且门清且牌山剩余牌数大于4时可以进行立直,此方法不考虑是否听牌,相关判断位于调用处
         /// </summary>
-        /// <param name="shouPai">手牌</param>
+        /// <param name="handTile">手牌</param>
         /// <param name="matchInformation">比赛信息</param>
         /// <returns>返回能否立直</returns>
-        public static bool RiichiJudge(ShouPai shouPai, IMatchInformation matchInformation)
+        public static bool RiichiJudge(HandTile handTile, IMatchInformation matchInformation)
         {
-            return matchInformation.IsRiichi[shouPai.PlayerNumber] == false && matchInformation.RemainPaiCount >= 4 && matchInformation.PlayerPoint[shouPai.PlayerNumber] >= 1000 && shouPai.IsClosedHand;
+            return matchInformation.IsRiichi[handTile.PlayerNumber] == false && matchInformation.RemainTileCount >= 4 && matchInformation.PlayerPoint[handTile.PlayerNumber] >= 1000 && handTile.IsClosedHand;
         }
         /// <summary>
         /// 流局满贯判定,即在荒牌流局的情况下存在玩家,其牌河仅为幺九牌且未被鸣牌
@@ -844,16 +849,16 @@ namespace MaJiangLib
         /// <returns></returns>
         public static bool NagashiManganJudge(IMatchInformation matchInformation, int player)
         {
-            foreach (Pai pai in matchInformation.QiPaiList[player])
+            foreach (Tile tile in matchInformation.DiscardTileList[player])
             {
-                if (!(pai.Color == Color.Honor || pai.Number == 1 || pai.Number == 9))
+                if (!(tile.Color == Color.Honor || tile.Number == 1 || tile.Number == 9))
                 {   // 弃牌全为幺九牌
                     return false;
                 }
             }
-            foreach (List<Group> fuluPai in matchInformation.PlayerFuluList)
+            foreach (List<Group> openGroups in matchInformation.PlayerOpenSetList)
             {   // 没有别家鸣牌来源自该玩家
-                foreach (Group group in fuluPai)
+                foreach (Group group in openGroups)
                 {
                     if (group.GroupType != GroupType.AnKang && group.FuluSource == player)
                     {
@@ -866,27 +871,27 @@ namespace MaJiangLib
         /// <summary>
         /// 切牌听牌的判定,用于判断当前手牌下,打出哪张牌可以进入听牌阶段,返回一个字典,存储所切的牌->对应的和牌列表->对应的面子并根据能否听牌返回bool
         /// </summary>
-        /// <param name="shouPai">手中的手牌</param>
-        /// <param name="singlePai">单牌,也即刚摸到的牌</param>
-        /// <param name="cutPais">存储所切的牌->对应的和牌列表->对应的面子</param>
+        /// <param name="handTile">手中的手牌</param>
+        /// <param name="singleTile">单牌,也即刚摸到的牌</param>
+        /// <param name="cutTiles">存储所切的牌->对应的和牌列表->对应的面子</param>
         /// <returns>返回存在牌,切出该牌后可听牌</returns>
-        public static bool CutTingPaiJudge(ShouPai shouPai, Pai singlePai, out Dictionary<Pai, Dictionary<Pai, List<Group>>> cutPais)
+        public static bool CutTenpaiJudge(HandTile handTile, Tile singleTile, out Dictionary<Tile, Dictionary<Tile, List<Group>>> cutTiles)
         {
-            cutPais = new();
+            cutTiles = new();
             // 将输入的手牌再赋值并添加单牌
-            ShouPai fullShouPai = (ShouPai)shouPai.Clone();
-            fullShouPai.ShouPaiList.Add(singlePai);
-            for (int i = 0; i < fullShouPai.ShouPaiList.Count; i++)
+            HandTile fullHandTile = (HandTile)handTile.Clone();
+            fullHandTile.HandTileList.Add(singleTile);
+            for (int i = 0; i < fullHandTile.HandTileList.Count; i++)
             {   // 具体的计算过程是,依次删除每一张手牌并判断剩余手牌是否听牌,如果能听牌将其标记为可被切的牌
-                ShouPai calculateShouPai = (ShouPai)fullShouPai.Clone();
-                Pai deletedPai = calculateShouPai.ShouPaiList[i];
-                calculateShouPai.ShouPaiList.RemoveAt(i);
-                if (TingPaiJudge(calculateShouPai, out Dictionary<Pai, List<Group>> successPais))
+                HandTile calculateHandTile = (HandTile)fullHandTile.Clone();
+                Tile deletedTile = calculateHandTile.HandTileList[i];
+                calculateHandTile.HandTileList.RemoveAt(i);
+                if (TenpaiJudge(calculateHandTile, out Dictionary<Tile, List<Group>> successTiles))
                 {   // 将可行的切牌和可听的牌列表存储进字典中
-                    cutPais[deletedPai] = successPais;
+                    cutTiles[deletedTile] = successTiles;
                 }
             }
-            if (cutPais.Count != 0)
+            if (cutTiles.Count != 0)
             {
                 return true;
             }
@@ -900,22 +905,22 @@ namespace MaJiangLib
         /// 判断该牌对于该玩家是否为役牌,需要当前比赛信息,牌的信息和玩家序号
         /// </summary>
         /// <param name="matchInformation">当前比赛信息</param>
-        /// <param name="pai">所判断的字牌</param>
+        /// <param name="tile">所判断的字牌</param>
         /// <param name="player">玩家的序号</param>
         /// <returns></returns>
-        public static bool IsYiPai(IMatchInformation matchInformation, Pai pai, int player)
+        public static bool IsYakuTile(IMatchInformation matchInformation, Tile tile, int player)
         {
-            if (pai.Color == Color.Honor)
+            if (tile.Color == Color.Honor)
             {
-                if (pai.Number >= 5)  // 判断是不是白发中
+                if (tile.Number >= 5)  // 判断是不是白发中
                 {
                     return true;
                 }
-                else if (pai.Number == (player - matchInformation.Round + 1))  // 判断是否为自风
+                else if (tile.Number == (player - matchInformation.Round + 1))  // 判断是否为自风
                 {
                     return true;
                 }
-                else if (pai.Number == (int)matchInformation.Wind)  // 判断是否为场风
+                else if (tile.Number == (int)matchInformation.Wind)  // 判断是否为场风
                 {
                     return true;
                 }
@@ -925,16 +930,16 @@ namespace MaJiangLib
         /// <summary>
         /// 振听判断方法,通过列表(暂时)
         /// </summary>
-        /// <param name="TingPaiList">玩家所听的牌</param>
-        /// <param name="QiPaiDui">玩家的弃牌堆</param>
+        /// <param name="TenpaiList">玩家所听的牌</param>
+        /// <param name="DiscardTileList">玩家的弃牌堆</param>
         /// <returns></returns>
-        public static bool ZhenTingJudge(List<Pai> TingPaiList, List<Pai> QiPaiDui)
+        public static bool FuritenJudge(List<Tile> TenpaiList, List<Tile> DiscardTileList)
         {
-            foreach (Pai tingPai in TingPaiList)
+            foreach (Tile tenpai in TenpaiList)
             {
-                foreach (Pai qiPai in QiPaiDui)
+                foreach (Tile discardTile in DiscardTileList)
                 {
-                    if (tingPai == qiPai)
+                    if (tenpai == discardTile)
                     {
                         return true;
                     }
@@ -945,49 +950,49 @@ namespace MaJiangLib
         /// <summary>
         /// 听牌判断方法,输入手牌列表,返回是否听牌和所听牌及对应和牌牌型
         /// </summary>
-        /// <param name="shouPai"></param>
-        /// <param name="successPais"></param>
+        /// <param name="handTile"></param>
+        /// <param name="successTiles"></param>
         /// <returns></returns>
-        public static bool TingPaiJudge(ShouPai shouPai, out Dictionary<Pai, List<Group>> successPais)
+        public static bool TenpaiJudge(HandTile handTile, out Dictionary<Tile, List<Group>> successTiles)
         {
-            List<Pai> ShouPaiList = shouPai.ShouPaiList;
-            ShouPaiList.Sort();
-            successPais = new();
+            List<Tile> HandTileList = handTile.HandTileList;
+            HandTileList.Sort();
+            successTiles = new();
             // 对四副露分开看待
-            if (shouPai.FuluPaiList.Count == 4)
+            if (handTile.OpenTileList.Count == 4)
             {
                 List<Group> groups = new();
-                foreach (Group fuluPai in shouPai.FuluPaiList)
+                foreach (Group openTile in handTile.OpenTileList)
                 {
-                    groups.Add(fuluPai);
+                    groups.Add(openTile);
                 }
                 // 直接返回所听牌和手牌相同
-                groups.Add(new(GroupType.Pair, ShouPaiList[0].Color, new() { ShouPaiList[0] }));
-                successPais[shouPai.ShouPaiList[0]] = groups;
+                groups.Add(new(GroupType.Pair, HandTileList[0].Color, new() { HandTileList[0] }));
+                successTiles[handTile.HandTileList[0]] = groups;
                 return true;
             }
             else
             {
                 // 先对牌按花色分类
-                List<Pai> mainPaiList = shouPai.ShouPaiList;
-                List<List<int>> coloredPaiList = new() { new(), new(), new(), new() };
+                List<Tile> mainTileList = handTile.HandTileList;
+                List<List<int>> coloredTileList = new() { new(), new(), new(), new() };
 
-                foreach (Pai pai in mainPaiList)
+                foreach (Tile tile in mainTileList)
                 {
                     // 按照牌的花色去分类
-                    switch (pai.Color)
+                    switch (tile.Color)
                     {
                         case Color.Wans:
-                            coloredPaiList[0].Add(pai.Number);
+                            coloredTileList[0].Add(tile.Number);
                             break;
                         case Color.Tungs:
-                            coloredPaiList[1].Add(pai.Number);
+                            coloredTileList[1].Add(tile.Number);
                             break;
                         case Color.Bamboo:
-                            coloredPaiList[2].Add(pai.Number);
+                            coloredTileList[2].Add(tile.Number);
                             break;
                         case Color.Honor:
-                            coloredPaiList[3].Add(pai.Number);
+                            coloredTileList[3].Add(tile.Number);
                             break;
                         default:
                             break;
@@ -1009,7 +1014,7 @@ namespace MaJiangLib
                             // [TODO] 等待优化
                             // 添加一张牌去判断
                             List<Group> tempGroups = new();
-                            List<List<int>> tempList = coloredPaiList.Select(inner => inner.ToList()).ToList();
+                            List<List<int>> tempList = coloredTileList.Select(inner => inner.ToList()).ToList();
                             tempList[(int)color].Add(i);
                             // major pair 分别存储面子和雀头的数量
                             int major = 0;
@@ -1020,20 +1025,20 @@ namespace MaJiangLib
                                 // 介于字牌的特殊情况,采用更直接的方法
                                 if (j == 3)
                                 {
-                                    int[] paiCount = new int[8];
+                                    int[] tileCount = new int[8];
                                     foreach (int num in tempList[j])
                                     {
-                                        paiCount[num]++;
+                                        tileCount[num]++;
                                     }
                                     for (int k = 1; k < 8; k++)
                                     {
                                         // 两张字牌,即为雀头,三张字牌,即为暗刻,其余字牌数认为不听牌
-                                        if (paiCount[k] == 2)
+                                        if (tileCount[k] == 2)
                                         {
                                             pair++;
                                             tempGroups.Add(new(GroupType.Pair, Color.Honor, new() { new(Color.Honor, k), new(Color.Honor, k) }));
                                         }
-                                        else if (paiCount[k] == 3)
+                                        else if (tileCount[k] == 3)
                                         {
                                             major++;
                                             tempGroups.Add(new(GroupType.Triple, Color.Honor, new() { new(Color.Honor, k), new(Color.Honor, k), new(Color.Honor, k) }));
@@ -1085,14 +1090,14 @@ namespace MaJiangLib
                                 }
                             }
                             // 进行判断,当为四个面子和一个雀头时,才看做和牌,考虑副露
-                            if (major + shouPai.FuluPaiList.Count == 4 && pair == 1)
+                            if (major + handTile.OpenTileList.Count == 4 && pair == 1)
                             {
                                 // 添加副露中的面子
-                                foreach (Group fulupai in shouPai.FuluPaiList)
+                                foreach (Group fulutile in handTile.OpenTileList)
                                 {
-                                    tempGroups.Add(fulupai);
+                                    tempGroups.Add(fulutile);
                                 }
-                                successPais[new(color, i)] = tempGroups;
+                                successTiles[new(color, i)] = tempGroups;
                             }
                             else
                             {
@@ -1103,22 +1108,22 @@ namespace MaJiangLib
                 }
 
             }
-            if (successPais.Count != 0)
+            if (successTiles.Count != 0)
             {
                 return true;
             }
             else
             {
                 // 国士无双的判断
-                if (KokuShiJudge(ShouPaiList, out Dictionary<Pai, List<Group>> kokushiPais))
+                if (KokushiJudge(HandTileList, out Dictionary<Tile, List<Group>> kokushiTiles))
                 {
-                    successPais = kokushiPais;
+                    successTiles = kokushiTiles;
                     return true;
                 }
                 // 最后判断七对子,避免两杯口被判断为七对子
-                if (SevenPairJudge(ShouPaiList, out Pai sevenPairPai, out List<Group> sevenPairGroups))
+                if (SevenPairJudge(HandTileList, out Tile sevenPairTile, out List<Group> sevenPairGroups))
                 {
-                    successPais[sevenPairPai] = sevenPairGroups;
+                    successTiles[sevenPairTile] = sevenPairGroups;
                     return true;
                 }
                 return false;
@@ -1127,38 +1132,38 @@ namespace MaJiangLib
         /// <summary>
         /// 国士无双的判定,先判断是否所有牌都是幺九牌,再判断是否最多只有两张重复的牌,没有重复的牌则为十三面
         /// </summary>
-        /// <param name="calPaiList"></param>
-        /// <param name="successPais"></param>
+        /// <param name="calTileList"></param>
+        /// <param name="successTiles"></param>
         /// <returns></returns>
-        public static bool KokuShiJudge(List<Pai> calPaiList, out Dictionary<Pai, List<Group>> successPais)
+        public static bool KokushiJudge(List<Tile> calTileList, out Dictionary<Tile, List<Group>> successTiles)
         {
-            successPais = new();
-            if (calPaiList.All(n => (n.Color == Color.Honor) || (n.Number == 9 || n.Number == 1)))
+            successTiles = new();
+            if (calTileList.All(n => (n.Color == Color.Honor) || (n.Number == 9 || n.Number == 1)))
             {
                 bool isKokushi = true;
-                bool haveExtraPai = false;
-                for (int i = 0; i < calPaiList.Count - 1; i++)
+                bool haveExtraTile = false;
+                for (int i = 0; i < calTileList.Count - 1; i++)
                 {
-                    if (calPaiList[i] == calPaiList[i + 1] && haveExtraPai)
+                    if (calTileList[i] == calTileList[i + 1] && haveExtraTile)
                     {
                         isKokushi = false;
                         break;
                     }
-                    else if (calPaiList[i] == calPaiList[i + 1] && !haveExtraPai)
+                    else if (calTileList[i] == calTileList[i + 1] && !haveExtraTile)
                     {
-                        haveExtraPai = true;
+                        haveExtraTile = true;
                         i++;
                     }
                 }
                 if (isKokushi)
                 {
-                    if (haveExtraPai)
+                    if (haveExtraTile)
                     {
-                        for (int i = 0; i < calPaiList.Count; i++)
+                        for (int i = 0; i < calTileList.Count; i++)
                         {
-                            if (calPaiList[i] != kokuShiList[i])
+                            if (calTileList[i] != kokushiList[i])
                             {
-                                successPais[kokuShiList[i]] = new()
+                                successTiles[kokushiList[i]] = new()
                                 {
                                     new Group(GroupType.Triple, Color.Honor, new()
                                     {
@@ -1173,7 +1178,7 @@ namespace MaJiangLib
                     }
                     else
                     {   // 目前设定十三面的听牌为z8,标志其听牌为所有幺九牌
-                        successPais[new(Color.Honor, 8)] = new()
+                        successTiles[new(Color.Honor, 8)] = new()
                         {
                             new Group(GroupType.Triple, Color.Honor, new()
                             {
@@ -1191,39 +1196,39 @@ namespace MaJiangLib
         /// <summary>
         /// 用于判断七对子的单独方法,由于算法的设计优先考虑面子而非雀头,七对子若包含一杯口则会被看做四个对子和两个顺子,因此分开讨论
         /// </summary>
-        /// <param name="calPaiList"></param>
-        /// <param name="pai"></param>
+        /// <param name="calTileList"></param>
+        /// <param name="tile"></param>
         /// <returns></returns>
-        public static bool SevenPairJudge(List<Pai> calPaiList, out Pai pai, out List<Group> groups)
+        public static bool SevenPairJudge(List<Tile> calTileList, out Tile tile, out List<Group> groups)
         {
             int pairCount = 0;
-            bool haveSinglePai = false;
-            pai = calPaiList[0];  // 一定会被赋值,仅用于占位
+            bool haveSingleTile = false;
+            tile = calTileList[0];  // 一定会被赋值,仅用于占位
             groups = new();
-            for (int i = 0; i < calPaiList.Count - 1; i++)
+            for (int i = 0; i < calTileList.Count - 1; i++)
             {
-                if (i < calPaiList.Count - 2)
+                if (i < calTileList.Count - 2)
                 {
-                    if (calPaiList[i] == calPaiList[i + 1] && calPaiList[i] == calPaiList[i + 2])
+                    if (calTileList[i] == calTileList[i + 1] && calTileList[i] == calTileList[i + 2])
                     {
                         // 如果存在三张相同的牌,直接退出,避免龙七对
                         return false;
                     }
                 }
                 // 存在前后相同的牌,对子数+1且序号+1
-                if (calPaiList[i] == calPaiList[i + 1])
+                if (calTileList[i] == calTileList[i + 1])
                 {
-                    groups.Add(new(GroupType.Pair, calPaiList[i].Color, new() { calPaiList[i], calPaiList[i + 1] }));
+                    groups.Add(new(GroupType.Pair, calTileList[i].Color, new() { calTileList[i], calTileList[i + 1] }));
                     pairCount++;
                     i++;
                 }
-                else if (!haveSinglePai)
+                else if (!haveSingleTile)
                 {
                     // 如果下一张牌和当前牌不一样且目前没有存储的单张,存储当前牌为待听牌
-                    pai = calPaiList[i];
-                    haveSinglePai = true;
+                    tile = calTileList[i];
+                    haveSingleTile = true;
                 }
-                else if (haveSinglePai)
+                else if (haveSingleTile)
                 {
                     // 在已有一张孤张的情况下又出现一张,直接退出
                     return false;
@@ -1231,13 +1236,13 @@ namespace MaJiangLib
             }
             if (pairCount == 6)
             {
-                if (!haveSinglePai)
+                if (!haveSingleTile)
                 {
                     // 如果遍历完毕后仍没有单张,则说明单张为最后一张
-                    pai = calPaiList[12];
+                    tile = calTileList[12];
                 }
-                groups.Add(new(GroupType.Pair, pai.Color, new() { pai, pai }));
-                // 如果haveSinglePai为True,一定会在上述循环中赋值
+                groups.Add(new(GroupType.Pair, tile.Color, new() { tile, tile }));
+                // 如果haveSingleTile为True,一定会在上述循环中赋值
                 return true;
             }
             else  // 兜底,正常情况下不会走到这里
@@ -1722,6 +1727,39 @@ namespace MaJiangLib
                 }
             }
             return list;
+        }
+        #endregion
+
+        #region *测试方法*
+        public static bool TestTenhe()
+        {
+            List<Tile> tiles = RandomCardGenerator(out int rand, true, true, true,new());
+            List<Tile> chooseTiles = tiles.GetRange(0, 14);
+            HandTile handTile = new();
+            handTile.HandTileList = chooseTiles;
+            handTile.SingleTile = chooseTiles[13];
+            handTile.HandTileList.RemoveAt(13);
+            handTile.PlayerNumber = 1;
+            
+            if (TenpaiJudge(handTile, out var successTiles))
+            {
+                NetworkControl.WriteDebug(handTile.HandTileList);
+                return true;
+            }
+            return false;
+        }
+        public static void MainTastTenhe()
+        {
+            int count = 0;
+            for (int i = 0; i < 100; i++)
+            {
+
+                if (TestTenhe())
+                {
+                    count++;
+                }
+            }
+            NetworkControl.WriteDebug(count);
         }
         #endregion
     }

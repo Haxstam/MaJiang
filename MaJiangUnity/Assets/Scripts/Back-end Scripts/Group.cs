@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
@@ -13,28 +13,28 @@ namespace MaJiangLib
         /// </summary>
         /// <param name="groupType">面子类型</param>
         /// <param name="color">面子花色</param>
-        /// <param name="pais">面子的牌</param>
-        public Group(GroupType groupType, Color color, List<Pai> pais)
+        /// <param name="tiles">面子的牌</param>
+        public Group(GroupType groupType, Color color, List<Tile> tiles)
         {
             GroupType = groupType;
             Color = color;
-            Pais = pais;
+            Tiles = tiles;
         }
         /// <summary>
-        /// 副露的构造器,需要面子类型,花色,鸣牌来源及组成面子的手里的牌和别家的牌,在创建时Pais不包含所鸣之牌,创建后将副露牌添加进Pais的末尾
+        /// 副露的构造器,需要面子类型,花色,鸣牌来源及组成面子的手里的牌和别家的牌,在创建时Tiles不包含所鸣之牌,创建后将副露牌添加进Tiles的末尾
         /// </summary>
         /// <param name="groupType">面子类型</param>
         /// <param name="color">花色</param>
-        /// <param name="pais">自己手中的牌的列表,输入要求不包含所鸣牌</param>
+        /// <param name="tiles">自己手中的牌的列表,输入要求不包含所鸣牌</param>
         /// <param name="player">所鸣牌的来源</param>
-        /// <param name="singlePai">所鸣的牌</param>
-        public Group(GroupType groupType, Color color, List<Pai> pais, int player, Pai singlePai)
+        /// <param name="singleTile">所鸣的牌</param>
+        public Group(GroupType groupType, Color color, List<Tile> tiles, int player, Tile singleTile)
         {
             GroupType = groupType;
             Color = color;
-            Pais = pais;
-            Pais.Add(singlePai);
-            SinglePai = singlePai;
+            Tiles = tiles;
+            Tiles.Add(singleTile);
+            SingleTile = singleTile;
             FuluSource = player;
         }
         /// <summary>
@@ -44,7 +44,7 @@ namespace MaJiangLib
         /// <summary>
         /// 组成面子的牌的列表
         /// </summary>
-        public List<Pai> Pais { get; set; }
+        public List<Tile> Tiles { get; set; }
         /// <summary>
         /// 面子花色
         /// </summary>
@@ -56,7 +56,7 @@ namespace MaJiangLib
         /// <summary>
         /// 所鸣的单牌,仅用于副露下的面子
         /// </summary>
-        public Pai SinglePai { get; set; }
+        public Tile SingleTile { get; set; }
         /// <summary>
         /// 在役种判断中对刻子的判断较繁琐,通过该属性简化,当为刻子或杠子时,返回True
         /// </summary>
@@ -78,15 +78,15 @@ namespace MaJiangLib
             string str = "";
             if (GroupType == GroupType.Triple)
             {
-                str = str + Pais[0].ToString() + Pais[0].ToString() + Pais[0].ToString();
+                str = str + Tiles[0].ToString() + Tiles[0].ToString() + Tiles[0].ToString();
             }
             else if (GroupType == GroupType.Pair)
             {
-                str = str + Pais[0].ToString() + Pais[0].ToString();
+                str = str + Tiles[0].ToString() + Tiles[0].ToString();
             }
             else
             {
-                str = str + Pais[0].ToString() + Pais[1].ToString() + Pais[2].ToString();
+                str = str + Tiles[0].ToString() + Tiles[1].ToString() + Tiles[2].ToString();
             }
             return str;
         }
@@ -98,7 +98,7 @@ namespace MaJiangLib
         /// <returns></returns>
         public static bool operator ==(Group a, Group b)
         {
-            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Pais[0] == b.Pais[0] && a.SinglePai == b.SinglePai)
+            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Tiles[0] == b.Tiles[0] && a.SingleTile == b.SingleTile)
             {
                 return true;
             }
@@ -115,7 +115,7 @@ namespace MaJiangLib
         /// <returns></returns>
         public static bool operator !=(Group a, Group b)
         {
-            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Pais[0] == b.Pais[0])
+            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Tiles[0] == b.Tiles[0])
             {
                 return false;
             }
@@ -130,13 +130,13 @@ namespace MaJiangLib
         /// <param name="group"></param>
         public static implicit operator byte[](Group group)
         {
-            // 1 byte(GroupType) + 1 byte(Color) + 1 byte(FuluSource) + 1 byte 留白 + 2 bytes(SinglePai) + 8 bytes(Pais) = 14 bytes
+            // 1 byte(GroupType) + 1 byte(Color) + 1 byte(FuluSource) + 1 byte 留白 + 2 bytes(SingleTile) + 8 bytes(Tiles) = 14 bytes
             Span<byte> mainBytes = new byte[14];
             mainBytes[0] = (byte)group.GroupType;
             mainBytes[1] = (byte)group.Color;
             mainBytes[2] = (byte)group.FuluSource;
-            ReplaceBytes(mainBytes, group.SinglePai, 4);
-            ReplaceBytes(mainBytes, ListToBytes(group.Pais), 6);
+            ReplaceBytes(mainBytes, group.SingleTile, 4);
+            ReplaceBytes(mainBytes, ListToBytes(group.Tiles), 6);
             return mainBytes.ToArray();
         }
         public byte[] GetBytes() => this;
@@ -148,9 +148,9 @@ namespace MaJiangLib
             Color color = (Color)shortBytes[1];
             int fuluSource = shortBytes[2];
             
-            Pai singlePai = Pai.StaticBytesTo(shortBytes, 4);
-            List<Pai> pais = BytesToList<Pai>(shortBytes, 6, 4);
-            return new(groupType, color, pais, fuluSource, singlePai);
+            Tile singleTile = Tile.StaticBytesTo(shortBytes, 4);
+            List<Tile> tiles = BytesToList<Tile>(shortBytes, 6, 4);
+            return new(groupType, color, tiles, fuluSource, singleTile);
         }
         public Group BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
         public override bool Equals(object obj)
@@ -168,11 +168,11 @@ namespace MaJiangLib
         public override int GetHashCode()
         {
             HashCode listHash = new();
-            foreach (Pai listPai in Pais)
+            foreach (Tile listTile in Tiles)
             {
-                listHash.Add(listPai.GetHashCode());
+                listHash.Add(listTile.GetHashCode());
             }
-            return HashCode.Combine(GroupType, listHash.ToHashCode(), Color, FuluSource, SinglePai);
+            return HashCode.Combine(GroupType, listHash.ToHashCode(), Color, FuluSource, SingleTile);
         }
     }
 

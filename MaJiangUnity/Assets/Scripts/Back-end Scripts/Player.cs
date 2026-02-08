@@ -3,12 +3,12 @@ using System;
 using static MaJiangLib.GlobalFunction;
 
 /// <summary>
-/// Íæ¼ÒµÄÀà,µ±¿ªÊ¼¶Ô¾ÖÊ±,¾Í»áÎªÃ¿¸öÍæ¼Ò´´½¨Õâ¸öÀà
+/// ç©å®¶çš„ç±»,å½“å¼€å§‹å¯¹å±€æ—¶,å°±ä¼šä¸ºæ¯ä¸ªç©å®¶åˆ›å»ºè¿™ä¸ªç±»
 /// </summary>
 public class Player : IPlayerInformation, IByteable<Player>
 {
     /// <summary>
-    /// ¾­ÓÉÍæ¼ÒÍâÏÔĞÅÏ¢´´½¨Íæ¼Ò¸öÈËĞÅÏ¢,ÓÃÓÚÓÃ»§¶Ë´´½¨¶Ô¾ÖĞÅÏ¢
+    /// ç»ç”±ç©å®¶å¤–æ˜¾ä¿¡æ¯åˆ›å»ºç©å®¶ä¸ªäººä¿¡æ¯,ç”¨äºç”¨æˆ·ç«¯åˆ›å»ºå¯¹å±€ä¿¡æ¯
     /// </summary>
     /// <param name="playerInformation"></param>
     public Player(IPlayerInformation playerInformation)
@@ -18,33 +18,42 @@ public class Player : IPlayerInformation, IByteable<Player>
         Point = playerInformation.Point;
         CurrentStageType = playerInformation.CurrentStageType;
     }
+    public Player(UserProfile playerProfile, int playerNumber, int point, HandTile handTile, StageType currentStageType)
+    {
+        PlayerProfile = playerProfile;
+        PlayerNumber = playerNumber;
+        Point = point;
+        PlayerHandTile = handTile;
+        CurrentStageType = currentStageType;
+    }
+
     public Player()
     {
 
     }
-    // Íæ¼ÒÀàÄÚ´æ´¢½öÍæ¼Ò±¾ÈË¿É¼ûºÍ¿É²Ù×÷µÄ³ÉÔ±ºÍ½»»¥ÓÃ³ÉÔ±
+    // ç©å®¶ç±»å†…å­˜å‚¨ä»…ç©å®¶æœ¬äººå¯è§å’Œå¯æ“ä½œçš„æˆå‘˜å’Œäº¤äº’ç”¨æˆå‘˜
     /// <summary>
-    /// Íæ¼Ò±¾ÉíµÄÓÃ»§ĞÅÏ¢
+    /// ç©å®¶æœ¬èº«çš„ç”¨æˆ·ä¿¡æ¯
     /// </summary>
     public UserProfile PlayerProfile { get; set; }
     /// <summary>
-    /// Íæ¼Ò±àºÅ,Ò²¼´×ù´Î,ÒÔ¶«Ò»Ê±µÄ¶«¼ÒÎª0
+    /// ç©å®¶ç¼–å·,ä¹Ÿå³åº§æ¬¡,ä»¥ä¸œä¸€æ—¶çš„ä¸œå®¶ä¸º0
     /// </summary>
     public int PlayerNumber { get; set; }
     /// <summary>
-    /// Íæ¼ÒÊ£ÓàµãÊı
+    /// ç©å®¶å‰©ä½™ç‚¹æ•°
     /// </summary>
     public int Point { get; set; }
     /// <summary>
-    /// Íæ¼ÒÊÖÅÆ
+    /// ç©å®¶æ‰‹ç‰Œ
     /// </summary>
-    public ShouPai ShouPai { get; set; }
+    public HandTile PlayerHandTile { get; set; }
     /// <summary>
-    /// Íæ¼Òµ±Ç°×´Ì¬
+    /// ç©å®¶å½“å‰çŠ¶æ€
     /// </summary>
     public StageType CurrentStageType { get; set; }
     /// <summary>
-    /// Íæ¼Ò²Ù×÷µÄĞĞÎªÑ¡Ôñ
+    /// ç©å®¶æ“ä½œçš„è¡Œä¸ºé€‰æ‹©
     /// </summary>
     /// <param name="playerActionData"></param>
     /// <returns></returns>
@@ -57,13 +66,13 @@ public class Player : IPlayerInformation, IByteable<Player>
     public int ByteSize { get=> byteSize; }
     public static implicit operator byte[](Player player)
     {
-        // 96 bytes PlayerProfile + 1 byte PlayerNumber + 1 byte CurrentStageType + 18 bytes Áô¿Õ + 4 bytes Point + 96 bytes ShouPai = 216 bytes
+        // 96 bytes PlayerProfile + 1 byte PlayerNumber + 1 byte CurrentStageType + 18 bytes ç•™ç©º + 4 bytes Point + 96 bytes HandTile = 216 bytes
         Span<byte> MainBytes = new byte[216];
         ReplaceBytes(MainBytes, player.PlayerProfile, 0);
         MainBytes[96] = (byte)player.PlayerNumber;
         MainBytes[97] = (byte)player.CurrentStageType;
         ReplaceBytes(MainBytes, BitConverter.GetBytes(player.Point), 116);
-        ReplaceBytes(MainBytes, player.ShouPai, 120);
+        ReplaceBytes(MainBytes, player.PlayerHandTile, 120);
         return MainBytes.ToArray();
     }
     public static Player StaticBytesTo(byte[] bytes, int index = 0)
@@ -75,7 +84,7 @@ public class Player : IPlayerInformation, IByteable<Player>
         player.PlayerNumber = shortBytes[96];
         player.CurrentStageType = (StageType)shortBytes[97];
         player.Point = BitConverter.ToInt32(shortBytes, 116);
-        player.ShouPai = ShouPai.StaticBytesTo(shortBytes, 120);
+        player.PlayerHandTile = HandTile.StaticBytesTo(shortBytes, 120);
         return player;
     }
     public Player BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);

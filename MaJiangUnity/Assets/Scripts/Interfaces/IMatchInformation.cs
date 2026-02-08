@@ -1,4 +1,4 @@
-﻿using JetBrains.Annotations;
+using JetBrains.Annotations;
 using System.Collections.Generic;
 
 namespace MaJiangLib
@@ -15,15 +15,15 @@ namespace MaJiangLib
         /// <summary>
         /// 弃牌堆,存储所有人的弃牌,第0所对应的玩家为东一场的亲家
         /// </summary>
-        public List<List<Pai>> QiPaiList { get; set; }
+        public List<List<Tile>> DiscardTileList { get; set; }
         /// <summary>
         /// 宝牌指示牌列表,存储所有已被展示的宝牌指示牌
         /// </summary>
-        public List<Pai> DoraList { get; set; }
+        public List<Tile> DoraList { get; set; }
         /// <summary>
         /// 里宝牌列表,暂时放在这里
         /// </summary>
-        public List<Pai> UraDoraList { get; set; }
+        public List<Tile> UraDoraList { get; set; }
         /// <summary>
         /// 目前开杠的数量
         /// </summary>
@@ -59,7 +59,7 @@ namespace MaJiangLib
         /// <summary>
         /// 剩余牌的数目,用于判断河底海底等
         /// </summary>
-        public int RemainPaiCount { get; set; }
+        public int RemainTileCount { get; set; }
         /// <summary>
         /// 一发的判断,某人立直后设定其序号对应的为True,有人鸣牌或其本人再打出一张后设定为False
         /// </summary>
@@ -87,8 +87,8 @@ namespace MaJiangLib
         /// <summary>
         /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
         /// </summary>
-        public List<List<Group>> PlayerFuluList { get; set; }
-        public Pai CurrentPai { get; set; }
+        public List<List<Group>> PlayerOpenSetList { get; set; }
+        public Tile CurrentTile { get; set; }
         public MatchSettingData MatchSettingData { get; set; }
     }
 }

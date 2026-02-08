@@ -8,38 +8,38 @@ using static MaJiangLib.GlobalFunction;
 namespace MaJiangLib
 {
     /// <summary>
-    /// ÍøÂç°üÖÆ×÷/½â°üÆ÷,ÓÃÓÚÍøÂç½»»¥
+    /// ç½‘ç»œåŒ…åˆ¶ä½œ/è§£åŒ…å™¨,ç”¨äºç½‘ç»œäº¤äº’
     /// </summary>
     public static class PackCoder
     {
-        /* 1. °ü´óĞ¡¹Ì¶¨Îª1KiB,¼´1024B.Õâ·½Ãæ¿¼ÂÇ¼ò±ãÖ±½ÓËø¶¨°ü´óĞ¡,±ÜÃâ¶ÁÈ¡Ê±ÅĞ¶Ï°üÍ·Î²ºÍÑ­»·¶ÁÈ¡µÄÎÊÌâ
-         * 2. °ü½á¹¹
-         * (1) 8   bytes [0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50] "\u0002HaxMajP" Êı¾İ°üÍ·ÌØ¶¨±êÊ¶,UTF-8±àÂë,Ê×Î»ÎªSTX(0x02)´Ó¶ø±ÜÃâ°üÍ·ÎóÅĞ
-         * (2) 8   bytes UnixºÁÃëÊ±¼ä´Á,longÀàĞÍ
-         * (3) 4   bytes °üÀ´Ô´IPµØÖ·,ÎªIPv4µØÖ·ÀàĞÍ
-         * (4) 48  bytes °üÀ´Ô´ÓÃ»§Ãû,ÎªstringÀàĞÍ,UTF-8±àÂë,ÏŞ¶¨×î³¤Îª12×Ö·û,Èç¹û²»×ãÔò²¹0
-         * (5) 4   bytes °æ±¾ºÅ([TODO]Ôİ¿Õ,Î´ÊµÏÖ)
-         * (7) 16  bytes MD5Ğ£Ñé
-         * (6) 16  bytes Áô¿Õ
-         * (8) 912 bytes °üÖ÷ÒªÊı¾İ²¿·Ö(ÆğÊ¼ÓÚµÚ104´¦)
-         * (9) 8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" Êı¾İ°ü½áÊøÌØ¶¨±êÊ¶,UTF-8±àÂë,Ê×Î»ÎªETX(0x03)´Ó¶ø±ÜÃâ°üÎ²ÎóÅĞ
+        /* 1. åŒ…å¤§å°å›ºå®šä¸º1KiB,å³1024B.è¿™æ–¹é¢è€ƒè™‘ç®€ä¾¿ç›´æ¥é”å®šåŒ…å¤§å°,é¿å…è¯»å–æ—¶åˆ¤æ–­åŒ…å¤´å°¾å’Œå¾ªç¯è¯»å–çš„é—®é¢˜
+         * 2. åŒ…ç»“æ„
+         * (1) 8   bytes [0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50] "\u0002HaxMajP" æ•°æ®åŒ…å¤´ç‰¹å®šæ ‡è¯†,UTF-8ç¼–ç ,é¦–ä½ä¸ºSTX(0x02)ä»è€Œé¿å…åŒ…å¤´è¯¯åˆ¤
+         * (2) 8   bytes Unixæ¯«ç§’æ—¶é—´æˆ³,longç±»å‹
+         * (3) 4   bytes åŒ…æ¥æºIPåœ°å€,ä¸ºIPv4åœ°å€ç±»å‹
+         * (4) 48  bytes åŒ…æ¥æºç”¨æˆ·å,ä¸ºstringç±»å‹,UTF-8ç¼–ç ,é™å®šæœ€é•¿ä¸º12å­—ç¬¦,å¦‚æœä¸è¶³åˆ™è¡¥0
+         * (5) 4   bytes ç‰ˆæœ¬å·([TODO]æš‚ç©º,æœªå®ç°)
+         * (7) 16  bytes MD5æ ¡éªŒ
+         * (6) 16  bytes ç•™ç©º
+         * (8) 912 bytes åŒ…ä¸»è¦æ•°æ®éƒ¨åˆ†(èµ·å§‹äºç¬¬104å¤„)
+         * (9) 8   bytes [0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B]"\u0003EndPack" æ•°æ®åŒ…ç»“æŸç‰¹å®šæ ‡è¯†,UTF-8ç¼–ç ,é¦–ä½ä¸ºETX(0x03)ä»è€Œé¿å…åŒ…å°¾è¯¯åˆ¤
          * 
-         * 3. °ü²»¿¼ÂÇĞ£Ñé,Èç¹û×Ó°üÃ»ÓĞ×ã¹»¿Õ¼ä¾ÍÔÙ¿ªÒ»¸ö°ü.
-         * 4. Ä¬ÈÏÖÆ×÷Êı¾İ°üÊ±ÏÈÍ¨¹ıEmptyPack()»ñÈ¡Ò»¸ö¿Õ°üÔÙ¼Ó¹¤
-         * 5. ¶ÔÓÚ°üÄÚÖ÷ÒªÊı¾İ²¿·ÖµÄÄÚÈİ,ËùÓĞÀàĞÍµÄÄÚÈİ±ØĞë±ê×¢Æä±¾ÉíµÄ×Ü´óĞ¡²¢¾ßÓĞÒ»¸ö±êÊ¶,´Ó¶øÊ¹µÃµ¥¸ö°üÄÚ¿ÉÒÔ´æ´¢¶à¸öĞÅÏ¢
+         * 3. åŒ…ä¸è€ƒè™‘æ ¡éªŒ,å¦‚æœå­åŒ…æ²¡æœ‰è¶³å¤Ÿç©ºé—´å°±å†å¼€ä¸€ä¸ªåŒ….
+         * 4. é»˜è®¤åˆ¶ä½œæ•°æ®åŒ…æ—¶å…ˆé€šè¿‡EmptyPack()è·å–ä¸€ä¸ªç©ºåŒ…å†åŠ å·¥
+         * 5. å¯¹äºåŒ…å†…ä¸»è¦æ•°æ®éƒ¨åˆ†çš„å†…å®¹,æ‰€æœ‰ç±»å‹çš„å†…å®¹å¿…é¡»æ ‡æ³¨å…¶æœ¬èº«çš„æ€»å¤§å°å¹¶å…·æœ‰ä¸€ä¸ªæ ‡è¯†,ä»è€Œä½¿å¾—å•ä¸ªåŒ…å†…å¯ä»¥å­˜å‚¨å¤šä¸ªä¿¡æ¯
          * 
-         * 7. Íæ¼Ò²Ù×÷´«Êä½ö´«ÊäÆäËù×ö³öµÄ²Ù×÷,¶ÔÓÚÍæ¼ÒÄÜ·ñ½øĞĞÄÄĞ©²Ù×÷ÔòÊÇÍæ¼Ò±¾µØ¿Í»§¶Ë/·şÎñ¶ËÍ¬²½½øĞĞ¼ÆËã,·şÎñ¶ËÔÚÈ·¶¨²Ù×÷ºÏ¹æÊ±ÔÙ½øĞĞ
-         * 8. [TODO] ¿¼ÂÇĞŞ¸ÄÎª¹¤³§ĞÎÊ½,ÖØ¹¹°üÉú³É¹ı³Ì
+         * 7. ç©å®¶æ“ä½œä¼ è¾“ä»…ä¼ è¾“å…¶æ‰€åšå‡ºçš„æ“ä½œ,å¯¹äºç©å®¶èƒ½å¦è¿›è¡Œå“ªäº›æ“ä½œåˆ™æ˜¯ç©å®¶æœ¬åœ°å®¢æˆ·ç«¯/æœåŠ¡ç«¯åŒæ­¥è¿›è¡Œè®¡ç®—,æœåŠ¡ç«¯åœ¨ç¡®å®šæ“ä½œåˆè§„æ—¶å†è¿›è¡Œ
+         * 8. [TODO] è€ƒè™‘ä¿®æ”¹ä¸ºå·¥å‚å½¢å¼,é‡æ„åŒ…ç”Ÿæˆè¿‡ç¨‹
          * 
-         * 9. ¶ÔÓÚ¶Ô¾ÖĞÅÏ¢,Ä¿Ç°Éè¶¨ÊÇ¶ÔÓÚMainMatchControl,ÆäÓĞÒ»¸öÍêÈ«×ª»»ÎªByte[]µÄ·½·¨,µ«ÒòÎªĞÅÏ¢ºÜ¶à¹Ê±ÜÃâÊ¹ÓÃ´Ë·½·¨
-         *    ¶Ô¾ÖĞÅÏ¢µÄ¸üĞÂÊÇ°´ÕÕµ¥´ÎĞĞÎªÔÚ±¾µØµÄÑİËãÀ´»ñÈ¡µÄ,·şÎñÆ÷ºÍÓÃ»§¶ËÖ®¼äµÄ¶Ô¾ÖĞÅÏ¢Í¬²½Ôò¾¡¿ÉÄÜ±ÜÃâ
+         * 9. å¯¹äºå¯¹å±€ä¿¡æ¯,ç›®å‰è®¾å®šæ˜¯å¯¹äºMainMatchControl,å…¶æœ‰ä¸€ä¸ªå®Œå…¨è½¬æ¢ä¸ºByte[]çš„æ–¹æ³•,ä½†å› ä¸ºä¿¡æ¯å¾ˆå¤šæ•…é¿å…ä½¿ç”¨æ­¤æ–¹æ³•
+         *    å¯¹å±€ä¿¡æ¯çš„æ›´æ–°æ˜¯æŒ‰ç…§å•æ¬¡è¡Œä¸ºåœ¨æœ¬åœ°çš„æ¼”ç®—æ¥è·å–çš„,æœåŠ¡å™¨å’Œç”¨æˆ·ç«¯ä¹‹é—´çš„å¯¹å±€ä¿¡æ¯åŒæ­¥åˆ™å°½å¯èƒ½é¿å…
          *    
-         * 10.Pai 2 bytes
-         *    Group(Pai) 14 bytes
-         *    PlayActionData(Pai) 16 bytes
-         *    ShouPai(Pai, Group) 96 bytes
+         * 10.Tile 2 bytes
+         *    Group(Tile) 14 bytes
+         *    PlayActionData(Tile) 16 bytes
+         *    HandTile(Tile, Group) 96 bytes
          *    PlayerProfile 96 bytes
-         *    Player(ShouPai, PlayerProfile) 216 bytes
+         *    Player(HandTile, PlayerProfile) 216 bytes
          */
 
         public static string PackHeadStr { get; } = "\u0002HaxMajP";
@@ -49,15 +49,15 @@ namespace MaJiangLib
         public static int PackSize { get; } = 1024;
         public static int PackEndIndex { get; } = 1016;
         /// <summary>
-        /// ÑÓ³Ù,½öTcpClinetÔÚ´¦Àí°üÊ±±»ĞŞ¸Ä,µ¥Î»ÎªºÁÃë
+        /// å»¶è¿Ÿ,ä»…TcpClinetåœ¨å¤„ç†åŒ…æ—¶è¢«ä¿®æ”¹,å•ä½ä¸ºæ¯«ç§’
         /// </summary>
         public static double Ping { get; set; }
         
         /// <summary>
-        /// ÓÃÓÚÅĞ¶Ï°üÊÇ·ñºÏ·¨(°üÍ·Î²ÕıÈ·,´óĞ¡ÕıÈ·),Èç¹ûºÏ·¨Ôò·µ»ØTrue,·´Ö®Ôò·µ»ØFalse
+        /// ç”¨äºåˆ¤æ–­åŒ…æ˜¯å¦åˆæ³•(åŒ…å¤´å°¾æ­£ç¡®,å¤§å°æ­£ç¡®),å¦‚æœåˆæ³•åˆ™è¿”å›True,åä¹‹åˆ™è¿”å›False
         /// </summary>
         /// <param name="pack"></param>
-        /// <returns>Èç¹ûºÏ·¨Ôò·µ»ØTrue,·´Ö®Ôò·µ»ØFalse</returns>
+        /// <returns>å¦‚æœåˆæ³•åˆ™è¿”å›True,åä¹‹åˆ™è¿”å›False</returns>
         public static bool IsLegalPack(byte[] pack)
         {
             if (pack.Length == PackSize)
@@ -103,10 +103,10 @@ namespace MaJiangLib
             }
         }
         /// <summary>
-        /// ¿Õ°üÉú³É·½·¨,ĞèÒªÓÃ»§Ãû,×ÔÉíIPv4µØÖ·
+        /// ç©ºåŒ…ç”Ÿæˆæ–¹æ³•,éœ€è¦ç”¨æˆ·å,è‡ªèº«IPv4åœ°å€
         /// </summary>
-        /// <param name="senderName">×ÔÉíÓÃ»§Ãû</param>
-        /// <param name="iPAddress">×ÔÉíIPv4µØÖ·</param>
+        /// <param name="senderName">è‡ªèº«ç”¨æˆ·å</param>
+        /// <param name="iPAddress">è‡ªèº«IPv4åœ°å€</param>
         /// <returns></returns>
         [Obsolete]
         public static byte[] EmptyPack(string senderName, IPAddress iPAddress)
@@ -122,7 +122,7 @@ namespace MaJiangLib
         [Obsolete]
         public static byte[] RoomWordPack(byte[] pack, string word, int roomNumber)
         {
-            // Í·±êÊ¶"_RW_" 4 bytes + ·¿¼äºÅ(int) 4 bytes + ×ÓÄÚÈİ´óĞ¡(int) 4 bytes + ÄÚÈİ
+            // å¤´æ ‡è¯†"_RW_" 4 bytes + æˆ¿é—´å·(int) 4 bytes + å­å†…å®¹å¤§å°(int) 4 bytes + å†…å®¹
             byte[] signalByte = Encoding.UTF8.GetBytes("_RW_");
             byte[] roomNumberByte = BitConverter.GetBytes(roomNumber);
             byte[] wordByte = Encoding.UTF8.GetBytes(word);
@@ -133,15 +133,15 @@ namespace MaJiangLib
             return pack;
         }
         /// <summary>
-        /// "_PA_" Íæ¼Ò½øĞĞ²Ù×÷Ê±Ëù·¢ËÍµÄ²Ù×÷×Ó°ü,Ò»°ãÇé¿öÏÂ³¤¶ÈÎª40bytes
+        /// "_PA_" ç©å®¶è¿›è¡Œæ“ä½œæ—¶æ‰€å‘é€çš„æ“ä½œå­åŒ…,ä¸€èˆ¬æƒ…å†µä¸‹é•¿åº¦ä¸º40bytes
         /// </summary>
-        /// <param name="pack">´ı¼Ó¹¤°ü</param>
-        /// <param name="playerActionData">Íæ¼ÒËù½øĞĞµÄ²Ù×÷</param>
+        /// <param name="pack">å¾…åŠ å·¥åŒ…</param>
+        /// <param name="playerActionData">ç©å®¶æ‰€è¿›è¡Œçš„æ“ä½œ</param>
         /// <returns></returns>
         [Obsolete]
         public static byte[] PlayerActionPack(byte[] pack, PlayerActionData playerActionData)
         {
-            // Í·±êÊ¶"_PA_" 4 bytes + ×ÓÄÚÈİ´óĞ¡(int) 4 bytes + Íæ¼Ò²Ù×÷ 16 bytes
+            // å¤´æ ‡è¯†"_PA_" 4 bytes + å­å†…å®¹å¤§å°(int) 4 bytes + ç©å®¶æ“ä½œ 16 bytes
             byte[] signalByte = Encoding.UTF8.GetBytes("_PA_");
             byte[] playerActionByte = playerActionData.GetBytes();
             int length = signalByte.Length + playerActionByte.Length + 4;
@@ -151,7 +151,7 @@ namespace MaJiangLib
             return pack;
         }
         /// <summary>
-        /// "_IN_" ³õÊ¼»¯°ü,°üº¬¶Ô¾Ö¿ªÊ¼Ê±ÆğÊ¼ÊÖÅÆµÄÊı¾İ
+        /// "_IN_" åˆå§‹åŒ–åŒ…,åŒ…å«å¯¹å±€å¼€å§‹æ—¶èµ·å§‹æ‰‹ç‰Œçš„æ•°æ®
         /// </summary>
         /// <returns></returns>
         [Obsolete]
@@ -161,10 +161,10 @@ namespace MaJiangLib
             return new byte[0];
         }
         /// <summary>
-        /// "_MD_" ¶Ô¾ÖĞÅÏ¢°ü,Êä³ö±¾³¡±ÈÈüËùÓĞµÄ¹«¹²Êı¾İÓÃÓÚÍ¬²½
+        /// "_MD_" å¯¹å±€ä¿¡æ¯åŒ…,è¾“å‡ºæœ¬åœºæ¯”èµ›æ‰€æœ‰çš„å…¬å…±æ•°æ®ç”¨äºåŒæ­¥
         /// </summary>
-        /// <param name="pack">³õÊ¼»¯°ü</param>
-        /// <param name="mainMatchControl">¶Ô¾ÖĞÅÏ¢</param>
+        /// <param name="pack">åˆå§‹åŒ–åŒ…</param>
+        /// <param name="mainMatchControl">å¯¹å±€ä¿¡æ¯</param>
         /// <returns></returns>
         [Obsolete]
         public static byte[] MatchDataPack(byte[] pack, MainMatchControl mainMatchControl)
@@ -177,11 +177,11 @@ namespace MaJiangLib
             return pack;
         }
         /// <summary>
-        /// "_PA_" Íæ¼ÒĞĞÎª½â°üÆ÷,ĞèÒª°ü,Êä³öÍæ¼Ò²Ù×÷Êı¾İºÍÊÇ·ñ³É¹¦
+        /// "_PA_" ç©å®¶è¡Œä¸ºè§£åŒ…å™¨,éœ€è¦åŒ…,è¾“å‡ºç©å®¶æ“ä½œæ•°æ®å’Œæ˜¯å¦æˆåŠŸ
         /// </summary>
-        /// <param name="pack">Òª½âµÄ°ü</param>
-        /// <param name="playerActionData">Êä³öµÄÍæ¼ÒÊı¾İÀàĞÍ</param>
-        /// <returns>Èç¹û½â°ü³É¹¦,½á¹¹ÕıÈ·Ôò·µ»ØTrue,·´Ö®·µ»ØFalse</returns>
+        /// <param name="pack">è¦è§£çš„åŒ…</param>
+        /// <param name="playerActionData">è¾“å‡ºçš„ç©å®¶æ•°æ®ç±»å‹</param>
+        /// <returns>å¦‚æœè§£åŒ…æˆåŠŸ,ç»“æ„æ­£ç¡®åˆ™è¿”å›True,åä¹‹è¿”å›False</returns>
         
     }
     
