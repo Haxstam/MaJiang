@@ -16,10 +16,6 @@ public interface IPlayerInformation
     /// </summary>
     public int PlayerNumber { get; set; }
     /// <summary>
-    /// 玩家剩余点数
-    /// </summary>
-    public int Point { get; set; }
-    /// <summary>
     /// 玩家当前状态
     /// </summary>
     public StageType CurrentStageType { get; set; }

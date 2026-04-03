@@ -19,11 +19,11 @@ namespace MaJiangLib
         /// <summary>
         /// 宝牌指示牌列表,存储所有已被展示的宝牌指示牌
         /// </summary>
-        public List<Tile> DoraList { get; set; }
+        public List<Tile> DoraPointerList { get; set; }
         /// <summary>
         /// 里宝牌列表,暂时放在这里
         /// </summary>
-        public List<Tile> UraDoraList { get; set; }
+        public List<Tile> UraDoraPointerList { get; set; }
         /// <summary>
         /// 目前开杠的数量
         /// </summary>
@@ -71,7 +71,7 @@ namespace MaJiangLib
         /// <summary>
         /// 刚摸完岭上牌的状态,拔北或开杠后设定为True,打出牌后设定为False
         /// </summary>
-        public List<bool> IsKang { get; set; }
+        public List<bool> IsKan { get; set; }
         /// <summary>
         /// 当前正进行回合的玩家,当前玩家结束阶段完毕后,转至下一玩家的舍牌阶段
         /// </summary>
@@ -83,12 +83,13 @@ namespace MaJiangLib
         /// <summary>
         /// 当前局的庄家序号
         /// </summary>
-        public int CurrentBankerIndex { get; set; }
+        public int CurrentDealerIndex { get; set; }
         /// <summary>
         /// 所有玩家副露牌的列表,用于判断流局满贯/四杠散了等情况
         /// </summary>
         public List<List<Group>> PlayerOpenSetList { get; set; }
         public Tile CurrentTile { get; set; }
         public MatchSettingData MatchSettingData { get; set; }
+        public int RiichiStickCount { get; set; }
     }
 }

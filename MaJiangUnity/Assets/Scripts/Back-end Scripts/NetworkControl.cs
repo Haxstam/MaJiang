@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using Unity.Profiling;
 using UnityEngine;
 /// <summary>
@@ -14,6 +13,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
 {
     /*
      * 1.目前包的发送如果需要Ack返回,则会通过TaskID来确定对应包确实返回了
+     * 2.目前暂时设定服务器只有四个用户连接,同时只有一个房间
      */
 
 
@@ -25,9 +25,11 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     //public static NetworkControl Instance { get; private set; }
     private void Awake()
     {
+        // 调试部分
         SelfIPAddress = IPAddress.Parse(testIPAddress);
         SelfProfile = new(testName);
         Debug.Log($"I'm {testName}");
+
     }
     // Start is called before the first frame update
     void Start()
@@ -38,6 +40,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     // Update is called once per frame
     void Update()
     {
+        // 调试部分
         if (Input.GetKeyDown(KeyCode.N))
         {
             Debug.Log("OK");
@@ -51,10 +54,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             }
             if (Input.GetKeyDown(KeyCode.Z))
             {
-                Debug.Log($"{testName} Connecting");
-                MainClient.Connect(IPAddress.Parse("127.0.0.1"), 11111);
-                ClientStream = MainClient.GetStream();
-                CurrentNetworkStatu = NetworkStatu.InRoom;
+                Connect(IPAddress.Parse("127.0.0.1"), 11111);
             }
             if (Input.GetKeyDown(KeyCode.X))
             {
@@ -74,7 +74,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             //}
         }
 
-
+        WatchTriggerUpdate();
         SignalDictionaryUpdate();
         NetworkReceiveUpdate();
     }
@@ -110,9 +110,17 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     /// <summary>
     /// 标记是否连接
     /// </summary>
-    public bool IsConnect { get; set; }
+    public bool IsConnect
+    {
+        get { return MainClient.Connected; }
+    }
+    /// <summary>
+    /// 连接用任务ID,因为连接本身的返回比较特殊,所以用
+    /// </summary>
+    public int ConnectTaskID { get; set; } = -1;
     // 表示当前将要写入缓存的位置
     int writeIndex = 0;
+    public MainMatchControl MatchControl { get; set; }
     //public void ReadUpdate()
     //{
     //    byte[] clientBuffer = ClientBuffer;
@@ -212,10 +220,13 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         int taskID = pack.TaskID;
         if (pack.PackType == PackType.Acknowledge)
         {
-            if (SignalDictionary.TryGetValue(taskID, out TaskData taskData))
+            if (SignalDictionary.TryGetValue(taskID, out var taskTrigger) && taskTrigger.IsRunning)
             {
-                taskData.TaskSolve(TaskResult.Finished);
-                SignalDictionary.Remove(taskID);
+                taskTrigger.OnActive(TaskResult.Finished);
+                if (taskTrigger.IsSingle)
+                {
+                    SignalDictionary.Remove(taskID);
+                }
             }
         }
     }
@@ -231,8 +242,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
 
         try
         {
-            // --- 1. 读取阶段：尽可能吸干 Socket 中的数据 ---
-            // 只要流里有数据，且缓冲区没满，就一直读
+            // 一直读取直到读满缓冲区
             while (ClientStream.DataAvailable && writeIndex < ClientBuffer.Length)
             {
                 int spaceLeft = ClientBuffer.Length - writeIndex;
@@ -245,43 +255,40 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
                 writeIndex += bytesRead;
             }
 
-            // --- 2. 解析阶段：循环处理缓冲区中的粘包 ---
-            // 只有数据量达到 1024（最小包长）或发现包尾标识时才有必要处理
+            // 当包尾位置大于1024则分析
             Span<byte> bufferSpan = ClientBuffer.AsSpan();
-            ReadOnlySpan<byte> endMarker = PackCoder.PackEndBytes;
+            ReadOnlySpan<byte> endMarker = Pack.PackEndBytes;
 
             while (true)
             {
-                // 搜索范围严格限制在 0 到 writeIndex 之间，避免扫到旧数据
+                // 在已写入数据的范围内进行读取
                 int matchIndex = bufferSpan.Slice(0, writeIndex).IndexOf(endMarker);
 
                 // 如果找不到包尾，说明当前数据不足以构成一个完整的包
                 if (matchIndex == -1)
                 {
-                    // 【缓冲区保护】
-                    // 如果缓冲区已经填满（约 8KB）却依然找不到 8 字节的标识符，
-                    // 说明流中全是垃圾数据或协议不匹配，直接重置防止溢出。
+                    // 已写满但还没有找到,直接清除
                     if (writeIndex >= 8100)
                     {
                         Debug.LogWarning("清理数据...");
                         writeIndex = 0;
                     }
-                    break; // 跳出解析循环，等待下一帧读取更多数据
+                    break;
                 }
 
-                // 计算该段潜在数据的总长度（包含包尾 8 字节）
+                // 计算长度
                 int endPosition = matchIndex + 8;
 
-                // 情况 A：找到标识符，且标识符前有足够的数据（>= 1024 字节）
+                // 找到包尾且大于1024
                 if (endPosition >= 1024)
                 {
-                    // 向前截取固定 1024 字节进行校验
+                    // 校验
                     int packStart = endPosition - 1024;
                     Span<byte> packCandidate = bufferSpan.Slice(packStart, 1024);
 
-                    if (PackCoder.IsLegalPack(packCandidate))
+                    if (Pack.IsLegalPack(packCandidate))
                     {
-                        // 校验成功，转交业务处理
+                        // 校验成功并处理
                         PackSolve(packCandidate.ToArray());
                     }
                     else
@@ -289,22 +296,15 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
                         Debug.LogWarning("Found end marker but packet CRC check failed.");
                     }
                 }
-                // 情况 B：找到标识符，但标识符太靠前（不足 1024 字节），判定为杂质
-
-                // --- 3. 整理阶段：数据前移 ---
-                // 无论刚才截取的包是否合法，直到 endPosition 为止的数据都已经处理过（或是垃圾）
                 // 将 endPosition 之后的所有有效数据移动到缓冲区的最前面
                 int remainingAfterProcess = writeIndex - endPosition;
                 if (remainingAfterProcess > 0)
                 {
-                    // 使用 Span 的 CopyTo 进行高效内存拷贝
                     bufferSpan.Slice(endPosition, remainingAfterProcess).CopyTo(bufferSpan);
                 }
 
                 // 更新索引位置
                 writeIndex = remainingAfterProcess;
-
-                // 继续下一轮解析，处理可能存在的后续包（粘包）
             }
         }
         catch (Exception e)
@@ -359,7 +359,73 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     /// 主对局控制
     /// </summary>
     public MatchServer MatchServer { get; set; }
+    /// <summary>
+    /// 单局对局的游戏日志,用于心跳包同步和日志记录
+    /// </summary>
+    public List<PlayerActionData> PlayerActionRecordList { get; set; } = new();
+    public int RecordIndex { get { return PlayerActionRecordList.Count; } }
+
+    public void RecordUpdate(Pack pack)
+    {
+        if (pack.PackType == PackType.HeartBeatPack)
+        {
+            int previousRecordIndex = RecordIndex;
+            bool isAdded = false;
+            List<PlayerActionData> actionData = pack.PlayerActionPackDecode(out int startIndex, out int length);
+            if (length != actionData.Count)
+            {
+                Debug.Log("传入记录包长度出现问题");
+            }
+            if (length == 0)
+            {
+                // 传入长度为0
+            }
+            if (RecordIndex < startIndex - 1)
+            {
+                // 当前记录序号小于实际序号-1,即传入记录和已有记录见存在缺失,返回同步请求
+            }
+            else if (RecordIndex == startIndex - 1)
+            {
+                // 传入序号正好为记录序号的下一位,直接将传入记录添加进已有记录之后
+                isAdded = true;
+                PlayerActionRecordList.AddRange(actionData);
+            }
+            else if (RecordIndex >= startIndex)
+            {
+                // 当前记录序号等于或大于实际序号,增加自身记录并返回收到请求
+                int offset = startIndex + length - 1 - RecordIndex;
+                if (offset <= 0)
+                {
+                    // 传入记录完全被已有记录包含,因此不做修改
+                }
+                else
+                {
+                    isAdded = true;
+                    for (int i = length - offset; i < offset; i++)
+                    {
+                        // 按偏差长度,从第一个缺少的记录依次添加进当前记录中
+                        PlayerActionRecordList.Add(actionData[i]);
+                    }
+                }
+            }
+            // 如果发送了记录修改,开始按步骤推演
+            if (isAdded)
+            {
+                for (int j = previousRecordIndex + 1; j < RecordIndex; j++)
+                {
+                    // 按顺序,依次按记录进行推演
+                    MatchControl.ActionDeduce(PlayerActionRecordList[j]);
+                }
+            }
+        }
+    }
     #region *方法*
+
+
+
+
+
+
     /// <summary>
     /// 任务ID
     /// </summary>
@@ -372,29 +438,10 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     {
         return System.Threading.Interlocked.Increment(ref taskSequenceID);
     }
-
-    public Dictionary<int, TaskData> SignalDictionary { get; set; } = new();
-    public class TaskData
-    {
-        public TaskData(Action<TaskResult> actionSolve, int timeOut = 20)
-        {
-            WaitTime = 0f;
-            TimeOut = timeOut;
-            TaskSolve = actionSolve;
-        }
-        /// <summary>
-        /// 当前等待时间
-        /// </summary>
-        public float WaitTime { get; set; }
-        /// <summary>
-        /// 超时上限
-        /// </summary>
-        public int TimeOut { get; set; }
-        /// <summary>
-        /// 完成时的回调方法
-        /// </summary>
-        public Action<TaskResult> TaskSolve { get; set; }
-    }
+    /// <summary>
+    /// 触发器计时字典
+    /// </summary>
+    public Dictionary<int, FloatTriggerBase<TaskResult>> SignalDictionary { get; set; } = new();
     /// <summary>
     /// 对信号记录的处理,每帧更新一次,用于判断方法超时时间
     /// </summary>
@@ -403,22 +450,38 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         List<int> keyList = SignalDictionary.Keys.ToList();
         foreach (int key in keyList)
         {
-            if (SignalDictionary.TryGetValue(key, out TaskData taskData))
+            if (SignalDictionary.TryGetValue(key, out var taskTrigger) && taskTrigger.IsRunning)
             {
-                taskData.WaitTime += Time.deltaTime;
-                if (taskData.WaitTime >= taskData.TimeOut)
+                // 更新时间,如果时间已达到,则触发方法
+                taskTrigger.OnUpdate(Time.deltaTime);
+                taskTrigger.OnDecide(out bool isActive);
+                if (isActive && taskTrigger.IsSingle)
                 {
-                    // 已超时,返回TimeOut并移除对应键值对
-                    taskData.TaskSolve.Invoke(TaskResult.TimeOut);
                     SignalDictionary.Remove(key);
                 }
             }
         }
     }
     /// <summary>
-    /// TODO 等待实现
+    /// 监视触发器列表,每帧循环调用
     /// </summary>
-    /// <param name="pack"></param>
+    public List<WatchTriggerBase<TaskResult, bool>> WatchTriggerList { get; set; } = new();
+    /// <summary>
+    /// 监视触发器列表的Update,调用每个触发器的检查方法
+    /// </summary>
+    public void WatchTriggerUpdate()
+    {
+        // 反序遍历
+        for (int i = WatchTriggerList.Count - 1; i >= 0; i--)
+        {
+            var trigger = WatchTriggerList[i];
+            trigger.OnDecide(out bool isActive);
+            if (isActive && trigger.IsSingle)
+            {
+                WatchTriggerList.Remove(trigger);
+            }
+        }
+    }
     public void PackSend(byte[] pack)
     {
         ClientStream.Write(pack, 0, pack.Length);
@@ -428,22 +491,82 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         Debug.Log($"{testName} Connecting");
         if (CurrentNetworkStatu == NetworkStatu.Offline)
         {
-            var cts = new CancellationTokenSource();
-
-            var a= MainClient.ConnectAsync(iPAddress, port);
-            // TODO 2026/2/6
+            CurrentNetworkStatu = NetworkStatu.Connecting;
+            int taskID = GetTaskID();
+            SignalDictionary[taskID] = new(taskID, ConnectSolve, TaskResult.TimeOut, true);
+            WatchTriggerList.Add(
+                new(
+                    id: taskID,
+                    targetMethod: ConnectSolve,
+                    result: TaskResult.Finished,
+                    getter: () => MainClient.Connected,
+                    condition: (a) => a == true,
+                    isSingle: true
+                    ));
+            MainClient.ConnectAsync(iPAddress, port);
         }
-        
-        ClientStream = MainClient.GetStream();
-        CurrentNetworkStatu = NetworkStatu.InRoom;
+        else
+        {
+            Debug.Log("必须未连接");
+        }
+    }
+    /// <summary>
+    /// 连接方法返回
+    /// </summary>
+    /// <param name="taskResult"></param>
+    public void ConnectSolve(TaskResult taskResult)
+    {
+
+        if (taskResult == TaskResult.Finished)
+        {
+            ClientStream = MainClient.GetStream();
+            PlayerDataSend();
+        }
+        else if (taskResult == TaskResult.TimeOut)
+        {
+            // 因为C# 8.0没有办法使用CancellationToken,目前通过Client.Close()来中断
+            MainClient.Close();
+            CurrentNetworkStatu = NetworkStatu.Offline;
+
+        }
+    }
+    /// <summary>
+    /// 用户数据传输,会在连接建立成功后自动调用,传输本端的基础用户数据
+    /// </summary>
+    public void PlayerDataSend()
+    {
+        if (CurrentNetworkStatu == NetworkStatu.Connecting)
+        {
+            Pack pack = new(this, out int taskID);
+            pack.ConnectRoomPack(0, SelfProfile);
+            SignalDictionary[taskID] = new(taskID, PlayerDataSendSolve, TaskResult.TimeOut, true);
+            PackSend(pack.Bytes);
+        }
+        else
+        {
+            Debug.Log("必须在连接中才可以发送玩家信息");
+        }
+    }
+    public void PlayerDataSendSolve(TaskResult taskResult)
+    {
+        if (taskResult == TaskResult.Finished)
+        {
+            // 直到此处,连接才算正式建立
+            CurrentNetworkStatu = NetworkStatu.InRoom;
+        }
+        else if (taskResult == TaskResult.TimeOut)
+        {
+            CurrentNetworkStatu = NetworkStatu.Offline;
+            MainClient.Close();
+        }
     }
     public void Ready()
     {
         if (CurrentNetworkStatu == NetworkStatu.InRoom)
         {
-            Pack pack = new(this);
+            Pack pack = new(this, out int taskID);
             pack.SignalPack(SignalType.Ready);
-            SignalDictionary[pack.TaskID] = new(ReadySolve);
+            SignalDictionary[taskID] = new(taskID, ReadySolve, TaskResult.TimeOut, true);
             CurrentNetworkStatu = NetworkStatu.ReadyWait;
             PackSend(pack.Bytes);
         }
@@ -468,9 +591,9 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     {
         if (CurrentNetworkStatu == NetworkStatu.Ready)
         {
-            Pack pack = new(this);
+            Pack pack = new(this, out int taskID);
             pack.SignalPack(SignalType.UnReady);
-            SignalDictionary[pack.TaskID] = new(UnReadySolve);
+            SignalDictionary[taskID] = new(taskID, UnReadySolve, TaskResult.TimeOut, true);
             CurrentNetworkStatu = NetworkStatu.UnReadyWait;
             PackSend(pack.Bytes);
         }
@@ -507,6 +630,7 @@ public enum SignalType : byte
     Error = 1,
     Ready,
     UnReady,
+    AcceptRoom,
     Start,
     Init,
     ActionSend,
@@ -517,6 +641,7 @@ public enum SignalType : byte
     InitAck,
     ActionSendAck,
     ActionAck,
+    NewRound,
 }
 public enum NetworkStatu
 {
@@ -592,6 +717,7 @@ public enum NetworkStatu
     /// 对局结束状态
     /// </summary>
     MainEndStage,
+    
 
     // 服务器端特有状态码
 

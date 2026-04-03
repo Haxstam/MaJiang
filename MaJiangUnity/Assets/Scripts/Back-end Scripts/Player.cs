@@ -15,14 +15,12 @@ public class Player : IPlayerInformation, IByteable<Player>
     {
         PlayerProfile = playerInformation.PlayerProfile;
         PlayerNumber = playerInformation.PlayerNumber;
-        Point = playerInformation.Point;
         CurrentStageType = playerInformation.CurrentStageType;
     }
-    public Player(UserProfile playerProfile, int playerNumber, int point, HandTile handTile, StageType currentStageType)
+    public Player(UserProfile playerProfile, int playerNumber, HandTile handTile, StageType currentStageType)
     {
         PlayerProfile = playerProfile;
         PlayerNumber = playerNumber;
-        Point = point;
         PlayerHandTile = handTile;
         CurrentStageType = currentStageType;
     }
@@ -40,10 +38,6 @@ public class Player : IPlayerInformation, IByteable<Player>
     /// 玩家编号,也即座次,以东一时的东家为0
     /// </summary>
     public int PlayerNumber { get; set; }
-    /// <summary>
-    /// 玩家剩余点数
-    /// </summary>
-    public int Point { get; set; }
     /// <summary>
     /// 玩家手牌
     /// </summary>
@@ -71,7 +65,7 @@ public class Player : IPlayerInformation, IByteable<Player>
         ReplaceBytes(MainBytes, player.PlayerProfile, 0);
         MainBytes[96] = (byte)player.PlayerNumber;
         MainBytes[97] = (byte)player.CurrentStageType;
-        ReplaceBytes(MainBytes, BitConverter.GetBytes(player.Point), 116);
+        // 116-120 空
         ReplaceBytes(MainBytes, player.PlayerHandTile, 120);
         return MainBytes.ToArray();
     }
@@ -83,7 +77,7 @@ public class Player : IPlayerInformation, IByteable<Player>
         player.PlayerProfile = UserProfile.StaticBytesTo(shortBytes, 0);
         player.PlayerNumber = shortBytes[96];
         player.CurrentStageType = (StageType)shortBytes[97];
-        player.Point = BitConverter.ToInt32(shortBytes, 116);
+        // 116-120 空
         player.PlayerHandTile = HandTile.StaticBytesTo(shortBytes, 120);
         return player;
     }

@@ -10,15 +10,16 @@ namespace MaJiangLib
     /// </summary>
     public class HandTile : ICloneable, IByteable<HandTile>
     {
-        public HandTile()
+        public HandTile(int playerNumber)
         {
-
+            PlayerNumber = playerNumber;
             HandTileList = new();
             OpenTileList = new();
+            NorthDoraCount = 0;
         }
 
         /// <summary>
-        /// 标记该手牌所属的玩家
+        /// TODO 标记该手牌所属的玩家,但此值在Player里也有存储且两者一定相等,考虑删去一个
         /// </summary>
         public int PlayerNumber { get; set; }
         /// <summary>
@@ -42,13 +43,13 @@ namespace MaJiangLib
         /// </summary>
         public bool IsClosedHand
         {
-            get { return OpenTileList.Count <= 0 || OpenTileList.All(group => group.GroupType == GroupType.AnKang); }
+            get { return OpenTileList.Count <= 0 || OpenTileList.All(group => group.GroupType == GroupType.ClosedKan); }
         }
         public const int byteSize = 96;
         public int ByteSize { get => byteSize; }
         public object Clone()
         {
-            HandTile handTile = new HandTile();
+            HandTile handTile = new HandTile(PlayerNumber);
             handTile.PlayerNumber = PlayerNumber;
             handTile.HandTileList = HandTileList.ToList();
             handTile.OpenTileList = OpenTileList.ToList();
@@ -77,9 +78,8 @@ namespace MaJiangLib
             List<Tile> handTileList = BytesToList<Tile>(shortByte, 12, 13);
             Tile singleTile = Tile.StaticBytesTo(shortByte, 38);
             List<Group> openTileList = BytesToList<Group>(shortByte, 40, 4);
-            HandTile handTile = new HandTile();
+            HandTile handTile = new HandTile(player);
             handTile.NorthDoraCount = northDoraCount;
-            handTile.PlayerNumber = player;
             handTile.HandTileList= handTileList;
             handTile.OpenTileList= openTileList;
             handTile.SingleTile = singleTile;

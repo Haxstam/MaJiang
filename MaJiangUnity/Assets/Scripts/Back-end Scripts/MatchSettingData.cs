@@ -7,7 +7,7 @@ using System.Collections.Specialized;
 public class MatchSettingData : IByteable<MatchSettingData>
 {
     /// <summary>
-    /// 默认的对局,即20+5,初始25000点,一番缚,有赤宝,有食断,无古役
+    /// 默认的四麻对局,即20+5,初始25000点,一番缚,有赤宝,有食断,无古役
     /// </summary>
     public MatchSettingData(MatchType matchType)
     {

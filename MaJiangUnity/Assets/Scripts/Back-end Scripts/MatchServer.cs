@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,14 @@ using static MaJiangLib.GlobalFunction;
 /// </summary>
 public class MatchServer : MonoBehaviour, INetworkInformation
 {
+    /* 1. 想了一圈,最后决定用心跳包和日志同步的方式处理数据同步和断线的问题
+     *    每秒服务端会向客户端发送心跳包,并附带上一秒中所有对局操作,客户端接收后返回ack
+     *    服务端和客户端各自维护一个玩家操作列表,服务端每秒更新,客户端接收到包后更新
+     *    如果服务端长时间未收到ack,或未收到的ack序号差太大,则进行差量同步,传输从ack处直到当前的所有包
+     *    如果服务端差量同步超时,则判断为断联,不再发送包,等待用户端自身主动连接
+     */
+
+
     private void Awake()
     {
         SelfIPAddress = IPAddress.Parse(testIPAddress);
@@ -34,6 +43,11 @@ public class MatchServer : MonoBehaviour, INetworkInformation
             }
             Debug.Log($"{networkStatus[0]},{networkStatus[1]},{networkStatus[2]},{networkStatus[3]}");
         }
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Debug.Log("R");
+        }
+
     }
     /// <summary>
     /// 从连接到对局顺位的映射表
@@ -84,9 +98,9 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     /// </summary>
     /// <param name="playerNumber">改变自己手牌的玩家序号</param>
     /// <returns></returns>
-    public bool TenpaiRefresh(int playerNumber)
+    public bool TenpaiUpdate(int playerNumber)
     {
-        if (GlobalFunction.TenpaiJudge(MatchControl.PlayerList[playerNumber].PlayerHandTile, out Dictionary<Tile, List<Group>> groups))
+        if (TenpaiJudge(MatchControl.PlayerList[playerNumber].PlayerHandTile, out Dictionary<Tile, List<Group>> groups))
         {
             // 听牌(不考虑是否有役种)则修改字典
             AvailableTenpaiDict[playerNumber] = groups;
@@ -117,257 +131,9 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         {
             ServerNetworkStatu = NetworkStatu.ServerInit;
 
-            FourHonbaInit();
 
         }
     }
-    /// <summary>
-    /// 四麻通用对局开始初始化:随机排序座位,初始化点数
-    /// </summary>
-    public void FourMatchInit(MatchSettingData matchSettingData)
-    {
-        MatchControl.MatchSettingData = matchSettingData;
-        MatchControl.PlayerPoint = Enumerable.Repeat(MatchControl.MatchSettingData.BasePoint, 4).ToList();
-        // 生成坐席位次
-        int[] playerOrder = new int[4] { 0, 1, 2, 3 };
-        GlobalFunction.Shuffle(playerOrder, MatchControl.Random.NextInt32());
-        int i = 0;
-        // 对连接的各个用户分配其座次,并依次提取它们的信息生成Player
-        foreach (var item in ClientBufferDictionary)
-        {
-            ClientData clientData = item.Key;
-            clientData.RelativePlayerNumber = playerOrder[i];
-            i++;
-            // 添加对应座次玩家的信息,初始化手牌和状态
-            MatchControl.PlayerList.Add(new(clientData.UserProfile, playerOrder[i], matchSettingData.BasePoint, new(), StageType.InitStage));
-        }
-        FourHonbaInit();
-    }
-    /// <summary>
-    /// 四麻通用本场初始化:生成新牌山,分配王牌,重置所有标记,但还未掀开宝牌和分发起始手牌
-    /// </summary>
-    public void FourHonbaInit()
-    {
-        MatchControl.Random = new();
-        // 牌山设定:通过随机数生成牌山,取前122张作为手牌,后14张作为王牌
-        List<Tile> rawTileList = RandomCardGenerator(out int randomNumber, true, true, true, MatchControl.Random);
-        MatchControl.PrimeTileIndex = 0;
-        MatchControl.PrimeTileList = rawTileList.GetRange(122, 14);
-        rawTileList.RemoveRange(122, 14);
-        MatchControl.MainTileList = rawTileList;
-        MatchControl.DiscardTileList = new();
-        MatchControl.DoraList = new();
-        MatchControl.UraDoraList = new();
-        MatchControl.IsRiichi = new() { false, false, false, false };
-        MatchControl.IsDoubleRiichi = new() { false, false, false, false };
-        MatchControl.IsKang = new() { false, false, false, false };
-        MatchControl.HaveIppatsu = new() { false, false, false, false };
-        MatchControl.PlayerOpenSetList = new();
-        MatchControl.FirstCycleIppatsu = true;
-        MatchControl.CurrentStageType = StageType.StartStage;
-        MatchControl.CurrentTileIndex = 0;
-        MatchControl.RemainTileCount = 122;
-        MatchControl.KangCount = 0;
-        MatchControl.KangMark = 0;
-
-    }
-    /// <summary>
-    /// 四麻庄家连庄状态下的场况更新
-    /// </summary>
-    public void FourNewHonba()
-    {
-        FourHonbaInit();
-        MatchControl.Honba++;
-    }
-    /// <summary>
-    /// 四麻庄家下庄时的场况更新
-    /// </summary>
-    public void FourNewRound()
-    {
-        FourHonbaInit();
-        MatchControl.Honba = 0;
-        if (MatchControl.Round == 4)
-        {
-            MatchControl.Wind++;
-            MatchControl.Round = 0;
-            MatchControl.CurrentBankerIndex = 0;
-            MatchControl.CurrentPlayerIndex = MatchControl.CurrentBankerIndex;
-        }
-        else
-        {
-            MatchControl.Round++;
-            MatchControl.CurrentBankerIndex++;
-            MatchControl.CurrentPlayerIndex = MatchControl.CurrentBankerIndex;
-        }
-    }
-    #endregion
-
-    #region *操作方法*
-    /// <summary>
-    /// 玩家行为解决方法,接收进行操作的玩家序号和其操作,并判断是否合理
-    /// </summary>
-    /// <param name="playerActionData"></param>
-    /// <param name="player"></param>
-    /// <returns></returns>
-    public bool PlayerActionSolve(PlayerActionData playerActionData, int player)
-    {
-        if (AvailableActionDict != null)
-        {
-            Dictionary<PlayerAction, List<PlayerActionData>> playerActionDict = AvailableActionDict[player];
-            // 列表化
-            List<PlayerActionData> actionList = playerActionDict[playerActionData.PlayerAction];
-            if (actionList.Count == 0)
-            {
-                // 根本没有对应操作,返回false
-                return false;
-            }
-            else if (actionList.Contains(playerActionData) || playerActionData.PlayerAction == PlayerAction.Skip)
-            {
-                // 如果包括所选操作或是选择跳过,返回true
-                PlayerWaitActionList[player].ChoosedAction = playerActionData.PlayerAction;
-                PlayerWaitActionList[player].IsSendAction = true;
-                return true;
-            }
-            return false;
-        }
-        else
-        {
-            throw new System.Exception("意料外的操作判断");
-        }
-    }
-    /// <summary>
-    /// 当有人打出牌时调用,获取所有可行的响应并发送
-    /// </summary>
-    /// <returns></returns>
-    public bool AvailableActionSend()
-    {
-        for (int i = 0; i < MatchControl.PlayerList.Count; i++)
-        {
-            HandTile handTile = MatchControl.PlayerList[i].PlayerHandTile;
-            // 根据场况依次获取所有玩家的可行操作并存储
-
-            // 鸣牌(吃/碰/杠)的可行操作
-            AvailableActionDict[i] = SingleClaimingAvailableJudge(handTile, MatchControl);
-            // 荣和的可行操作
-            if (AvailableTenpaiDict[i].ContainsKey(MatchControl.CurrentTile))
-            {
-                // 因为只要能和,就是固定的,因此仅标记可以荣和
-                AvailableActionDict[i].Add(PlayerAction.Ron, new());
-            }
-        }
-
-        // [TODO] Send
-        throw new System.Exception("未完成");
-
-        return false;
-    }
-    /// <summary>
-    /// 当有人打出牌时调用,获取所有可行的响应并发送且存储对应操作
-    /// </summary>
-    /// <returns></returns>
-    public bool AvailableActionSolve()
-    {
-        PlayerWaitActionList = new ActionMark[4] { new(), new(), new(), new() };
-        for (int i = 0; i < MatchControl.PlayerList.Count; i++)
-        {
-            HandTile handTile = MatchControl.PlayerList[i].PlayerHandTile;
-            // 根据场况依次获取所有玩家的可行操作并存储
-
-            // 鸣牌(吃/碰/杠)的可行操作
-            AvailableActionDict[i] = SingleClaimingAvailableJudge(handTile, MatchControl);
-            if (AvailableActionDict[i][PlayerAction.Peng].Count > 0)
-            {
-                PlayerWaitActionList[i].AvailableActions.Add(PlayerAction.Peng);
-            }
-            if (AvailableActionDict[i][PlayerAction.Chi].Count > 0)
-            {
-                PlayerWaitActionList[i].AvailableActions.Add(PlayerAction.Chi);
-            }
-            // 荣和的可行操作
-            if (AvailableTenpaiDict[i].ContainsKey(MatchControl.CurrentTile))
-            {
-                // 因为只要能和,就是固定的,因此仅标记可以荣和
-                AvailableActionDict[i].Add(PlayerAction.Ron, new());
-                RonPoint ronPoint = FanCalculator.RonPointCalculator(new(i, MatchControl, AvailableTenpaiDict[i][MatchControl.CurrentTile]));
-                if (ronPoint.YakuFan() >= MatchControl.MatchSettingData.MinimumYakuFan)
-                {
-                    PlayerWaitActionList[i].AvailableActions.Add(PlayerAction.Ron);
-                }
-                else
-                {
-                    // 番数不够,不让和牌且标记为振听
-                    IsPlayerFuriten[i] = true;
-                }
-            }
-            // 所有玩家都可以跳过,即便他们没得选
-            PlayerWaitActionList[i].AvailableActions.Add(PlayerAction.Skip);
-        }
-
-        // [TODO] Send
-        throw new System.Exception("未完成");
-        return false;
-    }
-    /// <summary>
-    /// 循环玩家操作刷新,当处于待鸣牌状态时调用
-    /// </summary>
-    /// <returns>-2为存在更高优先操作未做出,-1为无可操作玩家,0~3为对应操作玩家</returns>
-    public int PlayerActionRefresh()
-    {
-        // [MARK] 这块显式转换太多了,类型不重要,考虑单独列一个变量去做比较
-
-        // 当前还未被做出的最优先操作
-        PlayerAction priorityAction = PlayerAction.Skip;
-        // 当前已经被做出的最优先操作
-        PlayerAction currentPriorityAction = PlayerAction.Skip;
-        int priorityPlayer = -1;
-        for (int i = 0; i < 4; i++)
-        {
-            ActionMark mark = PlayerWaitActionList[i];
-            if (mark.AvailableActions.Count != 0)
-            {
-                if (mark.IsSendAction)
-                {
-                    if ((int)mark.ChoosedAction > (int)currentPriorityAction)
-                    {
-                        // 该玩家已选择,其所进行的操作比现有操作大
-                        currentPriorityAction = mark.ChoosedAction;
-                        priorityPlayer = i;
-                    }
-                }
-                else
-                {
-                    PlayerAction maxPriorityAction = (PlayerAction)mark.AvailableActions.Max(p => (int)p);
-                    if ((int)maxPriorityAction > (int)priorityAction)
-                    {   // 该玩家还未选择,其所能进行的操作比现有操作大
-                        priorityAction = maxPriorityAction;
-                    }
-                }
-            }
-        }
-        if (priorityAction == PlayerAction.Skip && currentPriorityAction == PlayerAction.Skip)
-        {   // 所有人什么都不能做
-            return -1;
-        }
-        else if (currentPriorityAction > priorityAction)
-        {   // 已经做出的操作比还未做出的操作大,终止
-            return priorityPlayer;
-        }
-        else
-        {   // 存在有更高优先级但未操作的玩家,返回false,等待完成
-            return -2;
-        }
-    }
-    #endregion
-
-    #region *局内玩家记录*
-    /// <summary>
-    /// 振听标记,若玩家振听则标记为true,无法通过荣和和牌
-    /// </summary>
-    public bool[] IsPlayerFuriten { get; set; } = new bool[4];
-    /// <summary>
-    /// 玩家能否鸣牌和是否返回鸣牌的记录,所有可鸣牌玩家鸣牌则鸣牌结束,顺序依次对应玩家
-    /// </summary>
-    public ActionMark[] PlayerWaitActionList { get; set; } = new ActionMark[4] { new(), new(), new(), new() };
     public class ActionMark
     {
         public ActionMark()
@@ -381,6 +147,54 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         /// </summary>
         public bool IsSendAction { get; set; }
     }
+    #endregion
+
+
+    #region 游戏日志/心跳包
+    /// <summary>
+    /// 单局对局的游戏日志,用于心跳包同步和日志记录
+    /// </summary>
+    public List<PlayerActionData> PlayerActionRecordList { get; set; } = new();
+    public int RecordIndex { get { return PlayerActionRecordList.Count; } }
+    public void PlayerActionRecord(PlayerActionData playerActionData)
+    {
+        PlayerActionRecordList.Add(playerActionData);
+
+    }
+
+    /// <summary>
+    /// 心跳包发送,同步一个列表中的操作
+    /// </summary>
+    public void HeartBeatPackSend()
+    {
+        foreach (var clientData in ClientBufferDictionary.Keys)
+        {
+            List<PlayerActionData> actionList = new();
+            if (clientData.RecordStamp < RecordIndex)
+            {
+                actionList = PlayerActionRecordList.GetRange(clientData.RecordStamp + 1, RecordIndex - clientData.RecordStamp);
+            }
+            if (actionList.Count != 0)
+            {
+                Pack pack = new(this, out int taskID);
+                pack.PlayerActionPack(actionList, clientData.RecordStamp + 1, actionList.Count);
+                clientData.ClientStream.WriteAsync(pack.Bytes);
+            }
+        }
+    }
+    #endregion
+
+
+    #region *局内玩家记录*
+    /// <summary>
+    /// 振听标记,若玩家振听则标记为true,无法通过荣和和牌
+    /// </summary>
+    public bool[] IsPlayerFuriten { get; set; } = new bool[4];
+    /// <summary>
+    /// 玩家能否鸣牌和是否返回鸣牌的记录,所有可鸣牌玩家鸣牌则鸣牌结束,顺序依次对应玩家
+    /// </summary>
+    public ActionMark[] PlayerWaitActionList { get; set; } = new ActionMark[4] { new(), new(), new(), new() };
+    
     #endregion
 
     #region *网络相关*
@@ -411,6 +225,10 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         public NetworkStatu PersonalNetworkStatu { get; set; }
         public NetworkStatu ClientNetworkStatu { get; set; }
         public UserProfile UserProfile { get; set; }
+        /// <summary>
+        /// 用户端对应时间戳
+        /// </summary>
+        public int RecordStamp { get; set; } = 0;
     }
     public TcpListener MainServer { get; set; }
     /// <summary>
@@ -449,9 +267,17 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     {
         IsListening = false;
     }
-    public void StopConnection()
+    /// <summary>
+    /// 通过Span匹配字节串的方法,需要主字节串和短字节串
+    /// </summary>
+    /// <param name="data"></param>
+    /// <param name="shortData"></param>
+    /// <returns></returns>
+    public int MatchBytes(byte[] mainBytes, byte[] shortBytes)
     {
-
+        Span<byte> SpanBytes = mainBytes;
+        ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
+        return SpanBytes.IndexOf(ShortSpanBytes);
     }
     public async void ListenClientConnectAsync()
     {
@@ -521,18 +347,6 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         }
     }
     /// <summary>
-    /// 通过Span匹配字节串的方法,需要主字节串和短字节串
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="shortData"></param>
-    /// <returns></returns>
-    public int MatchBytes(byte[] mainBytes, byte[] shortBytes)
-    {
-        Span<byte> SpanBytes = mainBytes;
-        ReadOnlySpan<byte> ShortSpanBytes = shortBytes;
-        return SpanBytes.IndexOf(ShortSpanBytes);
-    }
-    /// <summary>
     /// 数据缓存处理,在方法内部根据判断修改buffer和写入指针
     /// </summary>
     /// <param name="buffer">对应连接的接收缓存</param>
@@ -547,7 +361,7 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         {
             // 处理循环
             // 循环判断直到没有任何合法包
-            int endIndex = MatchBytes(buffer, PackCoder.PackEndBytes);
+            int endIndex = MatchBytes(buffer, Pack.PackEndBytes);
             if (endIndex == -1)
             {
                 // 未获取到包尾,返回false
@@ -564,13 +378,13 @@ public class MatchServer : MonoBehaviour, INetworkInformation
             {
                 // 获取到包尾且位置不小于1016,进行包合法性判断
                 Span<byte> rawPack = spanBuffer.Slice(endIndex - 1016, 1024);
-                if (PackCoder.IsLegalPack(rawPack))
+                if (Pack.IsLegalPack(rawPack))
                 {
                     Debug.Log("Server receive pack*1!");
                     // 判断成功,标记返回True和所提取的包
                     byte[] packBytes = rawPack.ToArray();
                     PackSolve(clientData, packBytes);
-                    // 记录延迟,仅此处可以更改连接延迟
+                    // TODO (这里写的有问题)记录延迟,仅此处可以更改连接延迟
                     clientData.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
 
                     isReceivePack = true;
@@ -587,9 +401,91 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         }
     }
 
+    //public void SubNetworkReceiveUpdate()
+    //{
+    //    // 基础安全检查
+    //    if (MainClient == null || !MainClient.Connected || ClientStream == null)
+    //    {
+    //        return;
+    //    }
+
+    //    try
+    //    {
+    //        // 一直读取直到读满缓冲区
+    //        while (ClientStream.DataAvailable && writeIndex < ClientBuffer.Length)
+    //        {
+    //            int spaceLeft = ClientBuffer.Length - writeIndex;
+    //            // 读取数据并存放到 writeIndex 之后的位置
+    //            int bytesRead = ClientStream.Read(ClientBuffer, writeIndex, spaceLeft);
+    //            if (bytesRead == 0)
+    //            {
+    //                break;
+    //            }
+    //            writeIndex += bytesRead;
+    //        }
+
+    //        // 当包尾位置大于1024则分析
+    //        Span<byte> bufferSpan = ClientBuffer.AsSpan();
+    //        ReadOnlySpan<byte> endMarker = Pack.PackEndBytes;
+
+    //        while (true)
+    //        {
+    //            // 在已写入数据的范围内进行读取
+    //            int matchIndex = bufferSpan.Slice(0, writeIndex).IndexOf(endMarker);
+
+    //            // 如果找不到包尾，说明当前数据不足以构成一个完整的包
+    //            if (matchIndex == -1)
+    //            {
+    //                // 已写满但还没有找到,直接清除
+    //                if (writeIndex >= 8100)
+    //                {
+    //                    Debug.LogWarning("清理数据...");
+    //                    writeIndex = 0;
+    //                }
+    //                break;
+    //            }
+
+    //            // 计算长度
+    //            int endPosition = matchIndex + 8;
+
+    //            // 找到包尾且大于1024
+    //            if (endPosition >= 1024)
+    //            {
+    //                // 校验
+    //                int packStart = endPosition - 1024;
+    //                Span<byte> packCandidate = bufferSpan.Slice(packStart, 1024);
+
+    //                if (Pack.IsLegalPack(packCandidate))
+    //                {
+    //                    // 校验成功并处理
+    //                    PackSolve(packCandidate.ToArray());
+    //                }
+    //                else
+    //                {
+    //                    Debug.LogWarning("Found end marker but packet CRC check failed.");
+    //                }
+    //            }
+    //            // 将 endPosition 之后的所有有效数据移动到缓冲区的最前面
+    //            int remainingAfterProcess = writeIndex - endPosition;
+    //            if (remainingAfterProcess > 0)
+    //            {
+    //                bufferSpan.Slice(endPosition, remainingAfterProcess).CopyTo(bufferSpan);
+    //            }
+
+    //            // 更新索引位置
+    //            writeIndex = remainingAfterProcess;
+    //        }
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        // 如果这里捕获到异常，通常是底层 Socket 断开或资源释放
+    //        Debug.LogError($"NetworkRead Error: {e.Message}");
+    //    }
+    //}
+
     #endregion
 
-    #region *包信息处理*
+    #region *包信息处理/发送*
     /// <summary>
     /// 处理完整包后的处理方法
     /// </summary>
@@ -598,10 +494,11 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     public void PackSolve(ClientData clientData, byte[] packBytes)
     {
         Pack pack = new Pack(packBytes);
+        Pack ackPack = null;
         if (pack.PackType == PackType.Signal)
         {
             // 传入包类型是信号包,返回确定包
-            Pack ackPack = new(this, pack.TaskID);
+            ackPack = new(this, pack.TaskID);
             switch (pack.SignalPackDecode())
             {
                 case SignalType.Ready:
@@ -615,17 +512,128 @@ public class MatchServer : MonoBehaviour, INetworkInformation
                     clientData.ClientNetworkStatu = NetworkStatu.InRoom;
                     ackPack.AcknowledgePack(SignalType.UnReadyAck);
                     break;
+                case SignalType.InitAck:
 
                 case SignalType.Error:
                     break;
                 default:
                     break;
             }
+        }
+        else if (pack.PackType == PackType.UserProfile)
+        {
+            ackPack = new(this, pack.TaskID);
+            UserProfile userProfile = pack.ConnectRoomPackDecode(out int roomNumber);
+            clientData.UserProfile = userProfile;
+            clientData.ClientNetworkStatu = NetworkStatu.InRoom;
+            ackPack.AcknowledgePack(SignalType.AcceptRoom);
+        }
+
+        if (ackPack != null)
+        {
             if (ackPack.PackType != PackType.Empty)
             {
                 clientData.ClientStream.WriteAsync(ackPack.Bytes);
             }
         }
+
+        if (pack.PackType == PackType.PlayerAction)
+        {
+            // 玩家操作处理
+            PlayerActionData playerActionData = pack.PlayerActionPackDecode(out int startIndex, out int length)[0];
+            MatchControl.ServerActionSolve(playerActionData);
+
+        }
     }
+
+
+    /// <summary>
+    /// 触发器计时字典
+    /// </summary>
+    public Dictionary<int, FloatTriggerBase<TaskResult>> SignalDictionary { get; set; } = new();
+    /// <summary>
+    /// 对信号记录的处理,每帧更新一次,用于判断方法超时时间
+    /// </summary>
+    public void SignalDictionaryUpdate()
+    {
+        List<int> keyList = SignalDictionary.Keys.ToList();
+        foreach (int key in keyList)
+        {
+            if (SignalDictionary.TryGetValue(key, out var taskTrigger) && taskTrigger.IsRunning)
+            {
+                // 更新时间,如果时间已达到,则触发方法
+                taskTrigger.OnUpdate(Time.deltaTime);
+                taskTrigger.OnDecide(out bool isActive);
+                if (isActive && taskTrigger.IsSingle)
+                {
+                    SignalDictionary.Remove(key);
+                }
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// 巡目更新,获取下一张牌,将这张牌和可行行动发送给玩家
+    /// </summary>
+    public void TurnUpdate()
+    {
+        int playerIndex = MatchControl.CurrentPlayerIndex;
+        Player currentPlayer = MatchControl.PlayerList[playerIndex];
+        Tile currentTile = MatchControl.MainTileList[0];
+        MatchControl.MainTileList.RemoveAt(0);
+        Dictionary<PlayerAction, List<PlayerActionData>> actionData = SelfAvailableJudge(currentPlayer.PlayerHandTile, currentTile, MatchControl);
+        if (AvailableTenpaiDict[playerIndex].ContainsKey(currentTile))
+        {
+            // 听牌列表包含此牌,可以自摸
+            actionData[PlayerAction.Tsumo] = new();
+        }
+        else
+        {
+            if (!MatchControl.IsRiichi[playerIndex] && CutTenpaiJudge(currentPlayer.PlayerHandTile, currentTile, out var cutTiles))
+            {
+                // 如果未立直,判断切哪张牌可以立直
+                foreach (var choose in cutTiles)
+                {
+                    // TODO 立直手切摸切修改
+                    /* 
+                     * 因为立直也要区分手切摸切,分开写有点奇怪,这里采用了比较取巧的办法
+                     * 如果是手切立直,则tiles列表为空,如果是摸切立直,则tiles列表有一张1w
+                     * 此外,这样判断时,如果摸切的牌手中也有,即便选择摸切相同牌也算手切
+                     */
+                    if (currentPlayer.PlayerHandTile.HandTileList.Contains(choose.Key))
+                    {
+                        actionData[PlayerAction.Riichi].Add(new(
+                            new(),
+                            choose.Key,
+                            PlayerAction.Riichi));
+                    }
+                    else
+                    {
+                        actionData[PlayerAction.Riichi].Add(new(
+                            new() { new Tile(MaJiangLib.Color.Wans, 1) },
+                            choose.Key,
+                            PlayerAction.Riichi));
+                    }
+                }
+            }
+        }
+        Pack pack = new(this, out int taskID);
+        pack.AvailableActionPack(actionData, playerIndex, currentTile);
+
+        if (MatchControl.MatchType == MatchType.FourMahjongSouth)
+        {
+            // 提醒所有其他玩家,当前为新一轮
+            for (int i = 0; i < 4; i++)
+            {
+                if (i != playerIndex)
+                {
+                    Pack signalPack = new(this, out int signalTaskID);
+                    signalPack.SignalPack(SignalType.NewRound);
+                }
+            }
+        }
+    }
+
     #endregion
 }

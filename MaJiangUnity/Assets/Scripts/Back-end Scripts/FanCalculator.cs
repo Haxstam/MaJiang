@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting;
 using static MaJiangLib.GlobalFunction;
 
 namespace MaJiangLib
@@ -22,7 +23,6 @@ namespace MaJiangLib
             }
             public int Fan { get; set; }
             public YakuType Yaku { get; set; }
-            public static FanData EmptyFanData { get; set; } = new FanData(0, YakuType.Empty);
 
             public static bool operator ==(FanData left, FanData right)
             {
@@ -87,11 +87,12 @@ namespace MaJiangLib
         /// <summary>
         /// 这一部分役种受和牌状态而非和牌面子影响,包含宝牌,立直,一发,自摸,岭上,河海底,天地和,一般情况下必须要判定
         /// </summary>
-        internal static List<Func<RonData, FanData>> SpecialWinningTileList = new()
+        internal static List<Func<RonData, FanData>> SpecialWinningTileList { get; } = new()
         {
             Dora,
             AkaDora,
             UraDora,
+            KitaDora,
             RiichiAndDoubleRiichi,
             Ippatsu,
             Tsumo,
@@ -102,7 +103,7 @@ namespace MaJiangLib
         /// <summary>
         /// 这一部分役种需要顺子,比如平和,一杯口两杯口,一气通贯,三色同顺
         /// </summary>
-        internal static List<Func<RonData, FanData>> StraightWinningTileList = new()
+        internal static List<Func<RonData, FanData>> StraightWinningTileList { get; } = new()
         {
             Pinfu,
             IipeikouAndRyanpeiko,
@@ -113,7 +114,7 @@ namespace MaJiangLib
         /// <summary>
         /// 这一部分役种需要刻子,比如对对和,混老头清老头字一色,三元四喜,三杠子四杠子,三色同刻
         /// </summary>
-        internal static List<Func<RonData, FanData>> TripleWinningTileList = new()
+        internal static List<Func<RonData, FanData>> TripleWinningTileList { get; } = new()
         {
             Toitoi,
             HonroutouAndChinrotoAndTsuuiiso,
@@ -125,7 +126,7 @@ namespace MaJiangLib
         /// <summary>
         /// 这一部分和牌不在乎面子类型或是牌型特殊,比如断幺九,七对子,清混一色,绿一色和九莲,纯全混全,国士无双,通常情况下必须判定
         /// </summary>
-        internal static List<Func<RonData, FanData>> NormalWinningTileList = new()
+        internal static List<Func<RonData, FanData>> NormalWinningTileList { get; } = new()
         {
             Tanyao,
             Chiitoitsu,
@@ -151,7 +152,7 @@ namespace MaJiangLib
             if (ronData.Groups[0].Color == Color.Honor && ronData.Groups[0].Tiles[0].Number == 8)
             {   // 国士无双,跳过正常的判定
                 FanData fanData = KokushiMusou(ronData);
-                if (fanData != FanData.EmptyFanData)
+                if (fanData.Yaku != YakuType.Empty)
                 {
                     if (fanData.Fan == 13 || fanData.Fan == 26)
                     {
@@ -187,7 +188,7 @@ namespace MaJiangLib
                     foreach (var straightYaku in StraightWinningTileList)
                     {
                         FanData fanData = straightYaku.Invoke(ronData);
-                        if (fanData != FanData.EmptyFanData)
+                        if (fanData.Yaku != YakuType.Empty)
                         {
                             if (fanData.Fan == 13 || fanData.Fan == 26)
                             {
@@ -210,10 +211,10 @@ namespace MaJiangLib
                         fanCount += yakuFanData.Count;
                         YakuList.AddRange(yakuFanData);
                     }
-                    foreach (var straightYaku in TripleWinningTileList)
+                    foreach (var tripleYaku in TripleWinningTileList)
                     {
-                        FanData fanData = straightYaku.Invoke(ronData);
-                        if (fanData != FanData.EmptyFanData)
+                        FanData fanData = tripleYaku.Invoke(ronData);
+                        if (fanData.Yaku != YakuType.Empty)
                         {
                             if (fanData.Fan == 13 || fanData.Fan == 26)
                             {
@@ -228,10 +229,10 @@ namespace MaJiangLib
                         }
                     }
                 }
-                foreach (var straightYaku in SpecialWinningTileList)
+                foreach (var specialYaku in SpecialWinningTileList)
                 {
-                    FanData fanData = straightYaku.Invoke(ronData);
-                    if (fanData != FanData.EmptyFanData)
+                    FanData fanData = specialYaku.Invoke(ronData);
+                    if (fanData.Yaku != YakuType.Empty)
                     {
                         if (fanData.Fan == 13 || fanData.Fan == 26)
                         {
@@ -245,10 +246,10 @@ namespace MaJiangLib
                         }
                     }
                 }
-                foreach (var straightYaku in NormalWinningTileList)
+                foreach (var normalYaku in NormalWinningTileList)
                 {
-                    FanData fanData = straightYaku.Invoke(ronData);
-                    if (fanData != FanData.EmptyFanData)
+                    FanData fanData = normalYaku.Invoke(ronData);
+                    if (fanData.Yaku != YakuType.Empty)
                     {
                         if (fanData.Fan == 13 || fanData.Fan == 26)
                         {
@@ -347,7 +348,7 @@ namespace MaJiangLib
                         if (group.IsTriple)
                         {
                             int tempFuCount = 0;
-                            if (group.GroupType == GroupType.MingTriple)
+                            if (group.GroupType == GroupType.OpenTriple)
                             {
                                 tempFuCount += 1;
                             }
@@ -355,11 +356,11 @@ namespace MaJiangLib
                             {
                                 tempFuCount += 2;
                             }
-                            else if (group.GroupType == GroupType.MingKang || group.GroupType == GroupType.JiaKang)
+                            else if (group.GroupType == GroupType.OpenKan || group.GroupType == GroupType.AddedKan)
                             {
                                 tempFuCount += 3;
                             }
-                            else if (group.GroupType == GroupType.AnKang)
+                            else if (group.GroupType == GroupType.ClosedKan)
                             {
                                 tempFuCount += 4;
                             }
@@ -415,7 +416,7 @@ namespace MaJiangLib
                     }
                     if (!ronData.IsClosedHand && fu < 30)
                     {
-                        // 标记
+                        // TODO 标记
                         Console.WriteLine("前述判定按理已经包含所有情况,但结果触发了下限");
                         // 副露后符数下限为30
                         fu = 30;
@@ -432,14 +433,20 @@ namespace MaJiangLib
         /// <returns></returns>
         public static List<Tile> DoraListCalculator(List<Tile> doraPointers)
         {
+            // 数牌:1->2->3->...->9->1
+            // 字牌:东->南->西->北->东,白->发->中->白
             List<Tile> doraList = new();
             foreach (Tile doraPointer in doraPointers)
             {
                 if (doraPointer.Color == Color.Honor)
                 {
-                    if (doraPointer.Number == 7)
+                    if (doraPointer.Number == 4)
                     {
                         doraList.Add(new(Color.Honor, 1));
+                    }
+                    else if (doraPointer.Number == 7)
+                    {
+                        doraList.Add(new(Color.Honor, 5));
                     }
                     else
                     {
@@ -477,7 +484,7 @@ namespace MaJiangLib
         internal static FanData Dora(RonData data)
         {
             int doraCount = 0;
-            List<Tile> doraList = DoraListCalculator(MatchInformation.DoraList);
+            List<Tile> doraList = DoraListCalculator(data.DoraPointerList);
             // 如果存在多张相同的宝牌,对于每张宝牌要单独计算
             foreach (Tile doraTile in doraList)
             {
@@ -487,7 +494,7 @@ namespace MaJiangLib
                     {
                         if (doraTile == group.Tiles[0])
                         {
-                            if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                            if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.OpenTriple)
                             {
                                 doraCount += 3;
                             }
@@ -506,6 +513,11 @@ namespace MaJiangLib
                             {
                                 doraCount++;
                             }
+                        }
+                        if (data.KitaCount != 0 && doraTile == new Tile(Color.Honor, 4))
+                        {
+                            // 如果存在拔北宝牌,将其也进行计算
+                            doraCount += data.KitaCount;
                         }
                     }
                 }
@@ -555,10 +567,10 @@ namespace MaJiangLib
         internal static FanData UraDora(RonData data)
         {
             // 必须立直
-            if (MatchInformation.IsRiichi[data.PlayerNumber] == true)
+            if (data.IsRiichi == true)
             {
                 int doraCount = 0;
-                List<Tile> doraList = DoraListCalculator(MatchInformation.UraDoraList);
+                List<Tile> doraList = DoraListCalculator(data.UraDoraPointerList);
                 // 如果存在多张相同的宝牌,对于每张宝牌要单独计算
                 foreach (Tile doraTile in doraList)
                 {
@@ -568,7 +580,7 @@ namespace MaJiangLib
                         {
                             if (doraTile == group.Tiles[0])
                             {
-                                if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.MingTriple)
+                                if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.OpenTriple)
                                 {
                                     doraCount += 3;
                                 }
@@ -588,6 +600,11 @@ namespace MaJiangLib
                                     doraCount++;
                                 }
                             }
+                            if (data.KitaCount != 0 && doraTile == new Tile(Color.Honor, 4))
+                            {
+                                // 如果存在拔北宝牌,将其也进行计算
+                                doraCount += data.KitaCount;
+                            }
                         }
                     }
                 }
@@ -597,6 +614,17 @@ namespace MaJiangLib
             else
             {
                 return new(0, YakuType.Empty);
+            }
+        }
+        internal static FanData KitaDora(RonData data)
+        {
+            if (data.KitaCount != 0)
+            {
+                return new(data.KitaCount, YakuType.KitaDora);
+            }
+            else
+            {
+                return new(0,YakuType.Empty);
             }
         }
         /// <summary>
@@ -681,7 +709,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Tsumo(RonData data)
         {
-            if (data.IsClosedHand && MatchInformation.CurrentPlayerIndex == data.PlayerNumber)
+            if (data.IsClosedHand && data.IsTsumo)
             {
                 return new(1, YakuType.Tsumo);
             }
@@ -697,15 +725,20 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Tanyao(RonData data)
         {
-            if (data.SingleTile.Color == Color.Honor || data.SingleTile.Number == 1 || data.SingleTile.Number == 9)
+            foreach (var group in data.Groups)
             {
-                return new(0, YakuType.Empty);
-            }
-            foreach (Tile tile in data.RonTile.HandTileList)
-            {
-                if (tile.Color == Color.Honor || tile.Number == 1 || tile.Number == 9)
+                if (group.Color == Color.Honor)
                 {
+                    // 有字牌面子,直接返回无
                     return new(0, YakuType.Empty);
+                }
+                foreach (Tile tile in group.Tiles)
+                {
+                    if (tile.Number == 1 || tile.Number == 9)
+                    {
+                        // 面子中有某张牌序号为1或9,返回无
+                        return new(0, YakuType.Empty);
+                    }
                 }
             }
             return new(1, YakuType.Tanyao);
@@ -756,7 +789,7 @@ namespace MaJiangLib
         /// <returns></returns>
         internal static FanData Rinshankaiho(RonData data)
         {
-            if (MatchInformation.IsKang[data.PlayerNumber])
+            if (MatchInformation.IsKan[data.PlayerNumber])
             {
                 return new(1, YakuType.Rinshankaiho);
             }
@@ -890,7 +923,7 @@ namespace MaJiangLib
             Color? majorColor = null;
             foreach (Group group in data.Groups)
             {
-                if (group.GroupType == GroupType.Straight && group.GroupType == GroupType.MingStraight)
+                if (group.GroupType == GroupType.Straight && group.GroupType == GroupType.OpenStraight)
                 {
                     tiles.Add(group.Tiles[0]);
                     colorCount[group.Color]++;
@@ -1028,7 +1061,7 @@ namespace MaJiangLib
             Tile pairTile = new(Color.Wans, 1);  // 一定会被赋值,填写一万为占位符
             foreach (Group group in data.Groups)
             {
-                if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.AnKang)
+                if (group.GroupType == GroupType.Triple || group.GroupType == GroupType.ClosedKan)
                 {
                     AnTripleCount++;
                 }
@@ -1103,7 +1136,7 @@ namespace MaJiangLib
             foreach (Group group in data.Groups)
             {
                 // 顺子两端必须是幺九
-                if ((group.GroupType == GroupType.Straight || group.GroupType == GroupType.MingStraight) && (group.Tiles[0].Number != 1 && group.Tiles[2].Number != 9))
+                if ((group.GroupType == GroupType.Straight || group.GroupType == GroupType.OpenStraight) && (group.Tiles[0].Number != 1 && group.Tiles[2].Number != 9))
                 {
                     isChanta = false;
                     isJunchan = false;
@@ -1397,7 +1430,7 @@ namespace MaJiangLib
         {
             if (MatchInformation.FirstCycleIppatsu && data.IsTsumo)
             {
-                if (data.PlayerNumber == MatchInformation.CurrentBankerIndex)
+                if (data.PlayerNumber == MatchInformation.CurrentDealerIndex)
                 {
                     return new(13, YakuType.Tenho);
                 }
@@ -1418,7 +1451,7 @@ namespace MaJiangLib
             int KangCount = 0;
             foreach (Group group in data.Groups)
             {
-                if (group.GroupType == GroupType.AnKang || group.GroupType == GroupType.MingKang || group.GroupType == GroupType.JiaKang)
+                if (group.GroupType == GroupType.ClosedKan || group.GroupType == GroupType.OpenKan || group.GroupType == GroupType.AddedKan)
                 {
                     KangCount++;
                 }

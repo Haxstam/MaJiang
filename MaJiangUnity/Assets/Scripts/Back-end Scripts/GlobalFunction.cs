@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace MaJiangLib
@@ -8,6 +7,7 @@ namespace MaJiangLib
     /*
      * [TODO]
      * 1. 命名问题,修改变量名和方法名以切合相关术语
+     * 1.1.目前绝大部分都已命名为日语罗马音或英语
      * 2. 效率问题,优化听牌判断和番数的判断
      * 3. 限制域问题,修改修饰符减少成员暴露
      * 4. 变量类型问题,尽可能减少泛型List的使用
@@ -168,12 +168,13 @@ namespace MaJiangLib
     {
         Straight = 1,
         Triple,
-        MingTriple,
-        MingStraight,
-        MingKang,
-        AnKang,
-        JiaKang,
+        OpenTriple,
+        OpenStraight,
+        OpenKan,
+        ClosedKan,
+        AddedKan,
         Pair,
+        Kita,
     }
     /// <summary>
     /// 副露类型,因为杠的属性不同,分开看待
@@ -187,18 +188,24 @@ namespace MaJiangLib
         JiaKang,
     }
     /// <summary>
-    /// 玩家所能进行的操作,包含切牌,吃,碰,杠,立直,拔北,荣和,自摸,流局
+    /// 玩家所能进行的操作,包含切牌,吃,碰,杠(明杠,加杠,暗杠),立直,拔北,荣和,自摸,流局
     /// </summary>
     public enum PlayerAction : byte
-    {// 必须吃<碰<荣和
+    {
+        // 用于鸣牌优先级判断的显示转换,必须吃<碰<荣和
+
         /// <summary>
         /// 跳过
         /// </summary>
         Skip = 1,
         /// <summary>
+        /// 摸牌
+        /// </summary>
+        Take = 2,
+        /// <summary>
         /// 手切
         /// </summary>
-        HandCut = 2,
+        HandCut = 3,
         /// <summary>
         /// 摸切
         /// </summary>
@@ -212,9 +219,17 @@ namespace MaJiangLib
         /// </summary>
         Peng,
         /// <summary>
-        /// 杠
+        /// 明杠
         /// </summary>
-        Kang,
+        OpenKan,
+        /// <summary>
+        /// 加杠
+        /// </summary>
+        AddedKan,
+        /// <summary>
+        /// 暗杠
+        /// </summary>
+        ClosedKan,
         /// <summary>
         /// 立直
         /// </summary>
@@ -306,7 +321,7 @@ namespace MaJiangLib
 
         Dora,  // 宝牌
         AkaDora, // 红宝牌
-        NorthAkaDora,  // 拔北宝牌
+        KitaDora,  // 拔北宝牌
         UraDora,  // 里宝牌
     }
     #endregion
@@ -316,7 +331,7 @@ namespace MaJiangLib
     /// </summary>
     public static class GlobalFunction
     {
-        
+
         /// <summary>
         /// 洗牌方法,提供列表和随机数种,返回随机打乱后的数组
         /// </summary>
@@ -344,7 +359,7 @@ namespace MaJiangLib
         /// <returns></returns>
         public static List<Tile> RandomCardGenerator(out int randomNumber, bool isFourMahJong, bool haveRedDora, bool haveHonor, Xoshiro256StarStar random)
         {
-            // [TODO]暂时先实现四人有赤宝情况
+            // TODO 暂时先实现四人有赤宝情况
             // 每次生成牌山都要这样生成一个列表,考虑将其作为一个静态变量放在类中跳过生成
             // 对于四人麻将,总共牌数136张,其中王牌14张
             List<Tile> tileList = new List<Tile>();
@@ -381,7 +396,7 @@ namespace MaJiangLib
             return tileList;
         }
         // 暂时用一个列表去存储国士无双的牌来判断国士,流满和九种九牌
-        public static List<Tile> kokushiList = new()
+        public static List<Tile> KokushiList { get; } = new()
             {
                 new(Color.Wans,1),
                 new(Color.Wans,9),
@@ -407,7 +422,7 @@ namespace MaJiangLib
             {typeof(Group), new Group(GroupType.Triple, Color.Wans, new())},
             {typeof(Player), new Player() },
             {typeof(PlayerActionData), new PlayerActionData(new(),new(Color.Wans,1 ),PlayerAction.Chi) },
-            {typeof(HandTile),new HandTile() },
+            {typeof(HandTile),new HandTile(0) },
             {typeof(UserProfile),new UserProfile() },
         };
 
@@ -470,10 +485,10 @@ namespace MaJiangLib
         public static Dictionary<PlayerAction, List<PlayerActionData>> ClaimingAvailableJudge(HandTile handTile, IMatchInformation matchInformation)
         {   // 返回结果是字典-列表-列表的嵌套,考虑优化
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
-            {   // 鸣牌操作仅限吃碰杠
+            {   // 鸣牌操作仅限吃碰明杠
                 { PlayerAction.Chi, new()},
                 { PlayerAction.Peng, new()},
-                { PlayerAction.Kang, new()},
+                { PlayerAction.OpenKan, new()},
             };
             // 排序[可能会破坏原有顺序]
             List<Tile> handTileList = handTile.HandTileList;
@@ -490,10 +505,10 @@ namespace MaJiangLib
                             {   // 杠和拔北要摸岭上牌,因此当剩余牌数小于1时不允许开杠和拔北
                                 if (matchInformation.KangCount <= 3)
                                 {   // 开杠数大于3则不允许继续开杠
-                                    playerActions[PlayerAction.Kang].Add(new(
+                                    playerActions[PlayerAction.OpenKan].Add(new(
                                         new() { handTileList[i], handTileList[i + 1], handTileList[i + 2] },
                                         handTileList[i],
-                                        PlayerAction.Kang
+                                        PlayerAction.OpenKan
                                         ));
                                 }
                             }
@@ -575,9 +590,12 @@ namespace MaJiangLib
             {   // 鸣牌操作仅限吃碰杠
                 { PlayerAction.Chi, new()},
                 { PlayerAction.Peng, new()},
-                { PlayerAction.Kang, new()},
-
+                { PlayerAction.OpenKan, new()},
             };
+            if (matchInformation.IsRiichi[handTile.PlayerNumber])
+            {   // 立直后不允许鸣牌
+                return playerActions;
+            }
             // 对手牌中所有牌进行统计,根据统计进行可行鸣牌判断
             // 每个数列第0位为红宝牌标记,1~9为对应序数牌标记,字牌第0位暂空,1~7为对应字牌顺序
             Dictionary<Color, int[]> tileCountDict = new Dictionary<Color, int[]>()
@@ -618,10 +636,10 @@ namespace MaJiangLib
                 }
                 if (count == 2)
                 {
-                    playerActions[PlayerAction.Kang].Add(new(
+                    playerActions[PlayerAction.OpenKan].Add(new(
                                 new() { new(color, num), new(color, num), new(color, num, true) },
                                 currentTile,
-                                PlayerAction.Kang
+                                PlayerAction.OpenKan
                                 ));
                 }
             }
@@ -640,15 +658,17 @@ namespace MaJiangLib
                                 currentTile,
                                 PlayerAction.Peng
                                 ));
-                playerActions[PlayerAction.Kang].Add(new(
+                playerActions[PlayerAction.OpenKan].Add(new(
                                 new() { new(color, num), new(color, num), new(color, num) },
                                 currentTile,
-                                PlayerAction.Kang
+                                PlayerAction.OpenKan
                                 ));
             }
             // 吃的逻辑
+            // 必须是当前玩家的下家才可以吃牌,也即序号小1,或是当前玩家为4,吃牌玩家为1
             // 结合红宝牌,理论上最多可以有5种鸣牌方式(如234506鸣4,有23,35,30,56,06)
-            if (color != Color.Honor)
+            if (color != Color.Honor
+                && (matchInformation.CurrentPlayerIndex == (handTile.PlayerNumber + 3) % 4))
             {
                 // 牌的左侧
                 if (num >= 3 && tileCountDict[color][num - 1] != 0 && tileCountDict[color][num - 2] != 0)
@@ -738,7 +758,14 @@ namespace MaJiangLib
                     }
                 }
             }
-
+            // 最后删除不可行的操作对应的键值对
+            foreach (var action in playerActions.Keys)
+            {
+                if (playerActions[action].Count == 0)
+                {
+                    playerActions.Remove(action);
+                }
+            }
             return playerActions;
         }
         /// <summary>
@@ -763,7 +790,8 @@ namespace MaJiangLib
             tileList.Sort();
             Dictionary<PlayerAction, List<PlayerActionData>> playerActions = new()
             {
-                 { PlayerAction.Kang, new()},
+                 { PlayerAction.AddedKan, new()},
+                 { PlayerAction.ClosedKan, new()},
                  { PlayerAction.Kita, new()},
                  { PlayerAction.Draw, new()},
             };
@@ -772,15 +800,15 @@ namespace MaJiangLib
                 List<Tile> HonorTile = new();
                 foreach (Tile tile in tileList)
                 {
-                    if (kokushiList.Contains(tile) && !HonorTile.Contains(tile))
+                    if (KokushiList.Contains(tile) && !HonorTile.Contains(tile))
                     {
                         HonorTile.Add(tile);
                     }
                 }
                 if (HonorTile.Count >= 9)
                 {
-                    // 流局不需要选定手牌,设定可以流局时,流局操作对应列表不为空
-                    playerActions[PlayerAction.Draw] = new List<PlayerActionData>() { new(new() { HonorTile[0] }, PlayerAction.Draw) };
+                    // 流局不需要选定手牌
+                    playerActions[PlayerAction.Draw] = new List<PlayerActionData>() { new(PlayerAction.Draw) };
                 }
             }
             if (matchInformation.RemainTileCount >= 1)
@@ -801,17 +829,44 @@ namespace MaJiangLib
                         {   // 暗杠,如果存在四张相同的牌,那么可以进行暗杠
                             if (tileList[i] == tileList[i + 1] && tileList[i] == tileList[i + 2] && tileList[i] == tileList[i + 3])
                             {
-                                playerActions[PlayerAction.Kang].Add(new(
-                                    new() { tileList[i], tileList[i + 1], tileList[i + 2], tileList[i + 3], },
-                                    PlayerAction.Kang
-                                    ));
+                                if (matchInformation.IsRiichi[handTile.PlayerNumber])
+                                {   // 如果已经立直
+                                    // 这种判断单局最多出现4次
+                                    TenpaiJudge(handTile, out var successTiles);
+
+                                    // 标记是否可以开杠,如果在所有和牌型中该牌所组成的都是暗刻,那么就可以在立直时开暗杠
+                                    // 该暗刻开杠后不影响听牌种类<=>在所有和牌型中都有该暗刻 应该是成立的,两者互为充要条件
+                                    bool kangMark = true;
+                                    foreach (var tiles in successTiles)
+                                    {
+                                        if (!tiles.Value.Any(group => group.GroupType == GroupType.Triple && group.Tiles[0] == tileList[i]))
+                                        {   // 如果在任一和牌型中不存在该牌所对应的暗刻,则不允许开杠
+                                            kangMark = false;
+                                            break;
+                                        }
+                                    }
+                                    if (kangMark)
+                                    {
+                                        playerActions[PlayerAction.ClosedKan].Add(new(
+                                             new() { tileList[i], tileList[i + 1], tileList[i + 2], tileList[i + 3], },
+                                             PlayerAction.ClosedKan
+                                             ));
+                                    }
+                                }
+                                else
+                                {
+                                    playerActions[PlayerAction.ClosedKan].Add(new(
+                                         new() { tileList[i], tileList[i + 1], tileList[i + 2], tileList[i + 3], },
+                                         PlayerAction.ClosedKan
+                                         ));
+                                }
                             }
                         }
                         if (KangTileList.Contains(tileList[i]))
                         {   // 加杠,如果存在和刻子相同的牌,则可以进行加杠
-                            playerActions[PlayerAction.Kang].Add(new(
+                            playerActions[PlayerAction.AddedKan].Add(new(
                                  new() { tileList[i], },
-                                 PlayerAction.Kang
+                                 PlayerAction.AddedKan
                                  ));
                         }
                     }
@@ -860,7 +915,7 @@ namespace MaJiangLib
             {   // 没有别家鸣牌来源自该玩家
                 foreach (Group group in openGroups)
                 {
-                    if (group.GroupType != GroupType.AnKang && group.FuluSource == player)
+                    if (group.GroupType != GroupType.ClosedKan && group.FuluSource == player)
                     {
                         return false;
                     }
@@ -874,15 +929,23 @@ namespace MaJiangLib
         /// <param name="handTile">手中的手牌</param>
         /// <param name="singleTile">单牌,也即刚摸到的牌</param>
         /// <param name="cutTiles">存储所切的牌->对应的和牌列表->对应的面子</param>
-        /// <returns>返回存在牌,切出该牌后可听牌</returns>
+        /// <returns>返回是否存在牌,使得切出该牌后可听牌</returns>
         public static bool CutTenpaiJudge(HandTile handTile, Tile singleTile, out Dictionary<Tile, Dictionary<Tile, List<Group>>> cutTiles)
         {
+            // TODO 显然,这里的调用太大了,对于门清,每次判断是否听牌都要进行14次TenpaiJudge()调用,考虑优化
             cutTiles = new();
             // 将输入的手牌再赋值并添加单牌
             HandTile fullHandTile = (HandTile)handTile.Clone();
             fullHandTile.HandTileList.Add(singleTile);
             for (int i = 0; i < fullHandTile.HandTileList.Count; i++)
-            {   // 具体的计算过程是,依次删除每一张手牌并判断剩余手牌是否听牌,如果能听牌将其标记为可被切的牌
+            {
+
+                if (i >= 1 && fullHandTile.HandTileList[i] == fullHandTile.HandTileList[i - 1])
+                {
+                    // 如果当前判断的牌和上一张牌相同,就跳过
+                    continue;
+                }
+                // 具体的计算过程是,依次删除每一张手牌并判断剩余手牌是否听牌,如果能听牌将其标记为可被切的牌
                 HandTile calculateHandTile = (HandTile)fullHandTile.Clone();
                 Tile deletedTile = calculateHandTile.HandTileList[i];
                 calculateHandTile.HandTileList.RemoveAt(i);
@@ -916,7 +979,7 @@ namespace MaJiangLib
                 {
                     return true;
                 }
-                else if (tile.Number == (player - matchInformation.Round + 1))  // 判断是否为自风
+                else if (tile.Number == ((player + 5 - matchInformation.Round) % 4) + 1)  // 判断是否为自风,为 玩家座次(从零开始)+5 - 局数 对4取余 再加 1
                 {
                     return true;
                 }
@@ -1161,9 +1224,9 @@ namespace MaJiangLib
                     {
                         for (int i = 0; i < calTileList.Count; i++)
                         {
-                            if (calTileList[i] != kokushiList[i])
+                            if (calTileList[i] != KokushiList[i])
                             {
-                                successTiles[kokushiList[i]] = new()
+                                successTiles[KokushiList[i]] = new()
                                 {
                                     new Group(GroupType.Triple, Color.Honor, new()
                                     {
@@ -1646,7 +1709,14 @@ namespace MaJiangLib
             }
             return list;
         }
-        public static List<int> BytesToIntList(byte[] bytes, int startIndex = 0, int count = -1)
+        /// <summary>
+        /// int
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="startIndex"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static List<int> BytesToIntList(byte[] bytes, int startIndex, int count)
         {
             List<int> list = new();
             int listIndex = startIndex;
@@ -1687,7 +1757,7 @@ namespace MaJiangLib
             }
             return list;
         }
-        public static List<bool> BytesToBoolList(byte[] bytes, int startIndex = 0, int count = -1)
+        public static List<bool> BytesToBoolList(byte[] bytes, int startIndex, int count)
         {
             List<bool> list = new();
             int listIndex = startIndex;
@@ -1733,14 +1803,14 @@ namespace MaJiangLib
         #region *测试方法*
         public static bool TestTenhe()
         {
-            List<Tile> tiles = RandomCardGenerator(out int rand, true, true, true,new());
+            List<Tile> tiles = RandomCardGenerator(out int rand, true, true, true, new());
             List<Tile> chooseTiles = tiles.GetRange(0, 14);
-            HandTile handTile = new();
+            HandTile handTile = new(0);
             handTile.HandTileList = chooseTiles;
             handTile.SingleTile = chooseTiles[13];
             handTile.HandTileList.RemoveAt(13);
             handTile.PlayerNumber = 1;
-            
+
             if (TenpaiJudge(handTile, out var successTiles))
             {
                 NetworkControl.WriteDebug(handTile.HandTileList);

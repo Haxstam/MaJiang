@@ -8,6 +8,9 @@ namespace MaJiangLib
     /// </summary>
     public class Group : IByteable<Group>
     {
+        // TODO 目前有一个优化方向是:只存储该面子的第一张牌,副露牌,副露向等
+
+
         /// <summary>
         /// 非副露下的构造器,需要面子类型,花色,面子的牌列表
         /// </summary>
@@ -60,12 +63,20 @@ namespace MaJiangLib
         /// <summary>
         /// 在役种判断中对刻子的判断较繁琐,通过该属性简化,当为刻子或杠子时,返回True
         /// </summary>
-        /// <returns></returns>
         public bool IsTriple
         {
             get
             {
-                return GroupType == GroupType.Triple || GroupType == GroupType.MingTriple || GroupType == GroupType.AnKang || GroupType == GroupType.MingKang || GroupType == GroupType.JiaKang;
+                return GroupType == GroupType.Triple || GroupType == GroupType.OpenTriple || GroupType == GroupType.ClosedKan || GroupType == GroupType.OpenKan || GroupType == GroupType.AddedKan;
+            }
+        }
+        /// <summary>
+        /// 当该面子是副露面子(明顺子,明刻,明杠,加杠)时,返回True
+        /// </summary>
+        public bool IsOpen 
+        { get
+            {
+                return GroupType == GroupType.OpenStraight || GroupType == GroupType.OpenTriple || GroupType == GroupType.OpenKan || GroupType == GroupType.AddedKan; 
             }
         }
         public const int byteSize = 14;

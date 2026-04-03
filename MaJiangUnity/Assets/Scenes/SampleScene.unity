@@ -372,7 +372,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b29f978519701244930f07b21a7658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentNetworkStatu: 0
+  currentNetworkStatu: 1
   testName: testPlayer1
   testIPAddress: 127.0.0.2
   clientKeyCode: 117
@@ -403,7 +403,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b29f978519701244930f07b21a7658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentNetworkStatu: 0
+  currentNetworkStatu: 1
   testName: testPlayer4
   testIPAddress: 127.0.0.5
   clientKeyCode: 112
@@ -419,7 +419,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b29f978519701244930f07b21a7658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentNetworkStatu: 0
+  currentNetworkStatu: 1
   testName: testPlayer3
   testIPAddress: 127.0.0.4
   clientKeyCode: 111
@@ -435,7 +435,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b29f978519701244930f07b21a7658d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentNetworkStatu: 0
+  currentNetworkStatu: 1
   testName: testPlayer2
   testIPAddress: 127.0.0.3
   clientKeyCode: 105

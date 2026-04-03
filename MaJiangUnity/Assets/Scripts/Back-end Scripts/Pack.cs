@@ -6,7 +6,6 @@ using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
 using static MaJiangLib.GlobalFunction;
-using static MaJiangLib.PackCoder;
 
 public class Pack
 {
@@ -27,16 +26,73 @@ public class Pack
      * 1.因为包变量
      */
 
+    public static string PackHeadStr { get; } = "\u0002HaxMajP";
+    public static byte[] PackHeadBytes { get; } = new byte[8] { 0x02, 0x48, 0x61, 0x78, 0x4D, 0x61, 0x6A, 0x50 };
+    public static string PackEndStr { get; } = "\u0003EndPack";
+    public static byte[] PackEndBytes { get; } = new byte[8] { 0x03, 0x45, 0x6E, 0x64, 0x50, 0x61, 0x63, 0x6B };
+    public static int PackSize { get; } = 1024;
+    public static int PackEndIndex { get; } = 1016;
+
 
     /// <summary>
-    /// 根据给定信息创建
+    /// 用于判断包是否合法(包头尾正确,大小正确),如果合法则返回True,反之则返回False
+    /// </summary>
+    /// <param name="pack"></param>
+    /// <returns>如果合法则返回True,反之则返回False</returns>
+    public static bool IsLegalPack(byte[] pack)
+    {
+        if (pack.Length == PackSize)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                if (pack[i] == PackHeadBytes[i] && pack[i + PackEndIndex] == PackEndBytes[i])
+                {
+
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    public static bool IsLegalPack(Span<byte> pack)
+    {
+        if (pack.Length == PackSize)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                if (pack[i] == PackHeadBytes[i] && pack[i + PackEndIndex] == PackEndBytes[i])
+                {
+
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 根据给定NetworkInformation创建并自动分配taskID,且将其返回
     /// </summary>
     /// <param name="networkInformation"></param>
-    public Pack(INetworkInformation networkInformation)
+    public Pack(INetworkInformation networkInformation, out int taskID)
     {
         Bytes = new byte[PackSize];
         Span<byte> spanBytes = Bytes;
-        int taskID = networkInformation.GetTaskID();
+        taskID = networkInformation.GetTaskID();
         PackHeadBytes.CopyTo(spanBytes);
         ReplaceBytes(spanBytes, PackHeadBytes, 0);
         ReplaceBytes(spanBytes, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), 8);
@@ -69,7 +125,7 @@ public class Pack
     /// </summary>
     /// <param name="senderName"></param>
     /// <param name="iPAddress"></param>
-    public Pack(string senderName, IPAddress iPAddress)
+    public Pack(string senderName, IPAddress iPAddress, int returnTaskID)
     {
         Bytes = new byte[PackSize];
         Span<byte> spanBytes = Bytes;
@@ -79,6 +135,7 @@ public class Pack
         ReplaceBytes(spanBytes, BitConverter.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()), 8);
         ReplaceBytes(spanBytes, iPAddress.GetAddressBytes(), 16);
         ReplaceBytes(spanBytes, Encoding.UTF8.GetBytes(senderName), 20);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(returnTaskID), 92);
         ReplaceBytes(spanBytes, PackEndBytes, PackEndIndex);
         PackType = PackType.Empty;
     }
@@ -152,12 +209,14 @@ public class Pack
     /// <param name="pack">待加工包</param>
     /// <param name="playerActionData">玩家所进行的操作</param>
     /// <returns></returns>
-    public bool PlayerActionPack(PlayerActionData playerActionData)
+    public bool PlayerActionPack(List<PlayerActionData> playerActionData, int startIndex, int length)
     {
-        // 头标识 4 bytes + 玩家操作 16 bytes
+        // 头标识 4 bytes + 玩家操作列表 16*i bytes
         PackType = PackType.PlayerAction;
         Span<byte> spanBytes = Bytes;
-        ReplaceBytes(spanBytes, playerActionData.GetBytes(), 104);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(startIndex), 104);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(length), 108);
+        ReplaceBytes(spanBytes, ListToBytes(playerActionData), 112);
         AddMD5();
         return true;
     }
@@ -177,28 +236,33 @@ public class Pack
         return true;
     }
     /// <summary>
-    /// 起手13张牌的初始化
+    /// 对局设定包
     /// </summary>
-    /// <param name="tiles"></param>
-    /// <param name="player"></param>
+    /// <param name="matchSettingData"></param>
     /// <returns></returns>
-    public bool InitPack(List<Tile> tiles, int player)
+    public bool MatchSettingPack(MatchSettingData matchSettingData)
     {
-        PackType = PackType.Init;
-
+        PackType = PackType.MatchSettingData;
         Span<byte> spanBytes = Bytes;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
-        ReplaceBytes(spanBytes, ListToBytes(tiles), 108);
+        ReplaceBytes(spanBytes, matchSettingData.GetBytes(), 104);
         AddMD5();
         return true;
     }
-    public bool AvailableActionPack(Dictionary<PlayerAction, List<PlayerActionData>> avaliableActions, int player)
+    /// <summary>
+    /// 可行操作包,存储可行操作,所进行操作的单牌,玩家序号
+    /// </summary>
+    /// <param name="avaliableActions"></param>
+    /// <param name="player"></param>
+    /// <param name="singleTile"></param>
+    /// <returns></returns>
+    public bool AvailableActionPack(Dictionary<PlayerAction, List<PlayerActionData>> avaliableActions, int player, Tile singleTile)
     {
         PackType = PackType.AvailableAction;
         // 这里单独实现字典->byte[]的转换
         Span<byte> spanBytes = Bytes;
-        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 104);
-        int index = 108;
+        ReplaceBytes(spanBytes, singleTile.GetBytes(), 104);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(player), 108);
+        int index = 112;
         foreach (var pair in avaliableActions)
         {
             if (pair.Value.Count == 0)
@@ -242,13 +306,23 @@ public class Pack
     /// <returns></returns>
     public bool ConnectRoomPack(int roomNumber, UserProfile playerInformation)
     {
-        PackType = PackType.SystemInformation;
+        PackType = PackType.UserProfile;
 
         Span<byte> spanBytes = Bytes;
         ReplaceBytes(spanBytes, BitConverter.GetBytes(roomNumber), 104);
         ReplaceBytes(spanBytes, playerInformation.GetBytes(), 108);
         AddMD5();
         return true;
+    }
+
+    public bool HonbaInitPack(List<Tile> tileList, HonbaEndMark honbaEndMark)
+    {
+        PackType = PackType.Init;
+
+        Span<byte> spanBytes = Bytes;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes((int)honbaEndMark), 104);
+        ReplaceBytes(spanBytes, ListToBytes(tileList), 108);
+        return false;
     }
     /// <summary>
     /// 为包添加MD5标识,仅在包设定完全后生成
@@ -259,6 +333,9 @@ public class Pack
         Span<byte> spanBytes = Bytes;
         ReplaceBytes(spanBytes, MD5Code, 72);
     }
+
+    #region *解码部分*
+
     /// <summary>
     /// 信号包解码
     /// </summary>
@@ -267,6 +344,27 @@ public class Pack
     {
         return (SignalType)Bytes[104];
     }
+    public UserProfile ConnectRoomPackDecode(out int roomNumber)
+    {
+        Span<byte> spanBytes = Bytes;
+        UserProfile userProfile = UserProfile.StaticBytesTo(spanBytes.Slice(108, UserProfile.byteSize).ToArray());
+        roomNumber = BitConverter.ToInt32(Bytes, 104);
+        return userProfile;
+    }
+    public List<PlayerActionData> PlayerActionPackDecode(out int startIndex, out int length)
+    {
+        startIndex = BitConverter.ToInt32(Bytes, 104);
+        length = BitConverter.ToInt32(Bytes, 108);
+        List<PlayerActionData> actionData = BytesToList<PlayerActionData>(Bytes, 112, length);
+        return actionData;
+    }
+    public List<Tile> HonbaInitPackDecode(out HonbaEndMark honbaEndMark)
+    {
+        honbaEndMark = (HonbaEndMark)BitConverter.ToInt32(Bytes, 104);
+        List<Tile> tileList = BytesToList<Tile>(Bytes, 108, 13);
+        return tileList;
+    }
+    #endregion
 }
 public enum PackType : byte
 {
@@ -282,10 +380,15 @@ public enum PackType : byte
     /// 系统信息
     /// </summary>
     SystemInformation,
+    UserProfile,
     /// <summary>
     /// 确认信息
     /// </summary>
     Acknowledge,
+    /// <summary>
+    /// 对局设定
+    /// </summary>
+    MatchSettingData,
     /// <summary>
     /// 对局初始化
     /// </summary>
@@ -310,4 +413,5 @@ public enum PackType : byte
     /// 社交行为
     /// </summary>
     SocialAction,
+    HeartBeatPack,
 }
