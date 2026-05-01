@@ -1,4 +1,5 @@
 using System;
+
 /// <summary>
 /// 计数型触发器,若达到目标值则返回
 /// </summary>

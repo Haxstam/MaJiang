@@ -1,10 +1,10 @@
-using JetBrains.Annotations;
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using TMPro;
 using UnityEngine;
 using static MaJiangLib.GlobalFunction;
 /// <summary>
@@ -32,22 +32,26 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     }
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.G))
+
+        NetworkStatu[] networkStatus = new NetworkStatu[4] { NetworkStatu.Empty, NetworkStatu.Empty, NetworkStatu.Empty, NetworkStatu.Empty};
+        int i = 0;
+        foreach (ClientData data in ClientBufferDictionary.Keys)
         {
-            NetworkStatu[] networkStatus = new NetworkStatu[4];
-            int i = 0;
-            foreach (ClientData data in ClientBufferDictionary.Keys)
-            {
-                networkStatus[i] = data.ClientNetworkStatu;
-                i++;
-            }
-            Debug.Log($"{networkStatus[0]},{networkStatus[1]},{networkStatus[2]},{networkStatus[3]}");
+            networkStatus[i] = data.ClientNetworkStatu;
+            i++;
         }
+        TextMeshPro.text = $"networkStatus:\n{networkStatus[0]},{networkStatus[1]},{networkStatus[2]},{networkStatus[3]}";
+
+
         if (Input.GetKeyDown(KeyCode.R))
         {
             Debug.Log("R");
         }
 
+        foreach (ClientData data in ClientBufferDictionary.Keys)
+        {
+            data.Ping += Time.deltaTime;
+        }
     }
     /// <summary>
     /// 从连接到对局顺位的映射表
@@ -66,14 +70,6 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     /// </summary>
     public Dictionary<Tile, List<Group>>[] AvailableTenpaiDict { get; private set; } = new Dictionary<Tile, List<Group>>[4];
     /// <summary>
-    /// 玩家每步都有的等待时间,可以进行操作时重置为5s(默认)
-    /// </summary>
-    public float[] PlayerBaseTimeList { get; private set; } = new float[4];
-    /// <summary>
-    /// 玩家在一本场内所通用的总思考时间,仅在开始新的本场时重置为20s(默认),若为零则强制跳过操作
-    /// </summary>
-    public float[] PlayerThinkingTimeCountList { get; private set; } = new float[4];
-    /// <summary>
     /// 主服务器当前状态
     /// </summary>
     public NetworkStatu ServerNetworkStatu { get; set; } = NetworkStatu.Offline;
@@ -90,7 +86,7 @@ public class MatchServer : MonoBehaviour, INetworkInformation
 
     public string testName;
     public string testIPAddress;
-
+    public TextMeshProUGUI TextMeshPro;
     public IPAddress SelfIPAddress { get; set; }
     public UserProfile SelfProfile { get; set; } = new("TestServer");
     /// <summary>
@@ -113,14 +109,6 @@ public class MatchServer : MonoBehaviour, INetworkInformation
             return true;
         }
     }
-    /// <summary>
-    /// 长考时间的刷新,仅在新本场开始时调用
-    /// </summary>
-    public void ThinkingTimeReset()
-    {
-        PlayerThinkingTimeCountList = new float[4] { 20f, 20f, 20f, 20f };
-    }
-
     #region *方法*
     // 创建新对局
 
@@ -194,7 +182,7 @@ public class MatchServer : MonoBehaviour, INetworkInformation
     /// 玩家能否鸣牌和是否返回鸣牌的记录,所有可鸣牌玩家鸣牌则鸣牌结束,顺序依次对应玩家
     /// </summary>
     public ActionMark[] PlayerWaitActionList { get; set; } = new ActionMark[4] { new(), new(), new(), new() };
-    
+
     #endregion
 
     #region *网络相关*
@@ -207,9 +195,10 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         {
             TcpClient = tcpClient;
             ClientStream = TcpClient.GetStream();
-            Ping = 0;
+            Ping = 0d;
             Closing = false;
             PersonalNetworkStatu = NetworkStatu.ConnectWait;
+            ClientNetworkStatu = NetworkStatu.Offline;
         }
         public TcpClient TcpClient { get; set; }
         public NetworkStream ClientStream { get; set; }
@@ -229,6 +218,7 @@ public class MatchServer : MonoBehaviour, INetworkInformation
         /// 用户端对应时间戳
         /// </summary>
         public int RecordStamp { get; set; } = 0;
+        public ClientStatu ClientStatu { get; set; }
     }
     public TcpListener MainServer { get; set; }
     /// <summary>
@@ -384,8 +374,6 @@ public class MatchServer : MonoBehaviour, INetworkInformation
                     // 判断成功,标记返回True和所提取的包
                     byte[] packBytes = rawPack.ToArray();
                     PackSolve(clientData, packBytes);
-                    // TODO (这里写的有问题)记录延迟,仅此处可以更改连接延迟
-                    clientData.Ping = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - BitConverter.ToDouble(rawPack.Slice(8, 8));
 
                     isReceivePack = true;
                 }
@@ -527,6 +515,11 @@ public class MatchServer : MonoBehaviour, INetworkInformation
             clientData.UserProfile = userProfile;
             clientData.ClientNetworkStatu = NetworkStatu.InRoom;
             ackPack.AcknowledgePack(SignalType.AcceptRoom);
+        }
+        else if (pack.PackType == PackType.ClientStatuPack)
+        {
+            clientData.ClientStatu = pack.ClientStatuPackDecode();
+            clientData.Ping = 0d;
         }
 
         if (ackPack != null)

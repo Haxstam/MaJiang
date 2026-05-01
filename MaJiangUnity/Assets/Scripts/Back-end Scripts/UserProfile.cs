@@ -1,7 +1,8 @@
 using MaJiangLib;
 using System;
 using System.Text;
-
+using UnityEngine;
+[Serializable]
 /// <summary>
 /// 表示用户自己的基本信息
 /// </summary>
@@ -19,8 +20,11 @@ public class UserProfile : IByteable<UserProfile>
     /// <summary>
     /// 用户名
     /// </summary>
-    public string Name { get; set; }
+    public string Name { get => name; set => name = value; }
     public const int byteSize = 96;
+    [SerializeField]
+    private string name;
+
     public int ByteSize { get => byteSize; }
 
     public static implicit operator byte[](UserProfile userProfile)
@@ -46,4 +50,25 @@ public class UserProfile : IByteable<UserProfile>
     }
     public UserProfile BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
     public byte[] GetBytes() => this;
+    public static bool operator ==(UserProfile a, UserProfile b)
+    {
+        if (a.Name == b.Name)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    public static bool operator !=(UserProfile a, UserProfile b) => !(a == b);
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Name);
+    }
+    public override bool Equals(object obj)
+    {
+        UserProfile userProfile = obj as UserProfile;
+        return userProfile != null && userProfile == this;
+    }
 }

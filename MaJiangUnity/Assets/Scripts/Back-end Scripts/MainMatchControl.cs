@@ -250,7 +250,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
      *    如A摸牌后手切,B吃牌再切出一张就是4个操作,(A的回合)A摸牌->A手切->(B的回合)B吃牌->B手切->(下一位玩家)
      */
 
-
+    public float ThinkingTime { get; set; }
     /// <summary>
     /// 玩家可行鸣牌列表,存储所有玩家对于某张牌所可行的鸣牌操作
     /// </summary>
@@ -372,7 +372,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
             case PlayerAction.Peng:
                 break;
             case PlayerAction.OpenKan:
-                break;
+                break; 
             case PlayerAction.AddedKan:
                 break;
             case PlayerAction.ClosedKan:
@@ -393,6 +393,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     }
     public void StageUpdate()
     {
+        
         switch (CurrentStageType)
         {
             case StageType.InitStage:
@@ -402,8 +403,14 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                 {
                     TargetTile = GetNextTile(IsKan[CurrentPlayerIndex])
                 };
+                ThinkingTime = 20f;
                 break;
             case StageType.DiscardStage:
+                ThinkingTime -= Time.deltaTime;
+                if (ThinkingTime < 0)
+                {
+                    // TODO 26.4.5
+                }
                 break;
             case StageType.ClaimStage:
                 break;
@@ -413,6 +420,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                 break;
         }
     }
+
     /// <summary>
     /// 循环玩家操作刷新,当处于待鸣牌状态时调用
     /// </summary>

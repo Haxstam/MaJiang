@@ -1,9 +1,9 @@
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using TMPro;
 using Unity.Profiling;
 using UnityEngine;
 /// <summary>
@@ -29,7 +29,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         SelfIPAddress = IPAddress.Parse(testIPAddress);
         SelfProfile = new(testName);
         Debug.Log($"I'm {testName}");
-
+        SelfStatu = new(1, NetworkStatu.Free, SelfIPAddress, SelfProfile);
     }
     // Start is called before the first frame update
     void Start()
@@ -48,35 +48,23 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         // 用不同标记选择不同用户
         if (Input.GetKey(clientKeyCode))
         {
-            if (Input.GetKeyDown(KeyCode.T))
-            {
-                Debug.Log($"{testName} here!");
-            }
             if (Input.GetKeyDown(KeyCode.Z))
             {
-                Connect(IPAddress.Parse("127.0.0.1"), 11111);
+                MainClient.Connect(IPAddress.Parse("127.0.0.1"), 11111);
             }
-            if (Input.GetKeyDown(KeyCode.X))
-            {
-                Ready();
-            }
-            if (Input.GetKeyDown(KeyCode.C))
-            {
-                UnReady();
-            }
-            //if (Input.GetKeyDown(KeyCode.Y))
-            //{
-            //    using (MyMethodMarker.Auto())
-            //    {
-
-            //        GlobalFunction.MainTastTenhe();
-            //    }
-            //}
         }
 
-        WatchTriggerUpdate();
-        SignalDictionaryUpdate();
         NetworkReceiveUpdate();
+        SyncTime += Time.deltaTime;
+        if (SyncTime >= 0.5f)
+        {
+            SyncUpdate();
+        }
+        textMeshPro.text = 
+            $"IP:{selfStatu.SelfIPAddress}\n" +
+            $"NetworkStatu:{selfStatu.CurrentNetworkStatu}\n" +
+            $""
+            ;
     }
 
     public static void WriteDebug(int a)
@@ -220,14 +208,11 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
         int taskID = pack.TaskID;
         if (pack.PackType == PackType.Acknowledge)
         {
-            if (SignalDictionary.TryGetValue(taskID, out var taskTrigger) && taskTrigger.IsRunning)
-            {
-                taskTrigger.OnActive(TaskResult.Finished);
-                if (taskTrigger.IsSingle)
-                {
-                    SignalDictionary.Remove(taskID);
-                }
-            }
+        }
+        if (pack.PackType == PackType.ClientStatuPack)
+        {
+            ServerClientStatu = pack.ClientStatuPackDecode();
+            IsSync = selfStatu == ServerClientStatu;
         }
     }
 
@@ -316,16 +301,59 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
 
     #endregion
 
-    public NetworkStatu currentNetworkStatu;
+    #region *状态*
+    public ClientStatu selfStatu;
+
+    public ClientStatu SelfStatu
+    {
+        get { return selfStatu; }
+        set { selfStatu = value; }
+    }
+
+    public ClientStatu serverClientStatu;
+
+    public ClientStatu ServerClientStatu
+    {
+        get { return serverClientStatu; }
+        set { serverClientStatu = value; }
+    }
 
     /// <summary>
-    /// 本端当前网络状态
+    /// 自身所在房间的房间号
     /// </summary>
-    public NetworkStatu CurrentNetworkStatu
+    public int RoomNumber
     {
-        get { return currentNetworkStatu; }
-        set { currentNetworkStatu = value; }
+        get { return selfStatu.RoomNumber; }
+        set { selfStatu.RoomNumber = value; }
     }
+    /// <summary>
+    /// 自身IP地址
+    /// </summary>
+    public IPAddress SelfIPAddress
+    {
+        get { return selfStatu.SelfIPAddress; }
+        set { selfStatu.SelfIPAddress = value; }
+    }
+    /// <summary>
+    /// 自身用户档案
+    /// </summary>
+    public UserProfile SelfProfile
+    {
+        get { return selfStatu.SelfProfile; }
+        set { selfStatu.SelfProfile = value; }
+    }
+    public bool IsSync { get; set; }
+    public float SyncTime { get; set; }
+
+    public void SyncUpdate()
+    {
+        Pack pack = new(this, out int id);
+        pack.ClientStatuPack(selfStatu);
+        ClientStream.WriteAsync(pack.Bytes);
+        SyncTime = 0f;
+    }
+    #endregion
+
     /// <summary>
     /// 标记自身是否为房主
     /// </summary>
@@ -336,25 +364,14 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     public bool IsPlaying { get; set; }
     public float BaseTime { get; set; }
     public float ThinkingTime { get; set; }
-    /// <summary>
-    /// 自身所在房间的房间号
-    /// </summary>
-    public int RoomNumber { get; set; }
 
     // 测试用变量
 
     public string testName;
     public string testIPAddress;
     public KeyCode clientKeyCode;
+    public TextMeshProUGUI textMeshPro;
 
-    /// <summary>
-    /// 自身IP地址
-    /// </summary>
-    public IPAddress SelfIPAddress { get; set; }
-    /// <summary>
-    /// 自身用户档案
-    /// </summary>
-    public UserProfile SelfProfile { get; set; }
     /// <summary>
     /// 主对局控制
     /// </summary>
@@ -419,9 +436,14 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             }
         }
     }
+
+
     #region *方法*
 
+    public void Connect()
+    {
 
+    }
 
 
 
@@ -430,6 +452,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     /// 任务ID
     /// </summary>
     private int taskSequenceID = 0;
+
     /// <summary>
     /// 任务ID的获取
     /// </summary>
@@ -438,181 +461,8 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     {
         return System.Threading.Interlocked.Increment(ref taskSequenceID);
     }
-    /// <summary>
-    /// 触发器计时字典
-    /// </summary>
-    public Dictionary<int, FloatTriggerBase<TaskResult>> SignalDictionary { get; set; } = new();
-    /// <summary>
-    /// 对信号记录的处理,每帧更新一次,用于判断方法超时时间
-    /// </summary>
-    public void SignalDictionaryUpdate()
-    {
-        List<int> keyList = SignalDictionary.Keys.ToList();
-        foreach (int key in keyList)
-        {
-            if (SignalDictionary.TryGetValue(key, out var taskTrigger) && taskTrigger.IsRunning)
-            {
-                // 更新时间,如果时间已达到,则触发方法
-                taskTrigger.OnUpdate(Time.deltaTime);
-                taskTrigger.OnDecide(out bool isActive);
-                if (isActive && taskTrigger.IsSingle)
-                {
-                    SignalDictionary.Remove(key);
-                }
-            }
-        }
-    }
-    /// <summary>
-    /// 监视触发器列表,每帧循环调用
-    /// </summary>
-    public List<WatchTriggerBase<TaskResult, bool>> WatchTriggerList { get; set; } = new();
-    /// <summary>
-    /// 监视触发器列表的Update,调用每个触发器的检查方法
-    /// </summary>
-    public void WatchTriggerUpdate()
-    {
-        // 反序遍历
-        for (int i = WatchTriggerList.Count - 1; i >= 0; i--)
-        {
-            var trigger = WatchTriggerList[i];
-            trigger.OnDecide(out bool isActive);
-            if (isActive && trigger.IsSingle)
-            {
-                WatchTriggerList.Remove(trigger);
-            }
-        }
-    }
-    public void PackSend(byte[] pack)
-    {
-        ClientStream.Write(pack, 0, pack.Length);
-    }
-    public void Connect(IPAddress iPAddress, int port)
-    {
-        Debug.Log($"{testName} Connecting");
-        if (CurrentNetworkStatu == NetworkStatu.Offline)
-        {
-            CurrentNetworkStatu = NetworkStatu.Connecting;
-            int taskID = GetTaskID();
-            SignalDictionary[taskID] = new(taskID, ConnectSolve, TaskResult.TimeOut, true);
-            WatchTriggerList.Add(
-                new(
-                    id: taskID,
-                    targetMethod: ConnectSolve,
-                    result: TaskResult.Finished,
-                    getter: () => MainClient.Connected,
-                    condition: (a) => a == true,
-                    isSingle: true
-                    ));
-            MainClient.ConnectAsync(iPAddress, port);
-        }
-        else
-        {
-            Debug.Log("必须未连接");
-        }
-    }
-    /// <summary>
-    /// 连接方法返回
-    /// </summary>
-    /// <param name="taskResult"></param>
-    public void ConnectSolve(TaskResult taskResult)
-    {
 
-        if (taskResult == TaskResult.Finished)
-        {
-            ClientStream = MainClient.GetStream();
-            PlayerDataSend();
-        }
-        else if (taskResult == TaskResult.TimeOut)
-        {
-            // 因为C# 8.0没有办法使用CancellationToken,目前通过Client.Close()来中断
-            MainClient.Close();
-            CurrentNetworkStatu = NetworkStatu.Offline;
 
-        }
-    }
-    /// <summary>
-    /// 用户数据传输,会在连接建立成功后自动调用,传输本端的基础用户数据
-    /// </summary>
-    public void PlayerDataSend()
-    {
-        if (CurrentNetworkStatu == NetworkStatu.Connecting)
-        {
-            Pack pack = new(this, out int taskID);
-            pack.ConnectRoomPack(0, SelfProfile);
-            SignalDictionary[taskID] = new(taskID, PlayerDataSendSolve, TaskResult.TimeOut, true);
-            PackSend(pack.Bytes);
-        }
-        else
-        {
-            Debug.Log("必须在连接中才可以发送玩家信息");
-        }
-    }
-    public void PlayerDataSendSolve(TaskResult taskResult)
-    {
-        if (taskResult == TaskResult.Finished)
-        {
-            // 直到此处,连接才算正式建立
-            CurrentNetworkStatu = NetworkStatu.InRoom;
-        }
-        else if (taskResult == TaskResult.TimeOut)
-        {
-            CurrentNetworkStatu = NetworkStatu.Offline;
-            MainClient.Close();
-        }
-    }
-    public void Ready()
-    {
-        if (CurrentNetworkStatu == NetworkStatu.InRoom)
-        {
-            Pack pack = new(this, out int taskID);
-            pack.SignalPack(SignalType.Ready);
-            SignalDictionary[taskID] = new(taskID, ReadySolve, TaskResult.TimeOut, true);
-            CurrentNetworkStatu = NetworkStatu.ReadyWait;
-            PackSend(pack.Bytes);
-        }
-        else
-        {
-            Debug.Log("必须在房间中且未准备");
-        }
-    }
-    public void ReadySolve(TaskResult result)
-    {
-        if (result == TaskResult.Finished)
-        {
-            CurrentNetworkStatu = NetworkStatu.Ready;
-        }
-        else if (result == TaskResult.TimeOut)
-        {
-            CurrentNetworkStatu = NetworkStatu.InRoom;
-        }
-    }
-
-    public void UnReady()
-    {
-        if (CurrentNetworkStatu == NetworkStatu.Ready)
-        {
-            Pack pack = new(this, out int taskID);
-            pack.SignalPack(SignalType.UnReady);
-            SignalDictionary[taskID] = new(taskID, UnReadySolve, TaskResult.TimeOut, true);
-            CurrentNetworkStatu = NetworkStatu.UnReadyWait;
-            PackSend(pack.Bytes);
-        }
-        else
-        {
-            Debug.Log("必须在房间中且未准备");
-        }
-    }
-    public void UnReadySolve(TaskResult result)
-    {
-        if (result == TaskResult.Finished)
-        {
-            CurrentNetworkStatu = NetworkStatu.InRoom;
-        }
-        else if (result == TaskResult.TimeOut)
-        {
-            CurrentNetworkStatu = NetworkStatu.Ready;
-        }
-    }
     #endregion
 
     private void OnDestroy()
@@ -643,8 +493,10 @@ public enum SignalType : byte
     ActionAck,
     NewRound,
 }
+[Serializable]
 public enum NetworkStatu
 {
+    Empty = 0,
     /// <summary>
     /// 离线状态
     /// </summary>
@@ -717,7 +569,7 @@ public enum NetworkStatu
     /// 对局结束状态
     /// </summary>
     MainEndStage,
-    
+
 
     // 服务器端特有状态码
 
@@ -761,6 +613,8 @@ public enum NetworkStatu
     /// 等待客户端发送信息
     /// </summary>
     ConnectFree,
+
+
 }
 public enum TaskResult
 {

@@ -322,7 +322,16 @@ public class Pack
         Span<byte> spanBytes = Bytes;
         ReplaceBytes(spanBytes, BitConverter.GetBytes((int)honbaEndMark), 104);
         ReplaceBytes(spanBytes, ListToBytes(tileList), 108);
+        AddMD5();
         return false;
+    }
+    public bool ClientStatuPack(ClientStatu clientStatu)
+    {
+        PackType = PackType.ClientStatuPack;
+        Span<byte> spanBytes = Bytes;
+        ReplaceBytes(spanBytes, clientStatu.GetBytes(), 104);
+        AddMD5();
+        return true;
     }
     /// <summary>
     /// 为包添加MD5标识,仅在包设定完全后生成
@@ -363,6 +372,11 @@ public class Pack
         honbaEndMark = (HonbaEndMark)BitConverter.ToInt32(Bytes, 104);
         List<Tile> tileList = BytesToList<Tile>(Bytes, 108, 13);
         return tileList;
+    }
+    public ClientStatu ClientStatuPackDecode()
+    {
+        Span<byte> spanBytes = Bytes;
+        return ClientStatu.StaticBytesTo(spanBytes.Slice(104, ClientStatu.byteSize).ToArray());
     }
     #endregion
 }
@@ -414,4 +428,5 @@ public enum PackType : byte
     /// </summary>
     SocialAction,
     HeartBeatPack,
+    ClientStatuPack,
 }
