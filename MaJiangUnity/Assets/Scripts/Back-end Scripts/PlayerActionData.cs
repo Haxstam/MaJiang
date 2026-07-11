@@ -141,7 +141,7 @@ namespace MaJiangLib
                         playerActionData.TargetTile = singleTile;
                     }
                 }
-                tileIndex += 4;
+                tileIndex += Tile.byteSize;
             }
             return playerActionData;
         }

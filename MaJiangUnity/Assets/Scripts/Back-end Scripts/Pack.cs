@@ -323,7 +323,7 @@ public class Pack
         ReplaceBytes(spanBytes, BitConverter.GetBytes((int)honbaEndMark), 104);
         ReplaceBytes(spanBytes, ListToBytes(tileList), 108);
         AddMD5();
-        return false;
+        return true;
     }
     public bool ClientStatuPack(ClientStatu clientStatu)
     {
@@ -378,6 +378,87 @@ public class Pack
         Span<byte> spanBytes = Bytes;
         return ClientStatu.StaticBytesTo(spanBytes.Slice(104, ClientStatu.byteSize).ToArray());
     }
+    /// <summary>
+    /// 同步请求包编码,客户端发送,附带已确认的最后日志序号
+    /// </summary>
+    public bool SyncRequestPack(int lastConfirmedIndex)
+    {
+        PackType = PackType.SyncRequest;
+        Span<byte> spanBytes = Bytes;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(lastConfirmedIndex), 104);
+        AddMD5();
+        return true;
+    }
+    /// <summary>
+    /// 同步响应包编码,服务端发送,附带一段操作日志
+    /// </summary>
+    public bool SyncResponsePack(List<PlayerActionData> actionList, int startIndex)
+    {
+        PackType = PackType.SyncResponse;
+        Span<byte> spanBytes = Bytes;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(startIndex), 104);
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(actionList.Count), 108);
+        ReplaceBytes(spanBytes, ListToBytes(actionList), 112);
+        AddMD5();
+        return true;
+    }
+    /// <summary>
+    /// 可行操作包解码
+    /// </summary>
+    public Dictionary<PlayerAction, List<PlayerActionData>> AvailableActionPackDecode(out int playerIndex, out Tile singleTile)
+    {
+        singleTile = Tile.StaticBytesTo(Bytes, 104);
+        playerIndex = BitConverter.ToInt32(Bytes, 108);
+        Dictionary<PlayerAction, List<PlayerActionData>> actionDict = new();
+        // 112 开始,按 PlayerActionData 的长度(16bytes)依次读取,遇到首字节为0或超出范围则停止
+        int index = 112;
+        while (index + PlayerActionData.byteSize <= PackEndIndex)
+        {
+            if (Bytes[index] == 0)
+                break;
+            PlayerActionData data = PlayerActionData.StaticBytesTo(Bytes, index);
+            if (!actionDict.ContainsKey(data.PlayerAction))
+                actionDict[data.PlayerAction] = new List<PlayerActionData>();
+            actionDict[data.PlayerAction].Add(data);
+            index += PlayerActionData.byteSize;
+        }
+        return actionDict;
+    }
+    /// <summary>
+    /// 同步请求包解码
+    /// </summary>
+    public int SyncRequestPackDecode()
+    {
+        return BitConverter.ToInt32(Bytes, 104);
+    }
+    /// <summary>
+    /// 同步响应包解码
+    /// </summary>
+    public List<PlayerActionData> SyncResponsePackDecode(out int startIndex)
+    {
+        startIndex = BitConverter.ToInt32(Bytes, 104);
+        int length = BitConverter.ToInt32(Bytes, 108);
+        return BytesToList<PlayerActionData>(Bytes, 112, length);
+    }
+    /// <summary>
+    /// 心跳Ack包编码,客户端发送,附带已确认的最后日志序号
+    /// </summary>
+    public bool HeartbeatAckPack(int lastConfirmedIndex)
+    {
+        PackType = PackType.Acknowledge;
+        Span<byte> spanBytes = Bytes;
+        spanBytes[104] = (byte)SignalType.HeartbeatAck;
+        ReplaceBytes(spanBytes, BitConverter.GetBytes(lastConfirmedIndex), 108);
+        AddMD5();
+        return true;
+    }
+    /// <summary>
+    /// 心跳Ack包解码,服务端调用,获取客户端已确认的日志序号
+    /// </summary>
+    public int HeartbeatAckPackDecode()
+    {
+        return BitConverter.ToInt32(Bytes, 108);
+    }
     #endregion
 }
 public enum PackType : byte
@@ -429,4 +510,12 @@ public enum PackType : byte
     SocialAction,
     HeartBeatPack,
     ClientStatuPack,
+    /// <summary>
+    /// 同步请求,客户端请求操作日志
+    /// </summary>
+    SyncRequest,
+    /// <summary>
+    /// 同步响应,服务端返回操作日志
+    /// </summary>
+    SyncResponse,
 }

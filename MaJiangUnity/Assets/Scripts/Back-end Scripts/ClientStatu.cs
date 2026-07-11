@@ -35,6 +35,10 @@ public class ClientStatu : IByteable<ClientStatu>
     /// 自身用户档案
     /// </summary>
     public UserProfile SelfProfile { get => selfProfile; set => selfProfile = value; }
+    /// <summary>
+    /// 玩家在对局中的序号(仅在开始对局后有效)
+    /// </summary>
+    public int PlayerNumber { get => playerNumber; set => playerNumber = value; }
 
     public const int byteSize = 128;
     [SerializeField]
@@ -45,6 +49,8 @@ public class ClientStatu : IByteable<ClientStatu>
     private IPAddress selfIPAddress;
     [SerializeField]
     private UserProfile selfProfile;
+    [SerializeField]
+    private int playerNumber;
 
     public int ByteSize
     {
@@ -85,6 +91,7 @@ public class ClientStatu : IByteable<ClientStatu>
         }
         ReplaceBytes(bytes, SelfIPAddress.GetAddressBytes(), 12);
         ReplaceBytes(bytes, SelfProfile.GetBytes(), 28);
+        ReplaceBytes(bytes, BitConverter.GetBytes(PlayerNumber), 124);
         return bytes;
     }
     public ClientStatu BytesTo(byte[] bytes, int index) => StaticBytesTo(bytes, index);
@@ -107,6 +114,7 @@ public class ClientStatu : IByteable<ClientStatu>
         }
         clientStatu.SelfIPAddress = new(addressBytes);
         clientStatu.SelfProfile = UserProfile.StaticBytesTo(bytes, 28);
+        clientStatu.PlayerNumber = BitConverter.ToInt32(bytes, 124);
         return clientStatu;
     }
 }

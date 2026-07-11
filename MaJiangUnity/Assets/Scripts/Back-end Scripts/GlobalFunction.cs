@@ -759,12 +759,10 @@ namespace MaJiangLib
                 }
             }
             // 最后删除不可行的操作对应的键值对
-            foreach (var action in playerActions.Keys)
+            var emptyKeys = playerActions.Keys.Where(k => playerActions[k].Count == 0).ToList();
+            foreach (var key in emptyKeys)
             {
-                if (playerActions[action].Count == 0)
-                {
-                    playerActions.Remove(action);
-                }
+                playerActions.Remove(key);
             }
             return playerActions;
         }
@@ -1592,7 +1590,7 @@ namespace MaJiangLib
             }
             Span<byte> spanBytes = targetBytes;
             Span<byte> sliceBytes = spanBytes.Slice(index, shortBytes.Length);
-            spanBytes.CopyTo(sliceBytes);
+            shortBytes.CopyTo(sliceBytes);
         }
         /// <summary>
         /// 使用Span<>的字节替换,需要目标Span<>,短字节和索引

@@ -8,7 +8,7 @@ using static MatchServer;
 /// <summary>
 /// 主对局控制类,存储系统操作方法和对局相关信息
 /// </summary>
-public class MainMatchControl : MonoBehaviour, IMatchInformation
+public class MainMatchControl : IMatchInformation
 {
     /*
      *   1.对于麻将王牌的特殊性:
@@ -19,14 +19,6 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
      *     对局信息的更新是按照单次行为在本地的演算来获取的,服务器和用户端之间的对局信息同步则尽可能避免
      *     
      */
-    private void Start()
-    {
-
-    }
-    private void Update()
-    {
-
-    }
 
     ///// <summary>
     ///// 主对局控制类自东一开局的构造器,需要指定是否有红宝牌,是否有字牌
@@ -230,6 +222,7 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         public ActionMark()
         {
             IsSendAction = false;
+            AvailableActions = new List<PlayerAction>();
         }
         public List<PlayerAction> AvailableActions { get; set; }
         public PlayerAction ChoosedAction { get; set; }
@@ -280,6 +273,8 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
     /// </summary>
     public void ServerFourMatchInit(MatchSettingData matchSettingData, Dictionary<ClientData, byte[]> clientBufferDictionary)
     {
+        Random = new();
+        PlayerList = new();
         MatchSettingData = matchSettingData;
         PlayerPoint = Enumerable.Repeat(MatchSettingData.BasePoint, 4).ToList();
         // 生成坐席位次
@@ -291,9 +286,9 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
         {
             ClientData clientData = item.Key;
             clientData.RelativePlayerNumber = playerOrder[i];
-            i++;
             // 添加对应座次玩家的信息,初始化手牌和状态
             PlayerList.Add(new(clientData.UserProfile, playerOrder[i], new(clientData.RelativePlayerNumber), StageType.InitStage));
+            i++;
         }
         ServerFourHonbaInit();
     }
@@ -718,9 +713,10 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
             case PlayerAction.HandCut:
                 // 手切,从其手牌中打出一张牌
                 DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
+                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
                 break;
             case PlayerAction.TakeCut:
-                // 摸切,打出其刚摸到的牌
+                // 摸切,打出其刚摸到的牌,不改变手牌列表
                 DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
 
                 // 如果此玩家立直,当其摸切时破除其一发
@@ -736,7 +732,11 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                     player: currentActionData.TargetPlayerNumber,
                     singleTile: currentActionData.TargetTile
                     ));
-
+                // 从手牌中移除用于鸣牌的牌
+                foreach (Tile t in currentActionData.Tiles)
+                {
+                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
+                }
                 CurrentPlayerIndex = actionPlayerNumber;
                 ClearIppatsu();
                 break;
@@ -750,13 +750,16 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                 player: currentActionData.TargetPlayerNumber,
                 singleTile: currentActionData.TargetTile
                 ));
-
+                // 从手牌中移除用于鸣牌的牌
+                foreach (Tile t in currentActionData.Tiles)
+                {
+                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
+                }
                 CurrentPlayerIndex = actionPlayerNumber;
                 ClearIppatsu();
                 break;
             case PlayerAction.OpenKan:
                 // 明杠
-
                 PlayerOpenSetList[actionPlayerNumber].Add(
                 new(
                 groupType: GroupType.OpenKan,
@@ -765,7 +768,11 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                 player: currentActionData.TargetPlayerNumber,
                 singleTile: currentActionData.TargetTile
                 ));
-
+                // 从手牌中移除用于鸣牌的牌(明杠手中3张)
+                foreach (Tile t in currentActionData.Tiles)
+                {
+                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
+                }
                 CurrentPlayerIndex = actionPlayerNumber;
                 ClearIppatsu();
                 break;
@@ -779,7 +786,8 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                         group.Tiles.Add(currentActionData.TargetTile);
                     }
                 }
-
+                // 从手牌中移除加杠的那张牌
+                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
                 ClearIppatsu();
                 break;
             case PlayerAction.ClosedKan:
@@ -789,11 +797,17 @@ public class MainMatchControl : MonoBehaviour, IMatchInformation
                     color: currentActionData.Tiles[0].Color,
                     tiles: currentActionData.Tiles
                     ));
-
+                // 从手牌中移除暗杠的四张牌
+                foreach (Tile t in currentActionData.Tiles)
+                {
+                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
+                }
                 ClearIppatsu();
                 break;
             case PlayerAction.Riichi:
                 DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
+                // 从手牌中移除立直宣言牌
+                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
                 IsRiichi[actionPlayerNumber] = true;
                 if (FirstCycleIppatsu)
                 {

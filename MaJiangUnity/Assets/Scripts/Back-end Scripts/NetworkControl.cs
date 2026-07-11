@@ -1,6 +1,7 @@
 using MaJiangLib;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using TMPro;
@@ -51,18 +52,38 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             if (Input.GetKeyDown(KeyCode.Z))
             {
                 MainClient.Connect(IPAddress.Parse("127.0.0.1"), 11111);
+                ClientStream = MainClient.GetStream();
+            }
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                SendReadySignal();
+            }
+        }
+        NetworkReceiveUpdate();
+
+        // 对局外心跳:定期发送ClientStatuPack
+        if (MainClient.Connected && ClientStream != null)
+        {
+            clientStatuTimer += Time.deltaTime;
+            if (clientStatuTimer >= ClientStatuInterval)
+            {
+                clientStatuTimer -= ClientStatuInterval;
+                SendClientStatu();
             }
         }
 
-        NetworkReceiveUpdate();
-        SyncTime += Time.deltaTime;
-        if (SyncTime >= 0.5f)
+        // 如果超过10秒未收到服务端任何包,请求同步
+        LastReceiveTime += Time.deltaTime;
+        if (LastReceiveTime > 10f && MainClient.Connected)
         {
-            SyncUpdate();
+            Debug.LogWarning("No packet received for 10s. Requesting sync...");
+            RequestSync();
+            LastReceiveTime = 0f;
         }
         textMeshPro.text = 
             $"IP:{selfStatu.SelfIPAddress}\n" +
             $"NetworkStatu:{selfStatu.CurrentNetworkStatu}\n" +
+            $"RecordIndex:{RecordIndex}\n" +
             $""
             ;
     }
@@ -204,15 +225,288 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     /// <param name="packBytes"></param>
     public void PackSolve(byte[] packBytes)
     {
+        LastReceiveTime = 0f;
         Pack pack = new(packBytes);
         int taskID = pack.TaskID;
-        if (pack.PackType == PackType.Acknowledge)
+        switch (pack.PackType)
         {
+            case PackType.Acknowledge:
+                HandleAcknowledge(pack);
+                break;
+            case PackType.Init:
+                HandleInitPack(pack);
+                break;
+            case PackType.PlayerAction:
+                HandlePlayerActionPack(pack);
+                SendHeartbeatAck();
+                break;
+            case PackType.AvailableAction:
+                HandleAvailableActionPack(pack);
+                break;
+            case PackType.Signal:
+                HandleSignalPack(pack);
+                break;
+            case PackType.HeartBeatPack:
+                RecordUpdate(pack);
+                SendHeartbeatAck();
+                break;
+            case PackType.SyncResponse:
+                HandleSyncResponse(pack);
+                break;
+            case PackType.MatchData:
+                HandleMatchDataPack(pack);
+                break;
+            case PackType.ClientStatuPack:
+                ServerClientStatu = pack.ClientStatuPackDecode();
+                IsSync = selfStatu == ServerClientStatu;
+                if (ServerClientStatu.PlayerNumber >= 0)
+                {
+                    SelfPlayerNumber = ServerClientStatu.PlayerNumber;
+                    Debug.Log($"SelfPlayerNumber set to {SelfPlayerNumber}");
+                }
+                break;
+            default:
+                break;
         }
-        if (pack.PackType == PackType.ClientStatuPack)
+    }
+    /// <summary>
+    /// 处理确认包
+    /// </summary>
+    public void HandleAcknowledge(Pack pack)
+    {
+        SignalType ackType = pack.SignalPackDecode();
+        switch (ackType)
         {
-            ServerClientStatu = pack.ClientStatuPackDecode();
-            IsSync = selfStatu == ServerClientStatu;
+            case SignalType.AcceptRoom:
+                CurrentClientStage = NetworkStatu.InRoom;
+                break;
+            case SignalType.ReadyAck:
+                CurrentClientStage = NetworkStatu.Ready;
+                break;
+            case SignalType.UnReadyAck:
+                CurrentClientStage = NetworkStatu.InRoom;
+                break;
+            case SignalType.StartAck:
+                CurrentClientStage = NetworkStatu.StartWait;
+                break;
+            case SignalType.ActionAck:
+                IsWaitingServerResponse = false;
+                break;
+        }
+    }
+    /// <summary>
+    /// 处理初始化包(收到手牌)
+    /// </summary>
+    public void HandleInitPack(Pack pack)
+    {
+        List<Tile> handTiles = pack.HonbaInitPackDecode(out HonbaEndMark honbaEndMark);
+        if (MatchControl == null)
+        {
+            MatchControl = new MainMatchControl();
+        }
+        // 确保PlayerList已初始化
+        if (MatchControl.PlayerList == null || MatchControl.PlayerList.Count == 0)
+        {
+            MatchControl.PlayerList = new List<Player>() { new(), new(), new(), new() };
+        }
+        for (int i = 0; i < 4; i++)
+        {
+            if (MatchControl.PlayerList[i].PlayerHandTile == null)
+                MatchControl.PlayerList[i].PlayerHandTile = new HandTile(i);
+        }
+        // 初始化本地对局状态
+        MatchControl.FourNewHonba(honbaEndMark);
+        // 设置自己的手牌
+        if (SelfPlayerNumber >= 0 && SelfPlayerNumber < 4)
+        {
+            MatchControl.PlayerList[SelfPlayerNumber].PlayerHandTile.HandTileList = handTiles;
+        }
+        else
+        {
+            // 如果还未知道序号,暂存手牌到0号位(后续收到ClientStatuPack后修正)
+            Debug.LogWarning("Init pack received but SelfPlayerNumber not set yet. Storing temporarily.");
+            MatchControl.PlayerList[0].PlayerHandTile.HandTileList = handTiles;
+        }
+        CurrentClientStage = NetworkStatu.StartWait;
+        // 发送InitAck
+        Pack ackPack = new(this, out int ackID);
+        ackPack.SignalPack(SignalType.InitAck);
+        ClientStream.WriteAsync(ackPack.Bytes);
+    }
+    /// <summary>
+    /// 处理玩家操作广播包
+    /// </summary>
+    public void HandlePlayerActionPack(Pack pack)
+    {
+        List<PlayerActionData> actionList = pack.PlayerActionPackDecode(out int startIndex, out int length);
+        if (actionList.Count == 0) return;
+        // 检查序号连续性
+        if (startIndex > RecordIndex)
+        {
+            Debug.LogWarning($"Action gap detected: local {RecordIndex}, server start {startIndex}. Requesting sync...");
+            RequestSync();
+            return;
+        }
+        if (startIndex < RecordIndex)
+        {
+            // 已经包含这些记录,忽略重复
+            Debug.Log($"Received outdated actions (start {startIndex} < local {RecordIndex}), ignoring.");
+            return;
+        }
+        // 将操作加入本地日志并推演
+        int previousRecordIndex = RecordIndex;
+        PlayerActionRecordList.AddRange(actionList);
+        LastConfirmedRecordIndex = RecordIndex - 1;
+        for (int j = previousRecordIndex; j < RecordIndex; j++)
+        {
+            MatchControl.ActionDeduce(PlayerActionRecordList[j]);
+        }
+        // 根据最新操作更新客户端状态
+        PlayerActionData latestAction = actionList[actionList.Count - 1];
+        switch (latestAction.PlayerAction)
+        {
+            case PlayerAction.Take:
+                // 有人摸牌(通常是当前回合玩家)
+                CurrentDrawTile = latestAction.TargetTile;
+                break;
+            case PlayerAction.HandCut:
+            case PlayerAction.TakeCut:
+            case PlayerAction.Riichi:
+            case PlayerAction.AddedKan:
+                // 切牌/立直/加杠后,如果没有可响应操作,客户端进入等待
+                CurrentClientStage = NetworkStatu.RoundWait;
+                break;
+            case PlayerAction.Chi:
+            case PlayerAction.Peng:
+            case PlayerAction.OpenKan:
+                // 有人鸣牌,新的当前玩家产生
+                CurrentClientStage = NetworkStatu.RoundWait;
+                break;
+            case PlayerAction.ClosedKan:
+            case PlayerAction.Kita:
+                // 暗杠/拔北后当前玩家继续
+                if (latestAction.SelfNumber == SelfPlayerNumber)
+                    CurrentClientStage = NetworkStatu.RoundWait;
+                break;
+            case PlayerAction.Tsumo:
+            case PlayerAction.Ron:
+            case PlayerAction.Draw:
+                CurrentClientStage = NetworkStatu.EndStage;
+                break;
+        }
+        IsWaitingServerResponse = false;
+    }
+    /// <summary>
+    /// 处理可行操作包(轮到自己做决定或鸣牌机会)
+    /// </summary>
+    public void HandleAvailableActionPack(Pack pack)
+    {
+        var actionDict = pack.AvailableActionPackDecode(out int playerIndex, out Tile singleTile);
+        if (playerIndex != SelfPlayerNumber) return;
+
+        CurrentAvailableActions = actionDict;
+        CurrentDrawTile = singleTile;
+
+        // 同步MatchControl中的摸牌信息(仅当singleTile有效时)
+        if (singleTile != null && MatchControl != null && MatchControl.PlayerList != null
+            && playerIndex < MatchControl.PlayerList.Count)
+        {
+            if (MatchControl.PlayerList[playerIndex].PlayerHandTile == null)
+                MatchControl.PlayerList[playerIndex].PlayerHandTile = new HandTile(playerIndex);
+            MatchControl.PlayerList[playerIndex].PlayerHandTile.SingleTile = singleTile;
+        }
+
+        // 根据可行操作类型区分阶段:
+        // 包含吃/碰/明杠/荣和 → 鸣牌机会 → ActionStage
+        // 否则(手切/摸切/自摸/暗杠/立直等) → 自己回合 → DiscardStage
+        bool isClaimPhase = actionDict.Keys.Any(a =>
+            a == PlayerAction.Chi || a == PlayerAction.Peng
+            || a == PlayerAction.OpenKan || a == PlayerAction.Ron);
+
+        if (isClaimPhase)
+        {
+            CurrentClientStage = NetworkStatu.ActionStage;
+            Debug.Log($"Received claim actions. Count: {actionDict.Count}");
+        }
+        else
+        {
+            CurrentClientStage = NetworkStatu.DiscardStage;
+            Debug.Log($"Received available actions. Count: {actionDict.Count}");
+        }
+    }
+    /// <summary>
+    /// 处理信号包
+    /// </summary>
+    public void HandleSignalPack(Pack pack)
+    {
+        SignalType signal = pack.SignalPackDecode();
+        switch (signal)
+        {
+            case SignalType.NewRound:
+                // 新回合开始(别人摸牌/操作),自己进入等待
+                CurrentClientStage = NetworkStatu.RoundWait;
+                break;
+            case SignalType.Start:
+                CurrentClientStage = NetworkStatu.StartWait;
+                break;
+            case SignalType.ActionSendAck:
+                IsWaitingServerResponse = false;
+                break;
+            case SignalType.ActionAck:
+                // 本场结束信号,进入结束阶段
+                CurrentClientStage = NetworkStatu.EndStage;
+                break;
+        }
+    }
+    /// <summary>
+    /// 处理同步响应包(断线重连)
+    /// </summary>
+    public void HandleSyncResponse(Pack pack)
+    {
+        List<PlayerActionData> actionList = pack.SyncResponsePackDecode(out int startIndex);
+        if (actionList.Count > 0)
+        {
+            // 清空本地状态并从头推演
+            // TODO: 如果已经有部分状态,可能需要更精细的重置
+            if (MatchControl != null)
+            {
+                // 重新初始化对局状态(保留基本设定)
+                var matchType = MatchControl.MatchType;
+                MatchControl.FourNewHonba(HonbaEndMark.NewMatch);
+                MatchControl.MatchType = matchType;
+            }
+            PlayerActionRecordList.Clear();
+            PlayerActionRecordList.AddRange(actionList);
+            LastConfirmedRecordIndex = RecordIndex - 1;
+            foreach (var action in actionList)
+            {
+                MatchControl.ActionDeduce(action);
+            }
+            Debug.Log($"Synced {actionList.Count} actions from index {startIndex}");
+        }
+    }
+    /// <summary>
+    /// 处理对局数据包(公共信息同步)
+    /// </summary>
+    public void HandleMatchDataPack(Pack pack)
+    {
+        byte[] publicBytes = pack.Bytes; // MatchDataPack的数据在偏移104处
+        // 从104偏移读取512字节公共信息
+        byte[] extractedPublic = new byte[512];
+        Array.Copy(pack.Bytes, 104, extractedPublic, 0, 512);
+        MatchControl = MainMatchControl.PublicBytesTo(extractedPublic);
+        // 尝试从对局数据推断自身序号(如果没有设置)
+        if (SelfPlayerNumber < 0 && MatchControl.PlayerList != null)
+        {
+            // 根据PlayerProfile匹配
+            for (int i = 0; i < MatchControl.PlayerList.Count; i++)
+            {
+                if (MatchControl.PlayerList[i].PlayerProfile == SelfProfile)
+                {
+                    SelfPlayerNumber = i;
+                    break;
+                }
+            }
         }
     }
 
@@ -344,6 +638,39 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     }
     public bool IsSync { get; set; }
     public float SyncTime { get; set; }
+    /// <summary>
+    /// 客户端自身在对局中的玩家序号
+    /// </summary>
+    public int SelfPlayerNumber { get; set; } = -1;
+    /// <summary>
+    /// 客户端当前网络阶段
+    /// </summary>
+    public NetworkStatu CurrentClientStage { get; set; } = NetworkStatu.Free;
+    /// <summary>
+    /// 是否正在等待服务端响应(用于防止重复发送)
+    /// </summary>
+    public bool IsWaitingServerResponse { get; set; } = false;
+    /// <summary>
+    /// 当前收到的可行操作字典(用于本地UI显示)
+    /// </summary>
+    public Dictionary<PlayerAction, List<PlayerActionData>> CurrentAvailableActions { get; set; } = new();
+    /// <summary>
+    /// 当前收到的摸牌
+    /// </summary>
+    public Tile CurrentDrawTile { get; set; }
+    /// <summary>
+    /// 最后确认的操作日志序号(用于断线重连)
+    /// </summary>
+    public int LastConfirmedRecordIndex { get; set; } = -1;
+    /// <summary>
+    /// 最后一次收到服务端包的时间(用于断线检测)
+    /// </summary>
+    public float LastReceiveTime { get; set; } = 0f;
+    /// <summary>
+    /// 对局外ClientStatu心跳计时器
+    /// </summary>
+    private float clientStatuTimer = 0f;
+    private const float ClientStatuInterval = 1f;
 
     public void SyncUpdate()
     {
@@ -399,7 +726,10 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             }
             if (RecordIndex < startIndex - 1)
             {
-                // 当前记录序号小于实际序号-1,即传入记录和已有记录见存在缺失,返回同步请求
+                // 当前记录序号小于实际序号-1,即传入记录和已有记录见存在缺失,请求同步
+                Debug.LogWarning($"Record gap detected: local {RecordIndex}, server start {startIndex}. Requesting sync...");
+                RequestSync();
+                return;
             }
             else if (RecordIndex == startIndex - 1)
             {
@@ -428,7 +758,7 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
             // 如果发送了记录修改,开始按步骤推演
             if (isAdded)
             {
-                for (int j = previousRecordIndex + 1; j < RecordIndex; j++)
+                for (int j = previousRecordIndex; j < RecordIndex; j++)
                 {
                     // 按顺序,依次按记录进行推演
                     MatchControl.ActionDeduce(PlayerActionRecordList[j]);
@@ -444,9 +774,102 @@ public class NetworkControl : MonoBehaviour, INetworkInformation
     {
 
     }
-
-
-
+    /// <summary>
+    /// 发送玩家操作至服务端
+    /// </summary>
+    public void SendPlayerAction(PlayerActionData actionData)
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        actionData.SelfNumber = SelfPlayerNumber;
+        Pack pack = new(this, out int taskID);
+        List<PlayerActionData> list = new() { actionData };
+        pack.PlayerActionPack(list, RecordIndex, 1);
+        try
+        {
+            ClientStream.WriteAsync(pack.Bytes);
+            IsWaitingServerResponse = true;
+            // 不本地推演,等待服务端广播权威操作后再统一推演,避免状态分歧
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SendPlayerAction failed: {e.Message}");
+        }
+    }
+    /// <summary>
+    /// 发送准备信号
+    /// </summary>
+    public void SendReadySignal()
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        Pack pack = new(this, out int taskID);
+        pack.SignalPack(SignalType.Ready);
+        ClientStream.WriteAsync(pack.Bytes);
+        CurrentClientStage = NetworkStatu.ReadyWait;
+    }
+    /// <summary>
+    /// 发送取消准备信号
+    /// </summary>
+    public void SendUnReadySignal()
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        Pack pack = new(this, out int taskID);
+        pack.SignalPack(SignalType.UnReady);
+        ClientStream.WriteAsync(pack.Bytes);
+        CurrentClientStage = NetworkStatu.UnReadyWait;
+    }
+    /// <summary>
+    /// 请求同步操作日志(断线重连后调用)
+    /// </summary>
+    public void RequestSync()
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        Pack pack = new(this, out int taskID);
+        pack.SyncRequestPack(LastConfirmedRecordIndex);
+        try
+        {
+            ClientStream.WriteAsync(pack.Bytes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"RequestSync failed: {e.Message}");
+        }
+    }
+    /// <summary>
+    /// 发送ClientStatu包(对局外心跳)
+    /// </summary>
+    public void SendClientStatu()
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        SelfStatu.CurrentNetworkStatu = CurrentClientStage;
+        SelfStatu.PlayerNumber = SelfPlayerNumber;
+        Pack pack = new(this, out int taskID);
+        pack.ClientStatuPack(SelfStatu);
+        try
+        {
+            ClientStream.WriteAsync(pack.Bytes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SendClientStatu failed: {e.Message}");
+        }
+    }
+    /// <summary>
+    /// 发送心跳Ack,告知服务端已确认的日志序号
+    /// </summary>
+    public void SendHeartbeatAck()
+    {
+        if (ClientStream == null || !MainClient.Connected) return;
+        Pack pack = new(this, out int taskID);
+        pack.HeartbeatAckPack(RecordIndex - 1);
+        try
+        {
+            ClientStream.WriteAsync(pack.Bytes);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SendHeartbeatAck failed: {e.Message}");
+        }
+    }
 
     /// <summary>
     /// 任务ID
@@ -492,6 +915,7 @@ public enum SignalType : byte
     ActionSendAck,
     ActionAck,
     NewRound,
+    HeartbeatAck,
 }
 [Serializable]
 public enum NetworkStatu
