@@ -1,0 +1,107 @@
+# 当前开发起点
+
+更新：2026-10-25。后续开发先读本文，再按需阅读专项文档。本文描述当前工作区中的可用版本，不代表已经提交Git或完成正式发布。
+
+## 1. 本次确认
+
+作者认可现有牌桌整体设计，可以继续以此为前端。补齐预览进入调试的入口、修复UI组件依赖后，作者反馈“目前测试初步来讲没有问题”，同意以当前状态作为下一阶段起点。
+
+这记录的是初步人工测试反馈。作者未列出逐项测试范围，不能据此认定所有役种、多人响应、整场终局、重连或跨机器局域网均已人工验收。
+
+后续分工：代理负责代码、文档与适当的自动化/编译检查；Unity中的场景、Prefab、点击和视觉操作验证由作者完成，不再由代理控制桌面代为验证。需要作者操作时给出明确步骤。
+
+## 2. 启动入口
+
+| 入口 | 当前行为 |
+| --- | --- |
+| `MaJiangUnity/Assets/Scenes/TablePreview.unity` | Play后先显示固定演示牌局；右上角“四座调试”或F1可直接切入真实四座会话，无需换场景 |
+| `MaJiangUnity/Assets/Scenes/TableDebug.unity` | Play后自动启动本机四座调试，直接使用牌桌决策 |
+| `MaJiangUnity/Assets/Scenes/SampleScene.unity` | 作者原场景，保留，不作为当前四座调试入口 |
+| Unity菜单“麻将 → 四座调试 → 创建独立调试场景” | 从已保存的TablePreview复制调试场景，已有TableDebug时保留其编辑，不覆盖 |
+
+操作前让Game窗口获得焦点。四座模式中数字键1–4切换座位，F1收起/展开调试面板；默认跟随待操作座位并暂停牌局计时。单击选牌，再次点击出牌；有多个吃碰杠组合时明确选择具体用牌。结算后可点击“下一局”，整场可重开。完整步骤见 [单人四座调试](SOLO_DEBUG.md)。
+
+四座调试会创建一个仅监听127.0.0.1临时端口的服务端及四个真实TCP客户端，不要求四个人、四个进程或手动配置IP。它仍走现用协议与服务端裁定，不是前端直接改手牌。它可以替代当前阶段的大部分同机人工操作，但不能替代跨设备连通性验收。
+
+## 3. 当前可用范围
+
+- 局域网四人立直麻将，首版以东南战为主，规则按已确认的雀魂参照预设，保留规则参数。
+- 后端包含房间与身份、准备/开局、发牌、舍牌与鸣牌、立直、和牌、抢杠、超时、流局、番符计分、支付、连庄换局与终局判定。
+- 协议为v5，TCP、手写二进制、固定1024字节物理帧；消息可以分片，不以一帧限制整份牌局数据。
+- 正常同步使用各席可见裁定日志；初始化与恢复使用检查点。客户端计算自己的合法选择，服务端复用共享规则校验，最终裁定与支付只发生在服务端。
+- 房间支持普通客户端原身份恢复；恢复检查点安装前关闭操作菜单。房主退出关闭房间，不做房主迁移或服务端重启恢复。
+- 已有牌桌可显示本人手牌、其他人牌背、牌河、副露、指示牌、点数、局数、本场、供托及结算，并通过真实客户端选择操作。
+- 调试可轮流控制四席、精确选择赤牌/普通牌组合、暂停或推进对局时间、查看阶段与日志序号、换局及重开。
+
+当前牌桌是后续前端的基础，尚未成为完整的常规局域网产品界面。创建/加入房间、地址输入、准备和房主开局的正式UI仍需接入；现有四座入口是自动建房和开局的开发工具。
+
+## 4. 模块与修改入口
+
+以下路径均相对于`MaJiangUnity/Assets/Scripts/`。
+
+| 文件/模块 | 职责与后续边界 |
+| --- | --- |
+| `Presentation/MahjongTableView.cs` | 读取VisibleMatchState、渲染牌桌与结算、发出选牌事件，不裁定规则 |
+| `Presentation/MahjongTileWidget.cs` | 单张牌的牌面、选择、悬停与点击，不提交网络命令 |
+| `Presentation/TableShape.cs` | uGUI圆角/描边图形；显式依赖CanvasRenderer，并兼容补齐旧资源缺失组件 |
+| `Presentation/MahjongTileArt.cs` | 引用作者提供的牌面纹理和可选字体；目前允许使用系统字体回退 |
+| `Presentation/MahjongTablePreview.cs` | 固定演示牌局；切入调试时解除演示输入监听并停用自身 |
+| `Presentation/MahjongTableDebug.cs` | 四座调试的视角、操作选择、面板、计时控制和牌桌绑定；不是常规联机单玩家控制器 |
+| `Networking/MatchDecisionInput.cs` | IMatchDecisionInput输入契约和NetworkDecisionInput客户端适配；提交原菜单对象并锁住待确认输入 |
+| `Networking/LocalDebugMatch.cs` | 四个真实客户端的同机生命周期、开局后随机座位映射、注入对局时钟及重开清理 |
+| `Networking/LanRoomNetwork.cs` | LanRoomServer/LanRoomClient、主线程Pump、房间消息及牌局同步 |
+| `Networking/MatchJournal.cs`、`MatchSyncCodec.cs` | 权威裁定日志、逐玩家可见状态、客户端投影及检查点/增量编码 |
+| `Networking/AuthoritativeMatchMachine.cs` | 唯一权威操作推进入口；收到选择或期限届满时裁定 |
+| `Networking/MatchSession.cs` | 本局仅结算一次、展示期限、换局及整场结束后的结果保留 |
+| `Back-end Scripts/MatchActionRules.cs`、`HandAnalysis.cs` | 共享合法动作、听牌与牌型分析 |
+| `Back-end Scripts/RiichiScoring.cs`、`RoundSettlement.cs` | 役与符番、支付、流局及终局规则 |
+| `Back-end Scripts/NetworkControl.cs`、`MatchServer.cs` | 保留原GUID的Unity网络调试入口；后续房间UI可复用其底层会话能力 |
+
+场景生成工具为`MaJiangUnity/Assets/Editor/TablePreviewBuilder.cs`。作者素材位于`MaJiangUnity/Assets/Images/`；现有牌预制体为`Assets/Prefabs/UI/MahjongTile.prefab`，图集引用资产为`Assets/Presentation/MahjongTileArt.asset`。
+
+布局可以由作者继续调整或整理成Prefab。保留MahjongTableView中各容器、文字和按钮的引用；如果Canvas采用Screen Space Camera，Prefab实例仍须有有效的摄像机引用，场景还需要EventSystem。当前已存在单牌Prefab，整张牌桌的通用Prefab封装尚未实施。
+
+## 5. 后续必须保持的约束
+
+1. UI仅显示客户端投影，并提交对应客户端当前菜单中的MatchCommand；不通过改权威状态实现“出牌成功”。
+2. 不把调试器持有四个客户端的能力放进普通玩家输入。调试切换可读取各席自己的手牌，单个客户端仍只收到本人暗手。
+3. 不另写一套规则/计分或换局流程；主推进链继续使用AuthoritativeMatchMachine、MatchSession和RoundSettlement。
+4. 计时以服务端为准；暂停调试只冻结注入的对局时钟，TCP连接维护继续运行。提交未确认或恢复未完成时不能继续消费旧菜单。
+5. MatchRule相关预设与用户已确认规则见 [规则与计分基准](RULES_AND_SCORING.md)，无需重新询问已确认的问题。用户后续决定优先。
+6. 保留作者场景、素材、Prefab编辑与脚本GUID。生成器重新生成预览资产会覆盖其生成内容，不应把重新生成当成日常修复布局的方法。
+7. 工作区含未提交成果及作者已有修改，不能用Git当前提交整体覆盖。`.utmp/baselines/`是本地恢复资料，不等于正式提交或可分发备份。
+
+## 6. 验证状态
+
+| 证据 | 当前记录与范围 |
+| --- | --- |
+| 核心检查 | 最近记录21/21通过，覆盖发牌/取牌、牌库存、基础模型与现用推进链等 |
+| 计分检查 | 最近记录42/42通过，覆盖役符、支付、包牌、流满与终局等固定牌例 |
+| 真实TCP检查 | 最近记录78/78通过，含四座调试映射、输入锁定、暂停/超时、整局与换局、启动中关闭及重建 |
+| Unity及Editor CLI | 最近编译0错误、0警告；不等于每条交互路径已验收 |
+| 作者人工操作 | UI修复后反馈初步测试没有问题；未提供逐项覆盖清单 |
+| 跨机器局域网 | 尚未验收 |
+
+本次只整理文档，引用上述已有结果，没有重新运行测试。检查入口见 [tests/README.md](../tests/README.md)，人工步骤见 [局域网验收](LAN_TEST_PLAN.md)。
+
+此前发现的两个入口问题已处理：TablePreview原本没有F1调试入口；旧TableShape缺少CanvasRenderer导致GraphicRaycaster报错。后续遇到类似反馈时先检查当前控制器、Game焦点、Console和组件依赖，不要直接判定网络或规则需要重写。
+
+## 7. 后续工作顺序
+
+以下为建议的推进顺序，未在本次文档工作中实施。
+
+1. **围绕当前调试版本收集可复现问题。** 记录座位、局数、操作阶段、牌面/具体组合、预期与实际结果；规则问题先补固定回归再修复。后续可补预设牌例、可控种子和日志导出工具，当前不要假定已有这些UI入口。
+2. **接入常规单玩家与局域网房间UI。** 提取可复用的牌桌操作控制，沿用输入契约；补创建/加入、地址/端口、准备、房主开局、连接/恢复状态。保留四座工具用于单人回归。
+3. **完善展示。** 继续使用作者认可的牌桌，按需调整错位、分辨率适配、具体组合选择、役名中文、多人和牌逐家详情、最终排名以及副露表现。后端已计算结果不代表面板已完整展示所有细节。
+4. **扩大验收。** 作者执行少见响应、长时间整场、重连/退出及将来的跨设备验证；自动化与人工结果分开记录。
+
+未来纯本地输入可以实现IMatchDecisionInput，复用同一牌桌；当前具体实现是NetworkDecisionInput，四座模式仍使用真实TCP，尚未提供无Socket的本地输入适配器。
+
+## 8. 后续阅读顺序
+
+1. 本文：当前起点、边界与未完成事项。
+2. [单人四座调试](SOLO_DEBUG.md)：实际操作方法。
+3. [项目文档](PROJECT_DOCUMENTATION.md)：目录、约定与维护方式。
+4. [规则基准](RULES_AND_SCORING.md)、[状态机](STATE_MACHINE.md)、[计分整场](SCORING_AND_MATCH.md)：按问题查规则和生命周期。
+5. [网络设计](NETWORK_DESIGN.md)、[同步设计](MATCH_SYNCHRONIZATION.md)、[协议v5](NETWORK_PROTOCOL.md)：按问题查传输与恢复。
+6. [实现记录](IMPLEMENTATION_LOG.md)：按日期查看变更；旧记录和archive是历史，不覆盖当前状态。

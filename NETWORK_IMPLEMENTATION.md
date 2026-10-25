@@ -1,5 +1,7 @@
 # 麻将项目网络模块实现记录
 
+> 2026-10-24 阅读说明：本文件是早期实现存档。当前范围与重构建议见 [项目完善规划](docs/DEVELOPMENT_PLAN.md)，规则核实见 [规则与计分基准](docs/RULES_AND_SCORING.md)。历史完成记录不等于当前代码已经通过功能验收。
+
 > 存档日期: 2026-05-01
 > 项目路径: G:\Documents\GitHub\MaJiang\MaJiangUnity
 

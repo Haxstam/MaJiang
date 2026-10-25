@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca783400faf94ee5baf22f95f70bb284, type: 3}
+  m_Name: MahjongTileArt
+  m_EditorClassIdentifier: 
+  Front: {fileID: 2800000, guid: abe0eea038e131c4b9b57ab4bd85656f, type: 3}
+  Back: {fileID: 2800000, guid: 48fa99a1bdf54924ba54e356c8d537fe, type: 3}
+  Faces:
+  - {fileID: 2800000, guid: 97b019daf4466e74186813e7cef9eb68, type: 3}
+  - {fileID: 2800000, guid: 122311e50c88e86469b41ae8f95c0ab2, type: 3}
+  - {fileID: 2800000, guid: 516f76518c018b847932adbbf6410051, type: 3}
+  - {fileID: 2800000, guid: 23d5a9e2263e07a46b296254841a97fa, type: 3}
+  - {fileID: 2800000, guid: 5f130f97a195c9949a9815b2b9b12abb, type: 3}
+  - {fileID: 2800000, guid: a420ae10d26af3a44aa410a9791f175c, type: 3}
+  - {fileID: 2800000, guid: 4dc1c60144671a649b58aea12b94b92d, type: 3}
+  - {fileID: 2800000, guid: 39fdf3b6d78f655479f2c0e03722981a, type: 3}
+  - {fileID: 2800000, guid: a9a18ba911106534b8212b87fb492dfc, type: 3}
+  - {fileID: 2800000, guid: 2fac56581bc8d8c4cb9533a2788e4a2d, type: 3}
+  - {fileID: 2800000, guid: d49ad646daaf162448d3e734d2a6dfa0, type: 3}
+  - {fileID: 2800000, guid: 4a80c4c56094289429e95d65902ec976, type: 3}
+  - {fileID: 2800000, guid: a0964bd4afb58e040bf086c8779a75ae, type: 3}
+  - {fileID: 2800000, guid: 5e6caa2fe8b26104eba1d0b432c339f1, type: 3}
+  - {fileID: 2800000, guid: af5476c983e0f094b859ad01617b3c1a, type: 3}
+  - {fileID: 2800000, guid: 7f10eb7c58c04884982f0308d062a39f, type: 3}
+  - {fileID: 2800000, guid: de7d840d6738a3949be75b0210eee969, type: 3}
+  - {fileID: 2800000, guid: fa6f3ae6c7e6c4c41986599334f154fc, type: 3}
+  - {fileID: 2800000, guid: 06c61334cdc9d4e49843c70f7680d97e, type: 3}
+  - {fileID: 2800000, guid: 4acfb8fe3602bef45a166b877206eb50, type: 3}
+  - {fileID: 2800000, guid: 831d7dfc99dfcb34e9c390a7cc72f4dc, type: 3}
+  - {fileID: 2800000, guid: 86e503751159d244ca9f3f426a43fa1e, type: 3}
+  - {fileID: 2800000, guid: c0561cbe5262b2c439a63307ec5f3aa4, type: 3}
+  - {fileID: 2800000, guid: 94eb51561aff9f2469a9718a6da01b9b, type: 3}
+  - {fileID: 2800000, guid: e6d82f4ee6096904784e322c39dcec11, type: 3}
+  - {fileID: 2800000, guid: 3f672375ca05b7a49b0b6ac86c7aa95e, type: 3}
+  - {fileID: 2800000, guid: 6a589fb23ee8f764a9b17b1988e75810, type: 3}
+  - {fileID: 2800000, guid: c412f26c9abf9f8499a4be55d5580593, type: 3}
+  - {fileID: 2800000, guid: 822703b0716d02a42bf2bfb1e9fbbb82, type: 3}
+  - {fileID: 2800000, guid: c2a7bb2c197e0294e90abea491ef85c6, type: 3}
+  - {fileID: 2800000, guid: 18d357e21049d414494d4f1847f44a86, type: 3}
+  - {fileID: 2800000, guid: cd13421cbe5caad42bd4e8947bb44bdb, type: 3}
+  - {fileID: 2800000, guid: 74056e550c554164592a1e12c325f999, type: 3}
+  - {fileID: 2800000, guid: f59b0e95a95b87e42b56332fb663ceba, type: 3}
+  RedFives:
+  - {fileID: 2800000, guid: 4d78cc1ff40ee034a8d87f879dd464f1, type: 3}
+  - {fileID: 2800000, guid: 03e5d2abf86bec84687e5a613f8a25cb, type: 3}
+  - {fileID: 2800000, guid: 73743d1cee15e6f4fbfe8190ac1ba982, type: 3}
+  Font: {fileID: 0}

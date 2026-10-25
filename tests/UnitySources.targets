@@ -1,0 +1,13 @@
+<Project>
+  <!-- Unity刷新工程前的CLI适配；不编辑Unity生成的csproj。 -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'Assembly-CSharp'">
+    <Compile Include="Assets/Scripts/Presentation/*.cs" Exclude="@(Compile)" />
+    <Compile Include="Assets/Scripts/Back-end Scripts/MatchEnums.cs" Exclude="@(Compile)" />
+    <Compile Remove="Assets/Scripts/Back-end Scripts/FanCalculator.cs;Assets/Scripts/Back-end Scripts/RonData.cs;Assets/Scripts/Back-end Scripts/RonPoint.cs" />
+    <Compile Remove="Assets/Scripts/Back-end Scripts/Pack.cs;Assets/Scripts/Back-end Scripts/ClientStatu.cs;Assets/Scripts/Back-end Scripts/NetworkException.cs;Assets/Scripts/Interfaces/INetworkInformation.cs;Assets/Scripts/Interfaces/EnumDefine.cs;Assets/Scripts/Network Scripts/PackCoder.cs" />
+    <Compile Include="Assets/Scripts/Networking/*.cs" Exclude="@(Compile)" />
+    <Compile Include="Assets/Scripts/Back-end Scripts/RiichiScoring.cs" Exclude="@(Compile)" />
+    <Compile Include="Assets/Scripts/Back-end Scripts/RoundSettlement.cs" Exclude="@(Compile)" />
+    <Compile Include="Assets/Scripts/Back-end Scripts/MatchActionContext.cs;Assets/Scripts/Back-end Scripts/HandAnalysis.cs;Assets/Scripts/Back-end Scripts/MatchActionRules.cs" Exclude="@(Compile)" />
+  </ItemGroup>
+</Project>

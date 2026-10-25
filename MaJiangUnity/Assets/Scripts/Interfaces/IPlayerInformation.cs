@@ -1,7 +1,6 @@
 using MaJiangLib;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 /// <summary>
 /// 玩家可外显的信息,即对局中所有玩家都能看见的信息
 /// </summary>

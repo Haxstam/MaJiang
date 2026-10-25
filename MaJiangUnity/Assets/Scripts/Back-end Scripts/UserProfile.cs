@@ -1,7 +1,6 @@
 using MaJiangLib;
 using System;
 using System.Text;
-using UnityEngine;
 [Serializable]
 /// <summary>
 /// 表示用户自己的基本信息
@@ -22,7 +21,9 @@ public class UserProfile : IByteable<UserProfile>
     /// </summary>
     public string Name { get => name; set => name = value; }
     public const int byteSize = 96;
-    [SerializeField]
+#if UNITY_5_3_OR_NEWER
+    [UnityEngine.SerializeField]
+#endif
     private string name;
 
     public int ByteSize { get => byteSize; }
@@ -31,7 +32,7 @@ public class UserProfile : IByteable<UserProfile>
     {
         // 介于用户信息之后长度很可能增加,因此留一个很大的冗余
         Span<byte> mainBytes = new byte[96];
-        byte[] nameBytes = Encoding.UTF8.GetBytes(userProfile.Name);
+        byte[] nameBytes = Encoding.UTF8.GetBytes(userProfile?.Name ?? string.Empty);
         if (nameBytes.Length > 48)
         {
             throw new System.Exception("过长用户名,超过48bytes编码限制");
@@ -41,7 +42,7 @@ public class UserProfile : IByteable<UserProfile>
     }
     public static UserProfile StaticBytesTo(byte[] bytes, int index = 0)
     {
-        string name = Encoding.UTF8.GetString(bytes, index, 48);
+        string name = Encoding.UTF8.GetString(bytes, index, 48).TrimEnd('\0');
         UserProfile userProfile = new()
         {
             Name = name
@@ -52,6 +53,14 @@ public class UserProfile : IByteable<UserProfile>
     public byte[] GetBytes() => this;
     public static bool operator ==(UserProfile a, UserProfile b)
     {
+        if (ReferenceEquals(a, b))
+        {
+            return true;
+        }
+        if (a is null || b is null)
+        {
+            return false;
+        }
         if (a.Name == b.Name)
         {
             return true;

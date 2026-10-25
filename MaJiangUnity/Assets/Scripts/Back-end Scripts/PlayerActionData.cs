@@ -44,13 +44,14 @@ namespace MaJiangLib
         /// <param name="playerAction">对应操作</param>
         public PlayerActionData(List<Tile> tiles, PlayerAction playerAction)
         {
-            if (PlayerAction == PlayerAction.Ron || PlayerAction == PlayerAction.Tsumo)
+            if (playerAction == PlayerAction.Ron || playerAction == PlayerAction.Tsumo)
             {
-                TargetTile = tiles[0];
+                TargetTile = tiles != null && tiles.Count > 0 ? tiles[0] : null;
+                Tiles = new();
             }
             else
             {
-                Tiles = tiles;
+                Tiles = tiles ?? new();
             }
             PlayerAction = playerAction;
         }
@@ -98,15 +99,19 @@ namespace MaJiangLib
             MainBytes[0] = (byte)PlayerAction;
             MainBytes[1] = (byte)SelfNumber;
             MainBytes[2] = (byte)TargetPlayerNumber;
-            if (Tiles.Count > 4)
+            List<Tile> tiles = Tiles ?? new();
+            if (tiles.Count > 4)
             {
                 // 如果成员数过多将不能转换
                 throw new System.Exception($"玩家操作转换时出现意外牌数目:{Tiles},{TargetTile}");
             }
             else
             {
-                ReplaceBytes(MainBytes, ListToBytes(Tiles), 4);
-                ReplaceBytes(MainBytes, TargetTile, 12);
+                ReplaceBytes(MainBytes, ListToBytes(tiles), 4);
+                if (TargetTile != null)
+                {
+                    ReplaceBytes(MainBytes, TargetTile, 12);
+                }
             }
             return MainBytes.ToArray();
         }
@@ -121,7 +126,7 @@ namespace MaJiangLib
         {
             byte[] shortBytes = new byte[16];
             Array.Copy(bytes, index, shortBytes, 0, 16);
-            PlayerActionData playerActionData = new(new(), new(Color.Wans, 1), (PlayerAction)bytes[0]);
+            PlayerActionData playerActionData = new(new(), null, (PlayerAction)shortBytes[0]);
             playerActionData.SelfNumber = shortBytes[1];
             playerActionData.TargetPlayerNumber = shortBytes[2];
             int tileIndex = 4;
@@ -161,7 +166,9 @@ namespace MaJiangLib
             {
                 return false;
             }
-            if (!a.Tiles.SequenceEqual(b.Tiles))
+            List<Tile> leftTiles = a.Tiles ?? new();
+            List<Tile> rightTiles = b.Tiles ?? new();
+            if (!leftTiles.SequenceEqual(rightTiles))
             {
                 return false;
             }
@@ -190,7 +197,7 @@ namespace MaJiangLib
         public override int GetHashCode()
         {
             HashCode tilesHash = new();
-            foreach (Tile listTile in Tiles)
+            foreach (Tile listTile in Tiles ?? new())
             {
                 tilesHash.Add(listTile.GetHashCode());
             }

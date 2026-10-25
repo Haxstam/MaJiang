@@ -1,0 +1,23 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/MatchEnums.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/RiichiScoring.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/RoundSettlement.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/MatchActionContext.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/HandAnalysis.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/MatchActionRules.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/MainMatchControl.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/GlobalFunction.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/Tile.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/Group.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/HandTile.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/Player.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/UserProfile.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/MatchSettingData.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/PlayerActionData.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Back-end Scripts/Xoshiro256StarStar.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Interfaces/IByteable.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Interfaces/IMatchInformation.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Interfaces/IPlayerInformation.cs" />
+  </ItemGroup>
+</Project>

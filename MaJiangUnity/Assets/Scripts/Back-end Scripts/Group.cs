@@ -21,7 +21,7 @@ namespace MaJiangLib
         {
             GroupType = groupType;
             Color = color;
-            Tiles = tiles;
+            Tiles = new List<Tile>(tiles);
         }
         /// <summary>
         /// 副露的构造器,需要面子类型,花色,鸣牌来源及组成面子的手里的牌和别家的牌,在创建时Tiles不包含所鸣之牌,创建后将副露牌添加进Tiles的末尾
@@ -35,7 +35,7 @@ namespace MaJiangLib
         {
             GroupType = groupType;
             Color = color;
-            Tiles = tiles;
+            Tiles = new List<Tile>(tiles);
             Tiles.Add(singleTile);
             SingleTile = singleTile;
             FuluSource = player;
@@ -109,14 +109,11 @@ namespace MaJiangLib
         /// <returns></returns>
         public static bool operator ==(Group a, Group b)
         {
-            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Tiles[0] == b.Tiles[0] && a.SingleTile == b.SingleTile)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            if (ReferenceEquals(a, b)) { return true; }
+            if (a is null || b is null) { return false; }
+            return a.Color == b.Color && a.GroupType == b.GroupType
+                && (a.Tiles.Count == 0 ? b.Tiles.Count == 0 : b.Tiles.Count > 0 && a.Tiles[0] == b.Tiles[0])
+                && a.SingleTile == b.SingleTile;
         }
         /// <summary>
         /// "!="重载
@@ -126,14 +123,7 @@ namespace MaJiangLib
         /// <returns></returns>
         public static bool operator !=(Group a, Group b)
         {
-            if (a.Color == b.Color && a.GroupType == b.GroupType && a.Tiles[0] == b.Tiles[0])
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+            return !(a == b);
         }
         /// <summary>
         /// 面子的序列化隐式转换
@@ -161,29 +151,20 @@ namespace MaJiangLib
             
             Tile singleTile = Tile.StaticBytesTo(shortBytes, 4);
             List<Tile> tiles = BytesToList<Tile>(shortBytes, 6, 4);
-            return new(groupType, color, tiles, fuluSource, singleTile);
+            return new(groupType, color, tiles)
+            {
+                FuluSource = fuluSource,
+                SingleTile = singleTile
+            };
         }
         public Group BytesTo(byte[] bytes, int index = 0) => StaticBytesTo(bytes, index);
         public override bool Equals(object obj)
         {
-            Group group = obj as Group;
-            if (group != null)
-            {
-                return group == this;
-            }
-            else
-            {
-                return false;
-            }
+            return obj is Group group && group == this;
         }
         public override int GetHashCode()
         {
-            HashCode listHash = new();
-            foreach (Tile listTile in Tiles)
-            {
-                listHash.Add(listTile.GetHashCode());
-            }
-            return HashCode.Combine(GroupType, listHash.ToHashCode(), Color, FuluSource, SingleTile);
+            return HashCode.Combine(GroupType, Color, Tiles.Count == 0 ? null : Tiles[0], SingleTile);
         }
     }
 

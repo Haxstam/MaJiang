@@ -53,6 +53,7 @@ namespace MaJiangLib
             handTile.PlayerNumber = PlayerNumber;
             handTile.HandTileList = HandTileList.ToList();
             handTile.OpenTileList = OpenTileList.ToList();
+            handTile.SingleTile = SingleTile;
             handTile.NorthDoraCount = NorthDoraCount;
             return handTile;
         }

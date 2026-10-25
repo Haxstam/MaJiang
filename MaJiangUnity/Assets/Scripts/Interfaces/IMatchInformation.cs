@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using System.Collections.Generic;
 
 namespace MaJiangLib
@@ -21,15 +20,11 @@ namespace MaJiangLib
         /// </summary>
         public List<Tile> DoraPointerList { get; set; }
         /// <summary>
-        /// 里宝牌列表,暂时放在这里
-        /// </summary>
-        public List<Tile> UraDoraPointerList { get; set; }
-        /// <summary>
         /// 目前开杠的数量
         /// </summary>
         public int KangCount { get; set; }
         /// <summary>
-        /// 开杠玩家的标记,通过该变量判断是否有多个玩家开杠,第一位玩家开杠时设定此为玩家编号,若存在其他玩家开杠则设定为-1,用于判断四杠流局
+        /// 开杠玩家标记：初始6，单人开杠为该座位0至3，多人开杠为5。
         /// </summary>
         public int KangMark { get; set; }
         /// <summary>

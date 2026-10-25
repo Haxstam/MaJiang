@@ -1,273 +1,84 @@
-# MaJiang Project Documentation
+# 项目文档
 
-> Last updated: 2026-07-11
->
-> Current status: work in progress. Core Mahjong logic exists, network play is incomplete and should be treated as experimental.
+> 更新：2026-10-25。P1–P4及P5后端清理/恢复检查已实现；现有牌桌与单人四座调试获得作者初步测试反馈“没有问题”。后续以 [当前开发起点](CURRENT_BASELINE.md) 继续，网络78项通过，跨机器与完整专项人工验收尚未完成。
 
-## 1. Project Basics
+## 1. 当前基准
 
-MaJiang is a Unity Mahjong game project written in C#.
+- Unity 6000.0.64f1，C#，Unity生成工程目标为netstandard2.1。
+- 首版为局域网四人日麻东南战，房主内置服务端，手动输入IP和端口。
+- 规则以用户已确认的雀魂参照预设为准，保留参数化能力。
+- TCP、手写二进制、固定1024字节帧。当前协议v5，拒绝旧版本。
+- 正常使用可见裁定日志，检查点用于初始化与恢复；客户端计算操作菜单、服务端复用共享规则最终校验。
 
-- Engine: Unity 6000.0.64f1, according to the existing README.
-- Main IDE: Visual Studio.
-- Main Unity project directory: `MaJiangUnity/`.
-- Main code directory: `MaJiangUnity/Assets/Scripts/`.
-- Current implementation focus: core game logic and early network synchronization.
-- UI and art content are not yet complete.
+先读 [当前开发起点](CURRENT_BASELINE.md) 和 [单人调试](SOLO_DEBUG.md)，再按需读 [开发规划](DEVELOPMENT_PLAN.md)、[规则基准](RULES_AND_SCORING.md)、[网络设计](NETWORK_DESIGN.md)、[状态机](STATE_MACHINE.md) 和 [实现记录](IMPLEMENTATION_LOG.md)。旧资料见 [历史项目文档](archive/PROJECT_DOCUMENTATION_2026-07.md)，旧风险列表必须结合实现记录核对。
 
-The project is currently small enough that code does not need a deep namespace hierarchy. Prefer using one project namespace for shared game code. Utility methods may live in the static `GlobalFunction` class when that matches the existing style.
+## 2. 开发约定
 
-## 2. Development Conventions
+- 使用Allman大括号，名称清晰，避免过度缩写。
+- Visual Studio为主要IDE；成员和声明说明使用XML文档注释，行内注释解释不明显的逻辑。
+- 修改围绕当前功能，不混入无关重构；已授权的旧网络清理按规划推进。
+- 小项目无需深层命名空间；共享游戏代码优先沿用MaJiangLib及GlobalFunction。
+- 规则或设计存在无法由代码、已确认决定解决的歧义时，给出具体位置与最小牌例向作者确认。
+- 有意义的实现或设计变更同步记录目的、文件、行为、布局、验证结果、剩余限制和Unity操作。
+- 作者明确Unity操作验证由本人完成；代理不控制桌面代为验证。需要场景、Inspector、预制体或视觉验收时列出编辑器步骤；不能把CLI编译当作Unity运行验证。
 
-These conventions are project preferences and should be followed in future changes.
+## 3. 目录与职责
 
-### 2.1 Code Style
-
-- Use Allman braces.
-- Avoid excessive abbreviations in type, method, property, and variable names.
-- Prefer clear domain names over short local shorthand, especially in Mahjong rule code.
-- Keep changes scoped to the feature or bug being worked on.
-- Do not mix unrelated refactors into functional changes.
-
-### 2.2 Comments And Documentation
-
-- Visual Studio is the primary IDE, so member and declaration comments should use XML documentation comments.
-- Use normal inline comments only when they explain non-obvious logic.
-- After making a meaningful implementation or design change, update project documentation to record:
-  - what changed,
-  - why it changed,
-  - the important implementation details,
-  - any remaining limitations or assumptions.
-- If a behavior is unclear or ambiguous, pause implementation and ask for a design decision before coding.
-
-### 2.3 Unity Workflow
-
-Some Unity operations may be difficult to perform safely outside the Unity Editor, especially scene wiring, inspector references, prefab setup, and visual verification.
-
-When a change requires Unity Editor action, document what needs to be done and ask the project owner to perform or confirm it in Unity.
-
-## 3. Current Architecture
-
-The current code is organized into three main areas.
-
-### 3.1 Back-end Scripts
-
-Directory: `MaJiangUnity/Assets/Scripts/Back-end Scripts/`
-
-This is the real core of the project. It contains Mahjong data models, rule logic, score calculation, match state control, packet structures, and network control.
-
-### 3.2 Interfaces
-
-Directory: `MaJiangUnity/Assets/Scripts/Interfaces/`
-
-These files describe shared contracts for serializable objects, match state, player state, and network identity.
-
-### 3.3 Network Scripts
-
-Directory: `MaJiangUnity/Assets/Scripts/Network Scripts/`
-
-These appear to be early placeholders or older experiments. Most active network implementation currently lives in `Back-end Scripts/NetworkControl.cs`, `Back-end Scripts/MatchServer.cs`, and `Back-end Scripts/Pack.cs`.
-
-## 4. File Inventory
-
-### 4.1 Interfaces
-
-| File | Current purpose |
+| 位置 | 内容 |
 | --- | --- |
-| `EnumDefine.cs` | Empty placeholder class. Can probably be removed later or replaced by actual shared enum definitions if desired. |
-| `IByteable.cs` | Interface for objects that can serialize to and deserialize from byte arrays. Used by custom packet serialization. |
-| `IMatchInformation.cs` | Public match state contract: discard piles, dora indicators, round, honba, player points, riichi flags, current stage, open sets, current tile, match settings, and riichi sticks. |
-| `INetworkInformation.cs` | Contract for network sender identity: IP address, user profile, and task ID generation. |
-| `IPlayerAction.cs` | Tiny action contract exposing a `PlayerAction` property. |
-| `IPlayerInformation.cs` | Public player information contract: profile, player number, and current stage. |
+| `MaJiangUnity/Assets/Scripts/Back-end Scripts/` | 原领域模型、规则、计分与MainMatchControl；两个Unity网络入口保留原GUID |
+| `MaJiangUnity/Assets/Scripts/Networking/` | 新协议、TCP连接、纯房间状态机、客户端/服务端会话 |
+| `MaJiangUnity/Assets/Scripts/Presentation/` | 可见牌桌、独立预览、单人四座调试控制器 |
+| `MaJiangUnity/Assets/Scripts/Interfaces/` | 核心数据与序列化接口 |
+| `MaJiangUnity/Assets/Scripts/Network Scripts/` | 旧场景引用的两个空组件，待编辑器清理 |
+| `tests/` | 直接编译真实核心源文件的独立检查、真实TCP回环检查、Unity CLI构建适配 |
+| `docs/` | 当前规划、已确认规则、协议、验收与实施记录 |
+| `docs/archive/` | 历史设计，不能作为当前行为的依据 |
 
-### 4.2 Basic Domain Models
+MainMatchControl接收已按座位排序的玩家，不接收Socket、Pack或ClientData。AuthoritativeMatchMachine是唯一操作推进入口，MatchSession管理一次结算与换局。MatchActionRules通过HandAnalysis调用统一RiichiScoring判断役；RoundSettlement负责纯支付和终局判定。旧静态计分器已删除，详见 [计分与整场](SCORING_AND_MATCH.md)。
 
-| File | Current purpose |
-| --- | --- |
-| `Tile.cs` | Mahjong tile model. Stores color, number, red dora flag, comparison, equality, string conversion, and 2-byte serialization. |
-| `Group.cs` | Meld/group model. Represents sequences, triplets, pairs, kans, kita, source player, called tile, open/closed status, and 14-byte serialization. |
-| `HandTile.cs` | Player hand model. Stores concealed hand tiles, current drawn tile, open groups, kita count, closed-hand status, cloning, and 96-byte serialization. |
-| `Player.cs` | Player model. Stores profile, player number, hand, current stage, and 216-byte serialization. `DoAction` is currently a stub. |
-| `UserProfile.cs` | User identity data. Currently stores user name and serializes to 96 bytes. |
-| `MatchSettingData.cs` | Match rule settings: match type, thinking time, base time, starting point, finish point, minimum yaku, open tanyao, red dora, bankrupt, and local yaku flags. |
-| `ClientStatu.cs` | Client status payload for network sync. Stores room number, network state, IP address, profile, and assigned player number. |
-| `PlayerActionData.cs` | Serializable player action record. Stores acting player, target player, involved tiles, target tile, and action type. |
-| `RonData.cs` | Win-calculation input data. Stores winner, winning tile, tsumo/ron status, riichi status, dora lists, kita count, closed-hand status, and winning groups. |
-| `RonPoint.cs` | Win result data. Stores total fan, fu, base point, and yaku list. Also calculates yaku-only fan excluding dora. |
+## 4. 当前能做什么
 
-### 4.3 Rules And Calculation
+- 无Unity场景执行发牌、摸切、岭上取牌及基础数据回归检查。
+- 四个真实TCP客户端入房、准备、取消准备，由房主手动开局。
+- 同名玩家独立识别，恢复原座位并使旧连接失效。
+- 房间公开状态同步、心跳、超时、异常连接隔离和停止后重用端口。
+- 纯服务端开局后发送本人起手牌及庄家首摸；客户端可见日志按序应用、补齐及检查点恢复。
+- 玩家命令的会话认证、本局/窗口校验、精确赤牌选择、去重与非法选择默认操作。
+- 吃碰杠、立直、自摸/多人荣和、国士抢暗杠、加杠抢杠及杠宝牌时点。
+- 每步5秒与本局共享20秒长考，断线继续默认操作；振听、已答复与个人期限按日志/检查点恢复。
+- 荒牌、九种九牌、四风、四家立直及四杠结束；和牌番符、支付、责任役满、流满、罚符及供托结算。
+- 展示5秒后自动下一局，保留点数并重置本局长考/私有标记；南4和止/听止、西入、西4及最终排名。
+- 结算日志与公开手牌/里牌，重连恢复结果和原换局期限；虚拟时钟可推进整个半庄。
+- 以作者认可的牌桌轮流代选四个真实客户端，切换视角、精确选择组合、暂停/推进时间、换局与重开。TablePreview可直接按F1/点击“四座调试”进入，TableDebug则直接开局。
 
-| File | Current purpose |
-| --- | --- |
-| `GlobalFunction.cs` | Shared enums and utility methods. Includes wall generation, draw judgement, available action judgement, riichi judgement, furiten judgement, tenpai judgement, kokushi/seven-pair judgement, DFS grouping helpers, and byte-list conversion helpers. |
-| `FanCalculator.cs` | Yaku, fan, fu, dora, yakuman, and base-point calculation. Contains many individual yaku detection functions. |
-| `Xoshiro256StarStar.cs` | Random number generator using Xoshiro256**. Used for deterministic-style shuffling from a generated seed. |
+## 5. 验证入口
 
-### 4.4 Match And Network Control
+```powershell
+./tests/run-core-checks.ps1
+./tests/run-scoring-checks.ps1
+./tests/run-network-checks.ps1
+./tests/build-unity.ps1
+```
 
-| File | Current purpose |
-| --- | --- |
-| `MainMatchControl.cs` | Main match state container and local state transition engine. Handles match initialization, honba initialization, tile drawing, player action judgement, player action deduction, public match-state serialization, and honba progression. |
-| `MatchServer.cs` | Unity-side authoritative server controller. Handles TCP listening, client data, room readiness, match start flow, init packets, player actions, claim resolution, heartbeat sync, reconnect sync, round end, and new honba start. This file is large and currently mixes network transport, game authority, state transitions, and scoring. |
-| `NetworkControl.cs` | Unity-side client network controller. Handles local TCP client, packet receive loop, packet dispatch, init handling, action log replay, available action handling, status heartbeat, sync request, and player action sending. |
-| `Pack.cs` | Fixed-size 1024-byte packet type. Defines packet header/footer, packet payload encoders/decoders, packet types, signal types, heartbeat ack, sync request, and sync response. |
-| `NetworkException.cs` | Simple custom exception type for network errors. |
+最近记录：核心21/21、计分42/42、网络/同步/整场78/78检查通过，Unity与Editor程序集编译0错误0警告。作者已反馈UI修复后初步测试没有问题，未提供逐项人工覆盖清单。检查启动器需要.NET 10 SDK，网络运行源码同时以netstandard2.1编译，无第三方NuGet依赖。网络测试只使用127.0.0.1临时端口。
 
-### 4.5 Trigger Helpers
+Unity生成的csproj不手工编辑。构建脚本通过额外targets适配尚未刷新生成工程时的新/删文件；Unity重新生成工程后也会更新源列表。
 
-| File | Current purpose |
-| --- | --- |
-| `TriggerBase.cs` | Generic trigger base with ID, target action, return result, running state, and single-use behavior. |
-| `CountTriggerBase.cs` | Generic count-based trigger abstraction. |
-| `FloatTriggerBase.cs` | Float counter trigger implementation. |
-| `WatchTriggerBase.cs` | Watcher trigger that invokes a callback when a getter value satisfies a condition. |
+当前牌桌入口见 [单人四座调试](SOLO_DEBUG.md)。旧网络入口的Inspector、按键和跨机器验收见 [局域网测试步骤](LAN_TEST_PLAN.md)，常规局域网房间UI尚未接通。
 
-### 4.6 Placeholder Network Scripts
+## 6. 仍需完成
 
-| File | Current purpose |
-| --- | --- |
-| `Network Scripts/Client.cs` | Empty `MonoBehaviour` placeholder. |
-| `Network Scripts/Server.cs` | Empty `MonoBehaviour` placeholder. Imports `UnityEditor`, so it should not be used in runtime builds as-is. |
-| `Network Scripts/PackCoder.cs` | Mostly documentation comments and a `Ping` property. Active packet encoding currently lives in `Pack.cs`. |
+- P3a可见日志/检查点已完成，见 [同步设计](MATCH_SYNCHRONIZATION.md)。
+- P3b操作状态机已完成本阶段实现与自动化验证，见 [状态机](STATE_MACHINE.md)；少见场景仍需专项回归和人工验收。
+- P4首版预设计分、结算及整场推进已完成自动化验证，见 [计分与整场](SCORING_AND_MATCH.md)。
+- P5后端旧入口清理、恢复门槛及六项TCP恢复边界已完成；有场景引用的两个空壳待Editor整理。
+- P6已有牌桌与四座调试并获初步人工测试反馈；常规房间/单玩家UI、展示细节、整桌Prefab封装及跨机器验收仍需后续完成。建议顺序见 [当前开发起点](CURRENT_BASELINE.md)。
 
-## 5. Current Functional Overview
+旧动作推演、候选字典、旧听牌DFS和512字节公共编码已删除，测试迁至现用链路；MainMatchControl只保留状态与发牌/取牌原语，GlobalFunction仅保留随机与基础字节工具。固定牌例不替代Unity运行验证。
 
-### 5.1 Implemented Or Partially Implemented
+## 7. 恢复与协作
 
-- Tile, group, hand, player, profile, action, match setting, and client status models.
-- Custom byte serialization for core data structures.
-- Basic wall generation and shuffling.
-- Tenpai judgement for normal hands, seven pairs, and kokushi.
-- Available self-action and claim-action judgement.
-- Yaku and point calculation framework.
-- Four-player match initialization.
-- Honba/round progression logic.
-- Basic TCP server/client connection flow.
-- Fixed-size packet protocol.
-- Server-authoritative action record broadcast.
-- Heartbeat and reconnect synchronization concept.
-- Early round-end scoring and draw handling.
+修改前基线位于本地忽略目录`.utmp/baselines/`，保存P1、P2、P3a、P3b及P4开始前的文件、未提交修改及逐文件SHA-256。不得用Git当前提交覆盖作者原有未提交工作。
 
-### 5.2 Known Incomplete Areas
-
-- Network module is incomplete and experimental.
-- UI workflow is not implemented as a complete player experience.
-- Scene wiring and inspector setup may not match final architecture.
-- Room/lobby separation is not complete.
-- Three-player Mahjong appears planned but not fully implemented.
-- Some scoring and draw rules are incomplete or likely incorrect.
-- Reconnect and action-log replay design needs tightening.
-- `ProcessRoundEnd` exists but still needs rule validation.
-- Some old placeholder files remain.
-
-## 6. Important Design Notes
-
-### 6.1 Network Design Direction
-
-Current intent appears to be server-authoritative synchronization:
-
-1. Client sends intended player action.
-2. Server validates action.
-3. Server applies action to authoritative match state.
-4. Server broadcasts action record.
-5. Clients replay action records locally.
-6. Heartbeat/sync packets repair missed records.
-
-This is a good direction for a Mahjong game, but the implementation currently needs cleanup around indexing, ack semantics, reconnect behavior, and state reset.
-
-### 6.2 Packet Protocol
-
-Packets are currently fixed at 1024 bytes.
-
-Current layout in `Pack.cs`:
-
-| Offset | Size | Meaning |
-| --- | ---: | --- |
-| 0 | 8 | Packet head: `0x02 HaxMajP` |
-| 8 | 8 | Unix millisecond timestamp |
-| 16 | 4 | IPv4 source address |
-| 20 | 48 | Source user name |
-| 68 | 4 | Version placeholder |
-| 72 | 16 | MD5 placeholder/checksum |
-| 88 | 4 | Packet type area, although only byte 88 is actively used |
-| 92 | 4 | Task ID |
-| 96 | 8 | Reserved |
-| 104 | 912 | Payload |
-| 1016 | 8 | Packet end: `0x03 EndPack` |
-
-Important: checksum validation is not currently enforced by `IsLegalPack`; it only checks packet size and head/footer.
-
-### 6.3 Serialization Direction
-
-The project currently favors hand-written compact binary serialization instead of JSON.
-
-This can work, but future changes should keep these rules:
-
-- Every serialized type needs a stable byte size.
-- Offsets must be documented when changed.
-- List encoding must distinguish between valid zero/false values and end-of-list markers.
-- Decode methods should honor the supplied `index`.
-- Encoding and decoding tests should be added for each packet and serializable model.
-
-## 7. Known Risks From Current Review
-
-These are not yet fixed in this documentation step. They are recorded so future implementation can prioritize them.
-
-### 7.1 Highest Priority
-
-- `NetworkControl.Awake()` can null-reference because `SelfStatu` is initialized after using properties that dereference it.
-- Player seating in `MainMatchControl.ServerFourMatchInit` may make `PlayerList` index and `PlayerNumber` disagree.
-- Remaining tile count appears incorrect after initial dealing and may be double-decremented during draw replay.
-- Low-fan score calculation uses `fu` before calculating `fu`.
-- `RonData` constructor does not set `PlayerNumber`.
-- Win legality currently checks total fan, including dora, rather than yaku-only fan.
-- Draw judgement contains assignment inside predicate: `player => player = false`.
-- `Group.StaticBytesTo` may duplicate called tile through the constructor.
-- `Tile.ToString()` mutates red dora tile state.
-- Client heartbeat/action-log update has off-by-one risks.
-
-### 7.2 High Priority
-
-- Boolean list serialization writes one byte but decode advances by four bytes and stops on false.
-- `PlayerActionData` constructors and serialization are not null-safe in all paths.
-- `ClientStatu.StaticBytesTo` ignores its `index` argument.
-- Open groups are updated in `PlayerOpenSetList` but not always in `HandTile.OpenTileList`.
-- Dead-wall draw noten penalty currently appears to scale incorrectly.
-- Sanshoku doujun detection uses an impossible condition.
-- Several equality operators do not handle null safely.
-- Packet string and IP writes need length and address-family guards.
-- `AddMD5` hashes the packet while the previous MD5 bytes are still present.
-- Some async network methods use `async void` and rethrow exceptions in a way that can crash Unity.
-
-## 8. Documentation Maintenance Rule
-
-When a future implementation changes behavior, update this document or add a focused document under `docs/`.
-
-Recommended additions:
-
-- `docs/NETWORK_DESIGN.md` for the final packet/session/reconnect model.
-- `docs/RULES_AND_SCORING.md` for Mahjong rule decisions and local-rule choices.
-- `docs/IMPLEMENTATION_LOG.md` for chronological implementation notes.
-- `docs/TEST_PLAN.md` for replay cases and serialization tests.
-
-For each meaningful change, record:
-
-1. Date.
-2. Files changed.
-3. User-facing or gameplay behavior changed.
-4. Internal design changed.
-5. Tests or manual checks performed.
-6. Remaining TODOs.
-
-## 9. Open Questions Before Implementation
-
-These should be clarified before large rewrites.
-
-1. Should the first fully supported mode be four-player Japanese Riichi Mahjong only?
-2. Should three-player Mahjong be postponed until four-player networking is stable?
-3. Should packet serialization remain fixed-size binary, or is a simpler typed message format acceptable during early development?
-4. Should reconnect restore full match state from authoritative snapshots, or replay action logs from the beginning of the current honba?
-5. Should the server run inside one Unity client for now, or eventually become a separate headless/server process?
-6. Which rule set should be the baseline: common Japanese online Riichi rules, or a custom local rule set?
-
+P5清理前另有247文件恢复基线，含原有未提交修改。前端阶段另保存了UI创建、四座调试及输入修复前的局部基线。后续保留当前牌桌布局与接口；场景空壳仍保留至作者在Editor处理引用。开发起点文档不等于Git提交或全量备份。

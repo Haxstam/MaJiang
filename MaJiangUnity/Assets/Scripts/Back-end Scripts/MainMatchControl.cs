@@ -2,97 +2,12 @@ using MaJiangLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using static MaJiangLib.GlobalFunction;
-using static MatchServer;
-/// <summary>
-/// 主对局控制类,存储系统操作方法和对局相关信息
-/// </summary>
+
+/// <summary>完整牌局状态及发牌/取牌原语。操作由AuthoritativeMatchMachine裁定，结算换局由MatchSession管理。</summary>
 public class MainMatchControl : IMatchInformation
 {
-    /*
-     *   1.对于麻将王牌的特殊性:
-     *  杠牌后从王牌中摸一张并从牌山末取一张补足王牌,宝牌堆(10张)固定不变
-     *  为代码实现方便,用一个标记标明下一张待摸岭上牌,王牌列表只增加不减少
-     *  
-     *   2.对于对局信息,目前设定是对于MainMatchControl,其有一个完全转换为Byte[]的方法,但避免使用此方法
-     *     对局信息的更新是按照单次行为在本地的演算来获取的,服务器和用户端之间的对局信息同步则尽可能避免
-     *     
-     */
-
-    ///// <summary>
-    ///// 主对局控制类自东一开局的构造器,需要指定是否有红宝牌,是否有字牌
-    ///// </summary>
-    ///// <param name="matchType"></param>
-    ///// <param name="haveRedDora"></param>
-    ///// <param name="haveHonor"></param>
-    //public MainMatchControl(List<Player> playerList, MatchType matchType, bool haveRedDora, bool haveHonor)
-    //{
-    //    MatchType = matchType;
-    //    if (MatchType == MatchType.FourMahjongEast || MatchType == MatchType.FourMahjongSouth)
-    //    {
-    //        PlayerList = playerList;
-    //        FourInit();
-    //        // 各列表/数值初始化为东一 0本场的开局情况,且未开始发牌和掀开宝牌
-    //        Wind = WindType.East;
-    //        Round = 1;
-    //        Honba = 0;
-    //        PlayerPoint = new() { 25000, 25000, 25000, 25000 };
-    //        CurrentBankerIndex = 0;
-    //        CurrentPlayerIndex = CurrentBankerIndex;
-    //    }
-    //    else
-    //    {
-
-    //    }
-    //}
-    //public MainMatchControl(List<Player> playerList, MatchSettingData matchSettingData)
-    //{
-    //    MatchType = matchSettingData.MatchType;
-    //    PlayerList = playerList;
-    //    if (matchSettingData.MatchType == MatchType.FourMahjongEast || MatchType == MatchType.FourMahjongSouth)
-    //    {
-
-    //    }
-    //}
-    ///// <summary>
-    ///// 经由公共信息创建的当前比赛信息,用于用户端创建比赛信息实例
-    ///// </summary>
-    ///// <param name="playerInformation"></param>
-    ///// <param name="matchInformation"></param>
-    //public MainMatchControl(List<IPlayerInformation> playerInformation, IMatchInformation matchInformation)
-    //{
-    //    PlayerList = new();
-    //    foreach (IPlayerInformation player in playerInformation)
-    //    {
-    //        PlayerList.Add(new(player));
-    //    }
-    //    MatchType = matchInformation.MatchType;
-    //    DiscardTileList = matchInformation.DiscardTileList;
-    //    DoraList = matchInformation.DoraList;
-    //    UraDoraList = matchInformation.UraDoraList;
-    //    KangCount = matchInformation.KangCount;
-    //    KangMark = matchInformation.KangMark;
-    //    Wind = matchInformation.Wind;
-    //    Round = matchInformation.Round;
-    //    Honba = matchInformation.Honba;
-    //    PlayerPoint = matchInformation.PlayerPoint;
-    //    IsRiichi = matchInformation.IsRiichi;
-    //    IsDoubleRiichi = matchInformation.IsDoubleRiichi;
-    //    RemainTileCount = matchInformation.RemainTileCount;
-    //    HaveIppatsu = matchInformation.HaveIppatsu;
-    //    FirstCycleIppatsu = matchInformation.FirstCycleIppatsu;
-    //    IsKang = matchInformation.IsKang;
-    //    CurrentPlayerIndex = matchInformation.CurrentPlayerIndex;
-    //    CurrentStageType = matchInformation.CurrentStageType;
-    //    CurrentBankerIndex = matchInformation.CurrentBankerIndex;
-    //    PlayerFuluList = matchInformation.PlayerFuluList;
-    //}
-    public MainMatchControl()
-    {
-
-    }
-    #region *公共信息,所有玩家都可见*
+    #region *牌局信息，客户端仅通过MatchJournal获取自己的可见投影*
     /// <summary>
     /// 玩家列表,仅提取信息
     /// </summary>
@@ -109,10 +24,6 @@ public class MainMatchControl : IMatchInformation
     /// 宝牌指示牌列表,存储所有已被展示的宝牌指示牌
     /// </summary>
     public List<Tile> DoraPointerList { get; set; }
-    /// <summary>
-    /// 里宝牌列表,暂时放在这里
-    /// </summary>
-    public List<Tile> UraDoraPointerList { get; set; }
     /// <summary>
     /// 目前开杠的数量
     /// </summary>
@@ -186,7 +97,6 @@ public class MainMatchControl : IMatchInformation
     /// </summary>
     public List<bool> IsKan { get; set; }
     public Tile CurrentTile { get; set; }
-    public List<int> KitaCount { get; set; }
     #endregion
 
     #region *内部信息,不作为接口成员*
@@ -202,8 +112,7 @@ public class MainMatchControl : IMatchInformation
     /// 王牌,恒定14张(四麻)/18张(三麻),前10张固定为宝牌/里宝牌指示牌,后4张/8张为岭上牌
     /// </summary>
 
-    // 理论上只要所摸牌是非公开的,这张牌在哪其实无所谓,没开的宝牌/牌山随便一张/海底作为被摸的牌是完全等价的
-    // 日麻四麻下王牌7墩,靠近海底的那侧为前,前5墩为宝牌指示牌,后2墩岭上牌,第一张宝牌从靠近岭上的那侧开始掀开,开杠后摸岭上牌并依次指定与王牌相邻的海底牌为王牌,最后不摸
+    // 0至9为五对表/里指示牌，10至13为四张岭上，之后追加的海底保留牌不再摸取。
     public List<Tile> PrimeTileList { get; set; }
     /// <summary>
     /// 下一张岭上牌的标记
@@ -217,78 +126,42 @@ public class MainMatchControl : IMatchInformation
     public bool IsServer { get; set; }
     #endregion
 
-    public class ActionMark
+    /// <summary>
+    /// 四麻对局初始化：使用已分配座位的玩家初始化点数和首局，仅供服务端调用
+    /// </summary>
+    /// <param name="matchSettingData">对局设置。</param>
+    /// <param name="playersBySeat">已由房间分配座位的四名玩家，列表下标即座位编号。</param>
+    /// <param name="random">可选的随机数源，便于复现牌山和执行规则测试。</param>
+    public void ServerFourMatchInit(MatchSettingData matchSettingData, IReadOnlyList<UserProfile> playersBySeat, Xoshiro256StarStar random = null)
     {
-        public ActionMark()
+        if (matchSettingData == null)
         {
-            IsSendAction = false;
-            AvailableActions = new List<PlayerAction>();
+            throw new ArgumentNullException(nameof(matchSettingData));
         }
-        public List<PlayerAction> AvailableActions { get; set; }
-        public PlayerAction ChoosedAction { get; set; }
-        /// <summary>
-        /// 对应玩家是否发送操作
-        /// </summary>
-        public bool IsSendAction { get; set; }
-    }
-
-    #region *服务端方法/属性*
-    /*
-     * TODO 考虑将网络相关内容和对局完全分开,使得对局方法不参与网络交互
-     * 
-     * 1. 对局初始化顺序:
-     *    服务端:新游戏:服务端全局初始化(确定座次,初始随机数)->服务端本场初始化(生成随机牌山,分发王牌手牌)->新本场(确定庄位/本场/局数)
-     *          新本场:服务端本场初始化(生成随机牌山,分发王牌手牌)->新本场(确定庄位/本场/局数)
-     * 2. 目前客户端和服务端的操作完全由单次玩家操作推演而前进,从而将所有操作分解成零碎的元操作
-     *    如A摸牌后手切,B吃牌再切出一张就是4个操作,(A的回合)A摸牌->A手切->(B的回合)B吃牌->B手切->(下一位玩家)
-     */
-
-    public float ThinkingTime { get; set; }
-    /// <summary>
-    /// 玩家可行鸣牌列表,存储所有玩家对于某张牌所可行的鸣牌操作
-    /// </summary>
-    public Dictionary<PlayerAction, List<PlayerActionData>>[] PlayerClaimingAvailableList { get; set; } = new Dictionary<PlayerAction, List<PlayerActionData>>[4] { new(), new(), new(), new() };
-    /// <summary>
-    /// 玩家可行回合内操作列表,存储当前玩家在摸牌后可进行的操作
-    /// </summary>
-    public Dictionary<PlayerAction, List<PlayerActionData>> PlayerSelfAvailableDict { get; set; } = new();
-    /// <summary>
-    /// 振听标记,若玩家振听则标记为true,无法通过荣和和牌
-    /// </summary>
-    public bool[] IsPlayerFuriten { get; set; } = new bool[4];
-    /// <summary>
-    /// 玩家能否鸣牌和是否返回鸣牌的记录,所有可鸣牌玩家鸣牌则鸣牌结束,顺序依次对应玩家
-    /// </summary>
-    public ActionMark[] PlayerWaitActionList { get; set; } = new ActionMark[4] { new(), new(), new(), new() };
-    /// <summary>
-    /// 玩家若听牌,其听牌的列表.考虑到摸切(即不改变听牌)占切牌的很大一部分,因此单独存储从而减少运算
-    /// </summary>
-    public Dictionary<Tile, List<Group>>[] AvailableTenpaiDict { get; private set; } = new Dictionary<Tile, List<Group>>[4];
-    public void ServerUpdate()
-    {
-        PlayerActionUpdate();
-    }
-    /// <summary>
-    /// 四麻通用对局开始初始化:随机排序座位,初始化点数,仅供服务端调用
-    /// </summary>
-    public void ServerFourMatchInit(MatchSettingData matchSettingData, Dictionary<ClientData, byte[]> clientBufferDictionary)
-    {
-        Random = new();
-        PlayerList = new();
-        MatchSettingData = matchSettingData;
-        PlayerPoint = Enumerable.Repeat(MatchSettingData.BasePoint, 4).ToList();
-        // 生成坐席位次
-        int[] playerOrder = new int[4] { 0, 1, 2, 3 };
-        GlobalFunction.Shuffle(playerOrder, Random.NextInt32());
-        int i = 0;
-        // 对连接的各个用户分配其座次,并依次提取它们的信息生成Player
-        foreach (var item in clientBufferDictionary)
+        if (matchSettingData.MatchType != MatchType.FourMahjongEast && matchSettingData.MatchType != MatchType.FourMahjongSouth)
         {
-            ClientData clientData = item.Key;
-            clientData.RelativePlayerNumber = playerOrder[i];
-            // 添加对应座次玩家的信息,初始化手牌和状态
-            PlayerList.Add(new(clientData.UserProfile, playerOrder[i], new(clientData.RelativePlayerNumber), StageType.InitStage));
-            i++;
+            throw new ArgumentException("此入口仅支持四人麻将。", nameof(matchSettingData));
+        }
+        if (playersBySeat == null || playersBySeat.Count != 4 || playersBySeat.Any(profile => profile is null))
+        {
+            throw new ArgumentException("必须提供按座位排列的四名玩家。", nameof(playersBySeat));
+        }
+
+        Random = random ?? new Xoshiro256StarStar();
+        IsServer = true;
+        PlayerList = new() { null, null, null, null };
+        MatchSettingData = matchSettingData;
+        MatchType = matchSettingData.MatchType;
+        Wind = WindType.East;
+        Round = 1;
+        Honba = 0;
+        CurrentDealerIndex = 0;
+        CurrentPlayerIndex = CurrentDealerIndex;
+        RiichiStickCount = 0;
+        PlayerPoint = Enumerable.Repeat(MatchSettingData.BasePoint, 4).ToList();
+        for (int playerNumber = 0; playerNumber < 4; playerNumber++)
+        {
+            PlayerList[playerNumber] = new(new UserProfile(playersBySeat[playerNumber].Name), playerNumber, new(playerNumber), StageType.InitStage);
         }
         ServerFourHonbaInit();
     }
@@ -297,33 +170,48 @@ public class MainMatchControl : IMatchInformation
     /// </summary>
     public void ServerFourHonbaInit()
     {
-        Random = new();
+        Random ??= new Xoshiro256StarStar();
         // 牌山设定:通过随机数生成牌山,取前122张作为手牌,后14张作为王牌
-        List<Tile> rawTileList = RandomCardGenerator(out int randomNumber, true, true, true, Random);
+        List<Tile> rawTileList = RandomCardGenerator(out int randomNumber, true, MatchSettingData.HaveRedDora, true, Random);
         PrimeTileIndex = 0;
         PrimeTileList = rawTileList.GetRange(122, 14);
         rawTileList.RemoveRange(122, 14);
         MainTileList = rawTileList;
-        FourRegularInit();
+        ResetRoundState();
         for (int j = 0; j < 4; j++)
         {
+            PlayerList[j].PlayerHandTile = new HandTile(j);
+            PlayerList[j].PlayerHandTile.OpenTileList = PlayerOpenSetList[j];
             // 从牌山的第0处开始,依次取13张牌作为玩家手牌并将其从牌山中移除
             PlayerList[j].PlayerHandTile.HandTileList = rawTileList.GetRange(0, 13);
             rawTileList.RemoveRange(0, 13);
         }
+        RemainTileCount = rawTileList.Count;
+        Initialized = true;
     }
     /// <summary>
-    /// 从牌山摸一张牌,区分岭上牌和牌山
+    /// 消耗一张正常或岭上牌并唯一扣减余牌数；调用者只负责将返回牌放入玩家手牌。
     /// </summary>
     /// <param name="isRinshan"></param>
     /// <returns></returns>
     public Tile GetNextTile(bool isRinshan)
     {
+        if (MainTileList == null || RemainTileCount <= 0 || CurrentTileIndex >= MainTileList.Count)
+        {
+            throw new InvalidOperationException("没有剩余可摸牌。");
+        }
         Tile nextTile;
         if (isRinshan)
         {
-            nextTile = PrimeTileList[PrimeTileIndex];
+            if (PrimeTileIndex >= 4)
+            {
+                throw new InvalidOperationException("四张岭上牌已经用尽。");
+            }
+            // 前十张为表里宝牌指示牌，后四张为岭上牌；每次岭上摸牌将海底补入王牌。
+            nextTile = PrimeTileList[10 + PrimeTileIndex];
             PrimeTileIndex++;
+            PrimeTileList.Add(MainTileList[MainTileList.Count - 1]);
+            MainTileList.RemoveAt(MainTileList.Count - 1);
         }
         else
         {
@@ -334,346 +222,24 @@ public class MainMatchControl : IMatchInformation
         return nextTile;
     }
     /// <summary>
-    /// 根据玩家返回的操作进行返回
+    /// 本场发牌前清空公共牌区和操作标记，窗口与私有裁定由MatchJournal重置。
     /// </summary>
-    /// <param name="currentActionData"></param>
-    public void ServerActionSolve(PlayerActionData currentActionData)
-    {
-        if (CurrentStageType == StageType.ClaimStage)
-        {
-            if (PlayerWaitActionList[currentActionData.SelfNumber].AvailableActions.Contains(currentActionData.PlayerAction))
-            {
-                PlayerWaitActionList[currentActionData.SelfNumber].ChoosedAction = currentActionData.PlayerAction;
-                PlayerWaitActionList[currentActionData.SelfNumber].IsSendAction = true;
-            }
-        }
-        ActionDeduce(currentActionData);
-        // 用于判断是否要进入鸣牌阶段
-        bool isClaimingAvailable = false;
-        int actionPlayerNumber = currentActionData.SelfNumber;
-        switch (currentActionData.PlayerAction)
-        {
-            case PlayerAction.Skip:
-                break;
-            case PlayerAction.Take:
-                PlayerSelfAvailableDict = SelfAvailableJudge(PlayerList[actionPlayerNumber].PlayerHandTile, currentActionData.TargetTile, this);
-                break;
-            case PlayerAction.HandCut:
-            case PlayerAction.TakeCut:
-                PlayerClaimingActionUpdate(currentActionData, out isClaimingAvailable);
-                break;
-            case PlayerAction.Chi:
-                break;
-            case PlayerAction.Peng:
-                break;
-            case PlayerAction.OpenKan:
-                break; 
-            case PlayerAction.AddedKan:
-                break;
-            case PlayerAction.ClosedKan:
-                break;
-            case PlayerAction.Riichi:
-                break;
-            case PlayerAction.Kita:
-                break;
-            case PlayerAction.Ron:
-                break;
-            case PlayerAction.Tsumo:
-                break;
-            case PlayerAction.Draw:
-                break;
-            default:
-                break;
-        }
-    }
-    public void StageUpdate()
-    {
-        
-        switch (CurrentStageType)
-        {
-            case StageType.InitStage:
-                break;
-            case StageType.StartStage:
-                PlayerActionData playerActionData = new(PlayerAction.Take)
-                {
-                    TargetTile = GetNextTile(IsKan[CurrentPlayerIndex])
-                };
-                ThinkingTime = 20f;
-                break;
-            case StageType.DiscardStage:
-                ThinkingTime -= Time.deltaTime;
-                if (ThinkingTime < 0)
-                {
-                    // TODO 26.4.5
-                }
-                break;
-            case StageType.ClaimStage:
-                break;
-            case StageType.EndStage:
-                break;
-            default:
-                break;
-        }
-    }
-
-    /// <summary>
-    /// 循环玩家操作刷新,当处于待鸣牌状态时调用
-    /// </summary>
-    /// <returns>-2为存在更高优先操作未做出,-1为无可操作玩家,0~3为对应操作玩家</returns>
-    public int PlayerActionUpdate()
-    {
-        // [MARK] 这块显式转换太多了,类型不重要,考虑单独列一个变量去做比较
-        // 整体是为了解决鸣牌优先级的问题,和>(杠>碰)>吃>跳过,仅当某个操作被作出且没有大于它的优先级的操作有被作出的可能时终止
-
-        // 当前还未被做出的最优先操作
-        PlayerAction priorityAction = PlayerAction.Skip;
-        // 当前已经被做出的最优先操作
-        PlayerAction currentPriorityAction = PlayerAction.Skip;
-        int priorityPlayer = -1;
-        for (int i = 0; i < 4; i++)
-        {
-            ActionMark mark = PlayerWaitActionList[i];
-            if (mark.AvailableActions.Count != 0)
-            {
-                if (mark.IsSendAction)
-                {
-                    if ((int)mark.ChoosedAction > (int)currentPriorityAction)
-                    {
-                        // 该玩家已选择,其所进行的操作比现有操作大
-                        currentPriorityAction = mark.ChoosedAction;
-                        priorityPlayer = i;
-                    }
-                }
-                else
-                {
-                    PlayerAction maxPriorityAction = (PlayerAction)mark.AvailableActions.Max(p => (int)p);
-                    if ((int)maxPriorityAction > (int)priorityAction)
-                    {   // 该玩家还未选择,其所能进行的操作比现有操作大
-                        priorityAction = maxPriorityAction;
-                    }
-                }
-            }
-        }
-        if (priorityAction == PlayerAction.Skip && currentPriorityAction == PlayerAction.Skip)
-        {   // 所有人什么都不能做
-            return -1;
-        }
-        else if (currentPriorityAction > priorityAction)
-        {   // 已经做出的操作比还未做出的操作大,终止
-            return priorityPlayer;
-        }
-        else
-        {   // 存在有更高优先级但未操作的玩家,返回false,等待完成
-            return -2;
-        }
-    }
-    public void PlayerClaimingActionUpdate(PlayerActionData playerActionData, out bool isClaimingAvailable)
-    {
-        isClaimingAvailable = false;
-        foreach (var player in PlayerList)
-        {
-            PlayerClaimingAvailableList[player.PlayerNumber] = SingleClaimingAvailableJudge(player.PlayerHandTile, playerActionData.TargetTile, this);
-            if (PlayerClaimingAvailableList[player.PlayerNumber].Count != 0)
-            {
-                isClaimingAvailable = true;
-                // 将所有可行操作的类型添加到鸣牌等待列表中的可行操作里
-                PlayerWaitActionList[player.PlayerNumber].AvailableActions.AddRange(PlayerClaimingAvailableList[player.PlayerNumber].Keys.ToList());
-            }
-
-            if (AvailableTenpaiDict[player.PlayerNumber].ContainsKey(playerActionData.TargetTile))
-            {
-                // 如果当前打出的牌包含在某玩家的听牌列表中,开始判断该玩家能否荣和此牌
-                RonData ronData = new(player.PlayerNumber, this, AvailableTenpaiDict[player.PlayerNumber][playerActionData.TargetTile], false);
-                RonPoint ronPoint = FanCalculator.RonPointCalculator(ronData);
-                if (ronPoint.Fan < MatchSettingData.MinimumYakuFan)
-                {
-                    // 因为无役或番缚,不允许和牌
-                    IsPlayerFuriten[player.PlayerNumber] = true;
-                }
-                else
-                {
-                    // 如果可以和牌,将和牌操作添加进列表中
-                    PlayerWaitActionList[player.PlayerNumber].AvailableActions.Add(PlayerAction.Ron);
-                }
-            }
-        }
-    }
-    /// <summary>
-    /// 玩家行为解决方法,接收进行操作的玩家序号和其操作,并判断是否合理
-    /// </summary>
-    /// <param name="playerActionData"></param>
-    /// <param name="player"></param>
-    /// <returns></returns>
-    public bool PlayerActionJudge(PlayerActionData playerActionData, int player, bool isClaim)
-    {
-        if (isClaim)
-        {
-            if (PlayerClaimingAvailableList != null)
-            {
-                Dictionary<PlayerAction, List<PlayerActionData>> playerActionDict = PlayerClaimingAvailableList[player];
-                // 列表化
-                List<PlayerActionData> actionList = playerActionDict[playerActionData.PlayerAction];
-                if (actionList.Count == 0)
-                {
-                    // 根本没有对应操作,返回false
-                    return false;
-                }
-                else if (actionList.Contains(playerActionData) || playerActionData.PlayerAction == PlayerAction.Skip)
-                {
-                    // 如果包括所选操作或是选择跳过,返回true
-                    PlayerWaitActionList[player].ChoosedAction = playerActionData.PlayerAction;
-                    PlayerWaitActionList[player].IsSendAction = true;
-                    return true;
-                }
-                return false;
-            }
-            else
-            {
-                throw new System.Exception("意料外的操作判断");
-            }
-        }
-        else
-        {
-            if (PlayerSelfAvailableDict != null)
-            {
-                List<PlayerActionData> actionList = PlayerSelfAvailableDict[playerActionData.PlayerAction];
-                if (actionList.Count == 0)
-                {
-                    return false;
-                }
-                foreach (PlayerActionData availableData in actionList)
-                {
-                    // 所有回合内操作都是针对单张牌的,因此若存在操作的单张牌相同,则返回true
-                    if (availableData.TargetTile == playerActionData.TargetTile)
-                    {
-                        return true;
-                    }
-                }
-                // 没有对应操作,返回false
-                return false;
-            }
-            else
-            {
-                throw new System.Exception("意料外的操作判断");
-            }
-        }
-    }
-
-    #endregion
-
-    #region *客户端方法*
-    public void ClientFourMatchInit(Pack pack)
-    {
-        PlayerList = new List<Player>() { new(), new(), new(), new() };
-        DoraPointerList = new();
-        UraDoraPointerList = new();
-
-    }
-    /// <summary>
-    /// 四麻客户端本场初始化,根据传入数据获取自己的手牌和本场初始化参数,仅供客户端调用,本身被动调用
-    /// </summary>
-    public void ClientFourHonbaInit(Pack pack, int selfPlayerNumber)
-    {
-        List<Tile> tileList = pack.HonbaInitPackDecode(out HonbaEndMark honbaEndMark);
-        PlayerList[selfPlayerNumber].PlayerHandTile.HandTileList = tileList;
-        FourNewHonba(honbaEndMark);
-    }
-    #endregion
-
-    #region *方法*
-    /// <summary>
-    /// 通用初始化,客户端和用户端都要进行的初始化
-    /// </summary>
-    public void FourRegularInit()
+    private void ResetRoundState()
     {
         DiscardTileList = new() { new(), new(), new(), new() };
         DoraPointerList = new();
-        UraDoraPointerList = new();
         IsRiichi = new() { false, false, false, false };
         IsDoubleRiichi = new() { false, false, false, false };
         IsKan = new() { false, false, false, false };
         HaveIppatsu = new() { false, false, false, false };
         PlayerOpenSetList = new() { new(), new(), new(), new() };
+        CurrentTile = null;
         FirstCycleIppatsu = true;
         CurrentStageType = StageType.StartStage;
         CurrentTileIndex = 0;
         RemainTileCount = 122;
         KangCount = 0;
         KangMark = 6;
-    }
-
-    /// <summary>
-    /// 四麻新局的初始化
-    /// </summary>
-    /// <param name="honbaEndMark"></param>
-    /// <exception cref="Exception"></exception>
-    public void FourNewHonba(HonbaEndMark honbaEndMark)
-    {
-        FourRegularInit();
-        switch (honbaEndMark)
-        {
-            case HonbaEndMark.DealerRon:
-                // 庄家和牌,本场加一,立直棒归零,连庄
-                Honba++;
-                RiichiStickCount = 0;
-                break;
-            case HonbaEndMark.NonDealerRon:
-                // 子家和牌,本场归零,立直棒归零,连庄
-                Honba = 0;
-                RiichiStickCount = 0;
-                if (Round == 4)
-                {
-                    // 为当前风场的第4局,切换风场
-                    Wind++;
-                    Round = 1;
-                    CurrentDealerIndex = 0;
-                    CurrentPlayerIndex = CurrentDealerIndex;
-                }
-                else
-                {
-                    // 局数加一
-                    Round++;
-                    CurrentDealerIndex++;
-                    CurrentPlayerIndex = CurrentDealerIndex;
-                }
-                break;
-            case HonbaEndMark.DealerTenpaiDraw:
-                // 庄家听牌流局,本场加一,立直棒不变,连庄
-                Honba++;
-                break;
-            case HonbaEndMark.DealerNotenDraw:
-                // 庄家未听流局,本场加一,立直棒不变,下庄
-                Honba = 0;
-                if (Round == 4)
-                {
-                    Wind++;
-                    Round = 1;
-                    CurrentDealerIndex = 0;
-                    CurrentPlayerIndex = CurrentDealerIndex;
-                }
-                else
-                {
-                    Round++;
-                    CurrentDealerIndex++;
-                    CurrentPlayerIndex = CurrentDealerIndex;
-                }
-                break;
-            case HonbaEndMark.AbortiveDraw:
-                // 途中流局,本场加一,立直棒不变,连庄
-                Honba++;
-                break;
-            case HonbaEndMark.NewMatch:
-                // 新对局,立直棒归零,东一0本场指定庄位开始,本场归零
-                Wind = WindType.East;
-                Round = 1;
-                Honba = 0;
-                CurrentDealerIndex = 0;
-                RiichiStickCount = 0;
-                break;
-            default:
-                // 一般无法触及
-                throw new Exception("意料外输入");
-        }
     }
 
     /// <summary>
@@ -687,286 +253,4 @@ public class MainMatchControl : IMatchInformation
             FirstCycleIppatsu = false;
         }
     }
-    /// <summary>
-    /// 接收单个玩家操作,根据操作和现有情况进行推断
-    /// </summary>
-    /// <param name="currentActionData"></param>
-    public void ActionDeduce(PlayerActionData currentActionData)
-    {
-        int actionPlayerNumber = currentActionData.SelfNumber;
-        switch (currentActionData.PlayerAction)
-        {
-            case PlayerAction.Skip:
-                Debug.Log("错误:一般不会传入该动作");
-                break;
-            case PlayerAction.Take:
-                // 摸牌,从牌山头部摸一张牌,或是摸岭上牌
-                // 目前,如果摸牌操作的数据中包含牌,则设定此牌为下一张宝牌,当庄家第一次摸牌和开杠后玩家摸牌时,通过此方式发送宝牌信息
-                RemainTileCount--;
-
-                if (FirstCycleIppatsu && actionPlayerNumber == CurrentDealerIndex && DiscardTileList[CurrentDealerIndex].Any())
-                {
-                    // 存在首巡标记,且目前为庄家摸牌,其牌河存在牌,即庄家第二次摸牌,破除首巡一发
-                    FirstCycleIppatsu = false;
-                }
-                break;
-            case PlayerAction.HandCut:
-                // 手切,从其手牌中打出一张牌
-                DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
-                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
-                break;
-            case PlayerAction.TakeCut:
-                // 摸切,打出其刚摸到的牌,不改变手牌列表
-                DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
-
-                // 如果此玩家立直,当其摸切时破除其一发
-                HaveIppatsu[actionPlayerNumber] = false;
-                break;
-            case PlayerAction.Chi:
-                // 吃
-                PlayerOpenSetList[actionPlayerNumber].Add(
-                    new(
-                    groupType: GroupType.OpenStraight,
-                    color: currentActionData.TargetTile.Color,
-                    tiles: currentActionData.Tiles,
-                    player: currentActionData.TargetPlayerNumber,
-                    singleTile: currentActionData.TargetTile
-                    ));
-                // 从手牌中移除用于鸣牌的牌
-                foreach (Tile t in currentActionData.Tiles)
-                {
-                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
-                }
-                CurrentPlayerIndex = actionPlayerNumber;
-                ClearIppatsu();
-                break;
-            case PlayerAction.Peng:
-                // 碰
-                PlayerOpenSetList[actionPlayerNumber].Add(
-                new(
-                groupType: GroupType.OpenTriple,
-                color: currentActionData.TargetTile.Color,
-                tiles: currentActionData.Tiles,
-                player: currentActionData.TargetPlayerNumber,
-                singleTile: currentActionData.TargetTile
-                ));
-                // 从手牌中移除用于鸣牌的牌
-                foreach (Tile t in currentActionData.Tiles)
-                {
-                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
-                }
-                CurrentPlayerIndex = actionPlayerNumber;
-                ClearIppatsu();
-                break;
-            case PlayerAction.OpenKan:
-                // 明杠
-                PlayerOpenSetList[actionPlayerNumber].Add(
-                new(
-                groupType: GroupType.OpenKan,
-                color: currentActionData.TargetTile.Color,
-                tiles: currentActionData.Tiles,
-                player: currentActionData.TargetPlayerNumber,
-                singleTile: currentActionData.TargetTile
-                ));
-                // 从手牌中移除用于鸣牌的牌(明杠手中3张)
-                foreach (Tile t in currentActionData.Tiles)
-                {
-                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
-                }
-                CurrentPlayerIndex = actionPlayerNumber;
-                ClearIppatsu();
-                break;
-            case PlayerAction.AddedKan:
-                // 加杠,遍历该玩家所有副露面子,获取到与加杠牌相同的牌组成的明刻,修改该面子为加杠
-                foreach (var group in PlayerOpenSetList[actionPlayerNumber])
-                {
-                    if (group.Tiles[0] == currentActionData.TargetTile && group.GroupType == GroupType.OpenTriple)
-                    {
-                        group.GroupType = GroupType.AddedKan;
-                        group.Tiles.Add(currentActionData.TargetTile);
-                    }
-                }
-                // 从手牌中移除加杠的那张牌
-                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
-                ClearIppatsu();
-                break;
-            case PlayerAction.ClosedKan:
-                // 暗杠,在该玩家的副露组中添加一个暗杠面子,记录时面子内没有指定牌
-                PlayerOpenSetList[actionPlayerNumber].Add(new(
-                    groupType: GroupType.ClosedKan,
-                    color: currentActionData.Tiles[0].Color,
-                    tiles: currentActionData.Tiles
-                    ));
-                // 从手牌中移除暗杠的四张牌
-                foreach (Tile t in currentActionData.Tiles)
-                {
-                    PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(t);
-                }
-                ClearIppatsu();
-                break;
-            case PlayerAction.Riichi:
-                DiscardTileList[actionPlayerNumber].Add(currentActionData.TargetTile);
-                // 从手牌中移除立直宣言牌
-                PlayerList[actionPlayerNumber].PlayerHandTile.HandTileList.Remove(currentActionData.TargetTile);
-                IsRiichi[actionPlayerNumber] = true;
-                if (FirstCycleIppatsu)
-                {
-                    IsDoubleRiichi[actionPlayerNumber] = true;
-                }
-                RiichiStickCount++;
-                break;
-            case PlayerAction.Kita:
-                KitaCount[actionPlayerNumber]++;
-
-                ClearIppatsu();
-                break;
-            //  实际上这几种都是终结对局的情况,只是体现不同
-            case PlayerAction.Ron:
-                break;
-            case PlayerAction.Tsumo:
-                break;
-            case PlayerAction.Draw:
-                break;
-            default:
-                Debug.Log("预料外输入");
-                break;
-        }
-    }
-    #endregion
-
-
-    #region *序列化部分*
-    /// <summary>
-    /// 对于比赛信息中公共信息的序列化,返回不包含用户名的512Bytes字节串
-    /// </summary>
-    /// <returns></returns>
-    public byte[] GetPublicBytes()
-    {
-        // 对局信息,使用 512 bytes 空间,不包含牌山,也即仅传输用户端会用到的信息
-        // 前16位,为各种短变量
-        Span<byte> MainBytes = new byte[512];
-        MainBytes[0] = (byte)MatchType;
-        MainBytes[1] = (byte)Wind;
-        MainBytes[2] = (byte)Round;
-        MainBytes[3] = (byte)Honba;
-        MainBytes[4] = (byte)KangCount;
-        MainBytes[5] = (byte)KangMark;
-        MainBytes[6] = (byte)CurrentPlayerIndex;
-        MainBytes[7] = (byte)CurrentStageType;
-        MainBytes[8] = (byte)CurrentDealerIndex;
-        MainBytes[9] = (byte)RemainTileCount;
-        MainBytes[10] = BitConverter.GetBytes(FirstCycleIppatsu)[0];
-        // 标记列表 16~47
-        ReplaceBytes(MainBytes, ListToBytes(PlayerPoint), 16);  // +16
-        ReplaceBytes(MainBytes, ListToBytes(IsRiichi), 32); // +4
-        ReplaceBytes(MainBytes, ListToBytes(IsDoubleRiichi), 36); // +4
-        ReplaceBytes(MainBytes, ListToBytes(HaveIppatsu), 40); // +4
-        ReplaceBytes(MainBytes, ListToBytes(IsKan), 44); // +4
-        // 弃牌堆 48~239
-        // 弃牌堆目前设定单个玩家的弃牌堆大小为24张牌,弃牌堆总大小96张牌,也即 192 bytes,单个玩家的弃牌堆为 48 bytes
-        // 理论来讲,四人麻将庄家如果单局被吃碰鸣牌12次(三个子家各4次)需要24次过牌(四家总共),剩余48张牌庄家最多摸到12张,也即最多24张过牌
-        // 实际弃牌大于20张就足够罕见
-        for (int i = 0; i < DiscardTileList.Count; i++)
-        {
-            ReplaceBytes(MainBytes, ListToBytes(DiscardTileList[i]), 48 + i * 48);
-        }
-        // 宝牌 240~259
-        // 表里宝牌共10张 20 bytes
-        ReplaceBytes(MainBytes, ListToBytes(DoraPointerList), 240);
-        ReplaceBytes(MainBytes, ListToBytes(UraDoraPointerList), 250);
-        // 副露列表 260~483
-        // 存储四家共16个Group,也即 224 bytes,单个玩家的副露列表为 56 bytes
-        for (int i = 0; i < PlayerOpenSetList.Count; i++)
-        {
-            ReplaceBytes(MainBytes, ListToBytes(PlayerOpenSetList[i]), 260 + i * 56);
-        }
-        // 484 立直棒计数
-        MainBytes[484] = (byte)RiichiStickCount;
-
-        // 目前485~511 留空
-        return MainBytes.ToArray();
-    }
-    public static MainMatchControl PublicBytesTo(byte[] bytes, int index = 0)
-    {
-        byte[] shortBytes = new byte[512];
-        Array.Copy(bytes, index, shortBytes, 0, 512);
-        MainMatchControl mainMatchControl = new();
-        // 0-15
-        mainMatchControl.MatchType = (MatchType)shortBytes[0];
-        mainMatchControl.Wind = (WindType)shortBytes[1];
-        mainMatchControl.Round = shortBytes[2];
-        mainMatchControl.Honba = shortBytes[3];
-        mainMatchControl.KangCount = shortBytes[4];
-        mainMatchControl.KangMark = shortBytes[5];
-        mainMatchControl.CurrentPlayerIndex = shortBytes[6];
-        mainMatchControl.CurrentStageType = (StageType)shortBytes[7];
-        mainMatchControl.CurrentDealerIndex = shortBytes[8];
-        mainMatchControl.RemainTileCount = shortBytes[9];
-        mainMatchControl.FirstCycleIppatsu = BitConverter.ToBoolean(shortBytes, 10);
-        // 16-47
-        mainMatchControl.PlayerPoint = BytesToIntList(shortBytes, 16, 4);
-        mainMatchControl.IsRiichi = BytesToBoolList(shortBytes, 32, 4);
-        mainMatchControl.IsDoubleRiichi = BytesToBoolList(shortBytes, 36, 4);
-        mainMatchControl.HaveIppatsu = BytesToBoolList(shortBytes, 40, 4);
-        mainMatchControl.IsKan = BytesToBoolList(shortBytes, 44, 4);
-        // 48-239,260-483
-
-        mainMatchControl.DiscardTileList = new();
-        mainMatchControl.PlayerOpenSetList = new();
-        if (mainMatchControl.MatchType == MatchType.FourMahjongEast || mainMatchControl.MatchType == MatchType.FourMahjongSouth)
-        {
-            for (int i = 0; i < 4; i++)
-            {
-                mainMatchControl.DiscardTileList.Add(BytesToList<Tile>(shortBytes, 48 + i * 48, 24));
-                mainMatchControl.PlayerOpenSetList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
-            }
-        }
-        else
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                mainMatchControl.DiscardTileList.Add(BytesToList<Tile>(shortBytes, 48 + i * 48, 24));
-                mainMatchControl.PlayerOpenSetList.Add(BytesToList<Group>(shortBytes, 260 + i * 56, 4));
-            }
-        }
-        mainMatchControl.DoraPointerList = BytesToList<Tile>(shortBytes, 240, 5);
-        mainMatchControl.UraDoraPointerList = BytesToList<Tile>(shortBytes, 250, 5);
-
-        // 484 立直棒计数
-        mainMatchControl.RiichiStickCount = shortBytes[484];
-
-        return mainMatchControl;
-    }
-    #endregion
-}
-
-/// <summary>
-/// 本场结束的状态
-/// </summary>
-public enum HonbaEndMark
-{
-    /// <summary>
-    /// 庄家和牌,立直棒归零,连庄,本场加一
-    /// </summary>
-    DealerRon,
-    /// <summary>
-    /// 子家和牌,立直棒归零,下庄,本场归零
-    /// </summary>
-    NonDealerRon,
-    /// <summary>
-    /// 庄家流听,立直棒不变,连庄,本场加一
-    /// </summary>
-    DealerTenpaiDraw,
-    /// <summary>
-    /// 庄家流局未听,立直棒不变,下庄,本场加一
-    /// </summary>
-    DealerNotenDraw,
-    /// <summary>
-    /// 途中流局,立直棒不变,连庄,本场加一
-    /// </summary>
-    AbortiveDraw,
-    /// <summary>
-    /// 新对局,立直棒归零,指定庄开始,本场归零
-    /// </summary>
-    NewMatch,
 }

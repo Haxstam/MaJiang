@@ -1,6 +1,4 @@
 using System;
-using System.ComponentModel;
-using Unity.VisualScripting;
 namespace MaJiangLib
 {
     /// <summary>
@@ -39,7 +37,6 @@ namespace MaJiangLib
         public Color Color { get; private set; }
         /// <summary>
         /// 牌的数字,不可为0,字牌顺序为东-1,南-2,西-3,北-4,白-5,发-6,中-7
-        /// --(若为8则为国士无双十三面的标志)
         /// </summary>
         public int Number { get; private set; }
         /// <summary>
@@ -73,18 +70,7 @@ namespace MaJiangLib
             {
                 if (Number == other.Number)
                 {
-                    if (IsRedDora)
-                    {
-                        return 1;
-                    }
-                    else if (other.IsRedDora)
-                    {
-                        return -1;
-                    }
-                    else
-                    {
-                        return 0;
-                    }
+                    return IsRedDora.CompareTo(other.IsRedDora);
                 }
                 else
                 {
@@ -114,11 +100,7 @@ namespace MaJiangLib
                 default:
                     break;
             }
-            if (IsRedDora)
-            {
-                Number = 0;
-            }
-            str = Number.ToString() + colorStr;
+            str = (IsRedDora ? 0 : Number).ToString() + colorStr;
             return str;
         }
         /// <summary>
@@ -156,6 +138,13 @@ namespace MaJiangLib
         public static bool operator !=(Tile a, Tile b)
         {
             return !(a == b);
+        }
+        /// <summary>
+        /// 比较牌种及赤牌标记，不区分同种牌的不同实体；用于精确选择舍牌或鸣牌用牌。
+        /// </summary>
+        public static bool ExactlyEquals(Tile left, Tile right)
+        {
+            return left == right && (left is null || left.IsRedDora == right.IsRedDora);
         }
         /// <summary>
         /// 从牌到Byte[]的隐式转换,转换后占用空间为4 Bytes
@@ -298,14 +287,13 @@ namespace MaJiangLib
                 return false;
             }
         }
-        [Description("注意:GetHashCode()会考虑到是否为红宝牌,因此其返回会和Equals(),==,!=有所不同")]
         /// <summary>
-        /// 注意:GetHashCode()会考虑到是否为红宝牌,因此其返回会和Equals(),==,!=有所不同
+        /// 与牌型相等语义一致，不区分赤牌，保证字典与集合能正确查找同种牌。
         /// </summary>
         /// <returns></returns>
         public override int GetHashCode()
         {
-            return HashCode.Combine(Color, Number, IsRedDora);
+            return HashCode.Combine(Color, Number);
         }
     }
     /// <summary>
