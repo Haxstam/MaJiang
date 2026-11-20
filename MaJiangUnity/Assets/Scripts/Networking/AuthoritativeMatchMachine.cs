@@ -209,7 +209,7 @@ namespace MaJiangLib
             if (action.PlayerAction == PlayerAction.Riichi)
             {
                 journal.PendingRiichiSeat = seat;
-                pendingDoubleRiichi = Core.FirstCycleIppatsu && Core.DiscardTileList[seat].Count == 0;
+                pendingDoubleRiichi = MatchActionRules.IsDoubleRiichiDeclaration(Core, seat);
             }
             HandTile hand = Core.PlayerList[seat].PlayerHandTile;
             if (action.PlayerAction == PlayerAction.HandCut || !Tile.ExactlyEquals(hand.SingleTile, action.TargetTile))

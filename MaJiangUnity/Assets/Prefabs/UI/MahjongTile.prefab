@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1043007991842376159}
   - component: {fileID: 7010635676889945003}
   m_Layer: 0
-  m_Name: Dora Dot
+  m_Name: "宝牌标记"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -69,7 +69,7 @@ GameObject:
   - component: {fileID: 7909796101360661667}
   - component: {fileID: 4978449955847459705}
   m_Layer: 0
-  m_Name: MahjongTile
+  m_Name: "麻将牌"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -129,7 +129,7 @@ GameObject:
   - component: {fileID: 4173251605639674321}
   - component: {fileID: 536018956951717608}
   m_Layer: 0
-  m_Name: Original Tile Artwork
+  m_Name: "原始牌面"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -202,7 +202,7 @@ GameObject:
   - component: {fileID: 3816528511665668671}
   - component: {fileID: 3180818173959937506}
   m_Layer: 0
-  m_Name: Porcelain Body
+  m_Name: "牌体"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -288,7 +288,7 @@ GameObject:
   - component: {fileID: 3251874639772329735}
   - component: {fileID: 583805900040025087}
   m_Layer: 0
-  m_Name: Selection Outline
+  m_Name: "选中边框"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

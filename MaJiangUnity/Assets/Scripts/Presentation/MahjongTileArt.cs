@@ -1,5 +1,7 @@
 using MaJiangLib;
 using UnityEngine;
+using TMPro;
+using System.Collections.Generic;
 
 namespace MaJiang.Presentation
 {
@@ -11,18 +13,34 @@ namespace MaJiang.Presentation
         public Texture2D Back;
         public Texture2D[] Faces = new Texture2D[34];
         public Texture2D[] RedFives = new Texture2D[3];
-        public Font Font;
-        private static Font systemFont;
+        public Sprite DiscardFrame;
+        public TMP_FontAsset Font;
+        public Font SourceFont;
+        private TMP_FontAsset runtimeFont;
+        private readonly Dictionary<Texture2D, Sprite> sprites = new();
+
+        public Sprite SpriteOf(Texture2D texture)
+        {
+            if (texture == null) { return null; }
+            if (!sprites.TryGetValue(texture, out Sprite sprite) || sprite == null)
+            {
+                sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+                sprite.name = "麻将牌面"; sprites[texture] = sprite;
+            }
+            return sprite;
+        }
 
         public Texture2D Face(Tile tile) => tile == null ? null : tile.IsRedDora ? RedFives[(int)tile.Color] : Faces[HandAnalysis.Face(tile)];
-        public Font GetFont()
+        public TMP_FontAsset GetFont()
         {
             if (Font != null) { return Font; }
-            if (systemFont == null)
+            if (runtimeFont == null && SourceFont != null)
             {
-                systemFont = UnityEngine.Font.CreateDynamicFontFromOSFont(new[] { "DengXian", "Microsoft YaHei", "SimHei", "Arial" }, 32);
+                runtimeFont = TMP_FontAsset.CreateFontAsset(SourceFont);
+                runtimeFont.name = "思源黑体运行时字体";
+                runtimeFont.isMultiAtlasTexturesEnabled = true;
             }
-            return systemFont;
+            return runtimeFont != null ? runtimeFont : TMP_Settings.defaultFontAsset;
         }
     }
 }

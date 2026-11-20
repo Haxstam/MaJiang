@@ -1,0 +1,1886 @@
+HaxMajP
+
+EndPack
+
+#
+
+'!'
+
+) :
+
+)))}
+
+))}
+
+)}
+
+)}
+{Room?.Phase}
+{members}
+
+)}
+{state}
+
+)} {(member.Connected ? (member.Ready ?
+
+)}结算：{string.Join(
+
++0;-0;0
+
++8,800 点
+
++{result.SticksBefore * 1000}
+
+,
+
+, MatchControl.PlayerPoint)}
+
+, hand.HandTileList.Select((tile, index) => index == selectedTileIndex ? $
+
+, result.Deltas.Select(points => points.ToString(
+
+, result.Ranking.Select(seat => $
+
+, result.UraIndicators)}
+
+, revealed.Concealed)} {revealed.Drawn}
+
+, revealed.Groups.Select(group => $
+
+, winner.Score.Yaku.Select(yaku => yaku.Yaku))}
+
+../../docs/previews
+
+.png
+
+0
+
+0 本场     ·     1 供托
+
+0 本场  ·  1 供托
+
+0.0.0.0
+
+00
+
+0E211F
+
+0p
+
+0本场
+
+112F29
+
+112F2A
+
+127.0.0.1
+
+14372F
+
+19453D
+
+1p
+
+1p 5z 9w 6s 3w 8p 9p 1s 4w 5s 2z
+
+1s
+
+1w
+
+1w 2w 3w 1p 2p 3p 1s 2s 3s 7z 7z 7z 5z
+
+1w 9s 2z 8p 1p 6w 4z 3s 8w 2p 9p
+
+1z
+
+21,400
+
+25
+
+25,000
+
+25,000 点起始  ·  食断  ·  赤宝牌
+
+25,300
+
+25000<color=green>+36000</color>
+
+27,300
+
+2p
+
+2w
+
+2w 3w 4w 3p 4p 0p 6p 6p 4s 5s 6s 7s 8s
+
+2z
+
+3p
+
+3s
+
+3w
+
+3z
+
+3番
+
+4 番 · 20 符
+
+48000点
+
+4p
+
+4s
+
+4w
+
+4z
+
+4张
+
+5-Dora
+
+5p
+
+5s
+
+5z
+
+6p
+
+6s
+
+6w
+
+6z
+
+7p
+
+7s
+
+7w
+
+7w 9s 1w 5p 4s 2p 3z 8w 6w 6z 7s
+
+8p
+
+8s
+
+8w
+
+91BFA7
+
+99番
+
+99番999符
+
+9AB2A7
+
+9p
+
+9s
+
+9w
+
+9w 1s 6z 2w 7p 8s 3z 4p 6p 7w 1z
+
+:
+
+: client.IsConnecting ?
+
+: tile.ToString()))}
+摸牌 {draw}
+剩余牌 {MatchControl.RemainTileCount}
+剩余思考 {client.RemainingActionMilliseconds / 1000.0:F1}秒
+{client.Match.Current.OperationStage}
+
+<color=green>+{delta}</color>
+
+<color=red>{delta}</color>
+
+A complete winning context is required.
+
+Action 0
+
+Action 1
+
+Action 2
+
+Action 3
+
+Action 4
+
+Action 5
+
+Action Buttons
+
+Action Hint
+
+Action Timer
+
+ActionButton
+
+ActionChoosePanel
+
+Active Player Border
+
+Active Seat Bar
+
+ActorMismatch
+
+AlreadyAnswered
+
+AlreadyJoined
+
+An initialized four-player match is required.
+
+Assets/Images/riichi-mahjong-tiles-master/Export/Regular/
+
+Assets/Prefabs
+
+Assets/Prefabs/Card.prefab
+
+Assets/Prefabs/LeftClaimGroup.prefab
+
+Assets/Prefabs/RightClaimGroup.prefab
+
+Assets/Prefabs/TopClaimGroup.prefab
+
+Assets/Prefabs/UI
+
+Assets/Presentation
+
+Assets/Presentation/MahjongTileArt.asset
+
+Assets/Scenes/TableDebug.unity
+
+Assets/Scenes/TablePreview.unity
+
+Assets/TextMesh Pro/Fonts/SourceHanSansSC-Heavy.otf
+
+Back
+
+BlackMask
+
+BlueMask
+
+Brand Glyph
+
+Brand Seal
+
+Brand Subtitle
+
+Brand Title
+
+CFB77F
+
+Cannot draw while a previous draw is held.
+
+Canvas
+
+Card
+
+Card (1)
+
+Card (10)
+
+Card (11)
+
+Card (12)
+
+Card (13)
+
+Card (2)
+
+Card (3)
+
+Card (4)
+
+Card (5)
+
+Card (6)
+
+Card (7)
+
+Card (8)
+
+Card (9)
+
+Card.prefab缺少牌适配组件。
+
+Center Circle
+
+Center Diamond
+
+Center Divider
+
+Center North
+
+Center Plate
+
+Center Plate Border
+
+Center Plate Shadow
+
+Center South
+
+Center West
+
+Chii
+
+Chun
+
+Claimed tile missing from meld.
+
+ClaimedCard
+
+Client
+
+Client is already connected or connecting.
+
+Close Modal
+
+ClosedKanPanel
+
+CommandIdReused
+
+CommandLimit
+
+Concealed · Across
+
+Concealed · Left
+
+Concealed · Right
+
+Conflicting round identity.
+
+ControlPanel
+
+Create a new debug match to restart.
+
+D6937D
+
+Debug
+
+Debug:南家
+
+DiscardCardPanel
+
+Disconnected
+
+Dora Caption
+
+Dora Indicators
+
+Duplicate settlement seat.
+
+EOF during fragmented message.
+
+EOF inside a fixed frame.
+
+Edition Rule
+
+EventSystem
+
+F1ECE1
+
+FRIENDS TABLE  /  友人桌
+
+Felt Watermark
+
+Felt Watermark Caption
+
+FirstCard
+
+Footer Controls
+
+Footer Edition
+
+Footer Preview Mode
+
+Frame buffer must be 1024 bytes.
+
+Frame checksum mismatch.
+
+Front
+
+Global Light 2D
+
+Haku
+
+Hand · Self
+
+HandCardPanel
+
+Hatsu
+
+Haxstam
+
+Header Rule
+
+Hidden tile
+
+Honba and Deposits
+
+Host proof is required.
+
+HostMustResume
+
+HostOnly
+
+Image
+
+Incoming message queue is full.
+
+Ink Background
+
+Interleaved or out-of-order fragments.
+
+Invalid action actor.
+
+Invalid action metadata.
+
+Invalid action.
+
+Invalid binary field length.
+
+Invalid boolean.
+
+Invalid claim source.
+
+Invalid fixed frame boundary.
+
+Invalid fragment dimensions.
+
+Invalid frame fields.
+
+Invalid journal header.
+
+Invalid journal sequence.
+
+Invalid meld display data.
+
+Invalid meld.
+
+Invalid message header or length.
+
+Invalid or non-visible match state.
+
+Invalid outgoing message.
+
+Invalid physical tile.
+
+Invalid revealed hand.
+
+Invalid room member.
+
+Invalid room snapshot header.
+
+Invalid round outcome.
+
+Invalid round settlement.
+
+Invalid rule settings size.
+
+Invalid scored hand.
+
+Invalid server clock.
+
+Invalid session identity.
+
+Invalid snapshot receiver.
+
+Invalid tile list.
+
+Invalid visible match header.
+
+Invalid winner settlement.
+
+InvalidActionDefaulted
+
+InvalidCommand
+
+InvalidHostProof
+
+InvalidMatchType
+
+InvalidName
+
+InvalidResponseSkipped
+
+InvalidResumeToken
+
+Jade Felt
+
+Joined
+
+KanCard
+
+L A Y O U T   S T U D Y   0 1
+
+Label
+
+LeftClaimGroup
+
+LeftDiscardList
+
+LeftHandCard
+
+Lv.24
+
+Machine belongs to a different journal.
+
+Mahjong/Tile Art
+
+Mahjong/UI/Table Shape
+
+Mahjong/UI/固定长度手牌条
+
+Mahjong/UI/紧密牌河布局
+
+Main Camera
+
+MainPanel
+
+Man
+
+Match Type
+
+Match log received before joining.
+
+MatchAlreadyStarted
+
+Melds · Across
+
+Melds · Left
+
+Melds · Right
+
+Melds · Self
+
+Message is not valid in the client-to-server direction.
+
+Message is not valid in the server-to-client direction.
+
+Missing tile art
+
+Modal Accent
+
+Modal Border
+
+Modal Panel
+
+Modal Shadow
+
+N0
+
+Nan
+
+No legal default discard exists.
+
+NoActiveSettlement
+
+NotJoined
+
+NotYourTurn
+
+Null tile in list.
+
+Ok
+
+OnAction
+
+Outgoing message queue is full.
+
+Pei
+
+Pin
+
+Player Name
+
+Player Points
+
+Player · Across
+
+Player · Left
+
+Player · Right
+
+Player · Self
+
+PlayersNotReady
+
+Preview Dot
+
+Preview Label
+
+Preview action failed:
+
+Preview exhausted
+
+Private hand or public hand count mismatch.
+
+Quiet Inset
+
+R I I C H I
+
+R I I C H I   M A H J O N G
+
+R1500
+
+RLevel
+
+ROUND RESULT  /  本局结算
+
+ROUND RESULT / 本局结算
+
+Reset Preview
+
+Reset from Modal
+
+Result Details
+
+Result Eyebrow
+
+Result Score
+
+Result Title
+
+Result and Room Overlay
+
+Resumed
+
+RetiredMachine
+
+Revealed Winning Hand
+
+RightClaimGroup
+
+RightDiscardList
+
+RightHandCard
+
+Riichi Badge
+
+Riichi Label
+
+River · Across
+
+River · Left
+
+River · Right
+
+River · Self
+
+Room Button
+
+Room Title
+
+RoomClosed
+
+RoomFull
+
+RoomLocked
+
+Round
+
+Round journal limit exceeded.
+
+RoundEnded
+
+Rules Summary
+
+SecondCard
+
+Selected tile is absent.
+
+SelfDiscardList
+
+SelfHandCard
+
+Server
+
+Server heartbeat timeout.
+
+Server is already running or stopping.
+
+Settlement belongs to a future or conflicting round.
+
+Settlement ledger does not conserve points and deposits.
+
+Settlement ledger mismatch.
+
+Settlement list exceeds limit.
+
+Shaa
+
+Snapshot belongs to another room.
+
+Snapshot receiver does not match the session.
+
+Sou
+
+Source Han Sans SC - Heavy Atlas
+
+Source Han Sans SC - Heavy Atlas 1
+
+Source Han Sans SC - Heavy Material
+
+StalePhase
+
+StaleRound
+
+TABLE_PREVIEW_IMAGE
+
+TABLE_PREVIEW_READY
+
+Table Canvas
+
+Table Edition
+
+Table Edition Small
+
+Table Layout · 1920 × 1080
+
+Table Rail
+
+Table Rail Edge
+
+Table Shadow
+
+TestClient
+
+TestServer
+
+Text
+
+Text (TMP)
+
+Text exceeds byte limit.
+
+The current preset supports one-yaku minimum.
+
+Tiles Remaining
+
+Tiles Remaining Label
+
+Tiles Remaining Unit
+
+Timer Ring
+
+Ton
+
+Too many dora indicators.
+
+Too many journal records.
+
+Too many melds.
+
+Too many tiles.
+
+TopClaimGroup
+
+TopDiscardList
+
+TopHandCard
+
+Trailing payload data.
+
+Truncated payload.
+
+Turn Dot
+
+Turn Status
+
+Unexpected message or first fragment sequence.
+
+Unsupported protocol version.
+
+Wind
+
+Wind Medallion
+
+Wind Outline
+
+Winning outcome has no legal scored hand.
+
+Winning seats do not match outcome.
+
+X
+
+[{hand.SingleTile}]
+
+[{testName}] {reason}
+
+[{testName}] {result.Reason}
+
+[{testName}] 操作已确认
+
+[{testName}] 连接失败：{exception.Message}
+
+p
+
+s
+
+table-preview.png
+
+table-result.png
+
+text
+
+w
+
+z
+
+{(result.RoundGeneration == client.Match.Current.RoundGeneration ?
+
+{MatchControl.Wind} {MatchControl.Round}局 {MatchControl.Honba}本场 供托{MatchControl.RiichiStickCount}
+点数 {string.Join(
+
+{RiichiScoring.WinningPayment(score.BasePoints, winner.Seat == state.CurrentDealerIndex, splitPayment)}点
+
+{Winds[(int)state.Wind - (int)WindType.East]}{state.Round}局{state.Honba}本场
+
+{Winds[(int)state.Wind - 1]} {new[] {
+
+{Winds[MahjongSeatOrder.WindIndex(index, visible.State.CurrentDealerIndex)]}    {player.PlayerProfile.Name}       {visible.State.PlayerPoint[index]:N0} 点
+
+{Winds[MahjongSeatOrder.WindIndex(player, displayedDealer)]} {result.Deltas[player]:+0;-0;0}
+
+{client.RemainingResultMilliseconds / 1000.0:F1}秒后进入下一局
+
+{count}倍役满
+
+{entry.Han}番
+
+{index + 1}号{(index == seat ?
+
+{label} {yaku.Han}
+
+{meld.Face}/{meld.Triple}
+
+{member.Seat + 1}. {member.Name} {(member.IsHost ?
+
+{name}  {action.TargetTile}{used}
+
+{new[] {
+
+{result.Deltas[winner.Seat]:+0;-0;0} 点
+
+{result.PointsBefore[seat]}{change}
+
+{score.Han}番
+
+{score.Han}番{score.Fu}符
+
+{state.Honba} 本场     ·     {state.RiichiStickCount} 供托
+
+{state.Honba}本场
+
+{testName} {(client.IsJoined ?
+
+{wait.Remaining}张
+
+{winner.Score.Han} 番  ·  {winner.Score.Fu} 符
+
+{winner.Score.Han}番{winner.Score.Fu}符
+
+{winner.Score.Yakuman} 倍役满
+
+{winner.Score.Yakuman}倍役满
+
+{winner.Seat + 1}号 {score} 和牌{winner.WinningTile} {string.Join(
+
+|
+
+}
+
+}[(int)state.Wind - 1]}{new[] {
+
+}[MahjongSeatOrder.WindIndex(seat, view.State.CurrentDealerIndex)]}家） · {view.OperationStage}
+局代数 {view.RoundGeneration} · 阶段 {view.PhaseId} · 日志 {view.Sequence}
+
+}[MahjongSeatOrder.WindIndex(visible.SelfSeat, displayedDealer)]}家 · {state.PlayerList[visible.SelfSeat].PlayerProfile.Name}
+
+}[relativeHand]}手牌
+{new[] {
+
+}[state.Round - 1]} 局
+
+}[state.Round - 1]}局
+
+·
+
+· 使用
+
+—
+
+一万
+
+一二三四五六七八九
+
+一发
+
+一杯口
+
+一桌四人，一期一会
+
+一气通贯
+
+一筒
+
+一索
+
+七万
+
+七对子
+
+七筒
+
+七索
+
+万
+
+三万
+
+三倍满
+
+三暗刻
+
+三杠子
+
+三筒
+
+三索
+
+三色同刻
+
+三色同顺
+
+上家信息区
+
+上家副露区
+
+上家手牌区
+
+上家指示
+
+上家暗手区
+
+上家点数
+
+上家点数情况
+
+上家牌河区
+
+上家玩家信息区
+
+上家立直棒
+
+上家风位
+
+下一局
+
+下划线
+
+下家信息区
+
+下家副露区
+
+下家手牌区
+
+下家指示
+
+下家暗手区
+
+下家点数
+
+下家点数情况
+
+下家牌河区
+
+下家玩家信息区
+
+下家立直棒
+
+下家风位
+
+东
+
+东2局3本场+2000
+
+东一局
+
+东风
+
+两杯口
+
+两立直
+
+主显示区
+
+九万
+
+九种九牌
+
+九种九牌按钮
+
+九筒
+
+九索
+
+九莲宝灯
+
+事件系统
+
+二万
+
+二筒
+
+二级阴影
+
+五筒
+
+五索
+
+余 28
+
+余 {state.RemainTileCount}
+
+余牌
+
+你
+
+你的回合
+
+供托+0
+
+供托+{state.RiichiStickCount * 1000}
+
+供托文字
+
+倍满
+
+停
+
+八万
+
+八筒
+
+八索
+
+公开 {revealed.Seat + 1}号：{string.Join(
+
+六万
+
+六筒
+
+六索
+
+关闭弹窗
+
+再看一局
+
+剩余字节不是完整元素。
+
+剩余张数
+
+剩余牌单位
+
+剩余牌数
+
+剩余牌标题
+
+副露 {string.Join(
+
+副露区
+
+副露面子
+
+加杠
+
+北
+
+北风
+
+千寻
+
+单人四座调试 · 真实 TCP 回环
+
+单人四座调试 · 进入Play后自动开局
+
+单机四座已就绪
+
+南
+
+南风
+
+原始牌面
+
+友 人 桌
+
+友人  /  東南戦
+
+发财
+
+取消按钮
+
+可以响应这张舍牌，或选择跳过
+
+吃
+
+吃按钮
+
+吃牌按钮
+
+合法操作与具体组合
+
+合法操作列表
+
+合法操作标题
+
+名称
+
+听牌与点数已按当前规则结算
+
+听牌情况
+
+听牌提示
+
+听牌提示按钮
+
+和牌
+
+和牌公开手牌区
+
+和牌宝牌列表
+
+和牌情况
+
+和牌手牌
+
+和牌按钮
+
+和牌种类
+
+和牌里宝牌列表
+
+四万
+
+四人东南战
+
+四人东南战  /  01
+
+四人东南战  /  {visible.RoundGeneration:00}
+
+四人房间已开始对局，服务端牌局初始化完成。
+
+四家立直
+
+四座调试
+
+四座调试  /  正在代选 {seat + 1} 号  /  F1 面板
+
+四座调试 (F1)
+
+四座调试场景已创建，请打开后进入Play：
+
+四座调试画布
+
+四座调试面板
+
+四张岭上牌已经用尽。
+
+四暗刻
+
+四暗刻单骑
+
+四杠子
+
+四杠散了
+
+四筒
+
+四索
+
+四风连打
+
+回合指示点
+
+回合状态
+
+国士无双
+
+国士无双十三面
+
+地和
+
+场风牌
+
+大三元
+
+大四喜
+
+大明杠
+
+天和
+
+字一色
+
+字节串长度{bytes.Length}bytes不符合转换的2bytes要求
+
+宝 牌 指 示
+
+宝牌
+
+宝牌
+指示牌
+
+宝牌指示牌列表
+
+宝牌指示牌区
+
+宝牌指示牌标识
+
+宝牌指示牌框
+
+宝牌标记
+
+宝牌标题
+
+客户端提示：
+
+对家信息区
+
+对家副露区
+
+对家手牌区
+
+对家指示
+
+对家暗手区
+
+对家点数
+
+对家点数情况
+
+对家牌河区
+
+对家玩家信息区
+
+对家立直棒
+
+对家风位
+
+对对和
+
+对局类型
+
+对局计时：
+
+小三元
+
+小四喜
+
+局域网服务端监听 {address}:{Server.Port}
+
+局数
+
+局目
+
+展开调试面板
+
+岭上开花
+
+已关闭
+
+已发送 {seat + 1} 号：{Describe(command)}
+
+已启用
+
+已暂停
+
+已答复
+
+布尔值编码只能为0或1。
+
+平和
+
+底部操作说明
+
+底部模式说明
+
+底部版本说明
+
+座位
+
+座位切换
+
+弹窗下一局按钮
+
+弹窗装饰线
+
+弹窗边框
+
+弹窗阴影
+
+弹窗面板
+
+当前为可交互的本地界面预览
+
+当前座位标记
+
+当前玩家指示
+
+当前玩家边框
+
+役满
+
+役牌 中
+
+役牌 发
+
+役牌 白
+
+待操作
+
+待确认
+
+必须提供按座位排列的四名玩家。
+
+思源黑体运行时字体
+
+房主服务端尚未启动。
+
+房间
+
+房间与调试按钮
+
+房间标题
+
+所听牌
+
+所和牌
+
+所提供的字符串过短
+
+手切
+
+手牌
+
+手牌 {string.Join(
+
+手牌区
+
+抢杠
+
+拔北宝牌
+
+按钮文字
+
+振听
+
+振听提示
+
+排序列表
+
+推进一秒
+
+推进三十秒
+
+摸 切
+
+摸切
+
+摸牌
+
+摸牌间隔
+
+操作
+
+操作   /   单击选牌，再次点击出牌
+
+操作列表视口
+
+操作按钮
+
+操作按钮 (1)
+
+操作按钮 (2)
+
+操作按钮 (3)
+
+操作按钮列表
+
+操作按钮组
+
+操作提示
+
+操作文字
+
+操作未发送，请等待同步后重新选择
+
+操作计时
+
+操作选项
+
+收起 (F1)
+
+收起面板
+
+数字键 1–4 切换座位 · F1 调试面板
+
+数字键 1–4 切换座位 · 选中手牌后再次点击出牌 · F1 调试面板
+
+整场结束
+
+整场结束：{string.Join(
+
+文字
+
+断幺九
+
+断幺九一二三四
+
+无役
+
+无法保存牌桌预览场景：
+
+无法保存调试场景。
+
+无法复制牌桌预览场景。
+
+时间 +1秒
+
+时间 +30秒
+
+时间推进操作
+
+明牌_
+
+明牌_二筒
+
+暂停计时开关
+
+暗手 {hand.HandTileList.Count}张 · 摸牌 {hand.SingleTile?.ToString() ??
+
+暗杠
+
+暗牌
+
+替换范围超出目标数组长度
+
+服务端启动失败：{exception.Message}
+
+未绑定鸣牌组Prefab。
+
+本地交互预览   ·   不计时
+
+本场与供托
+
+本场数
+
+本家副露区
+
+本家手牌区
+
+本家牌河区
+
+本家玩家信息区
+
+本局结束
+
+本局结束  ·  可以重置预览，再看一次牌桌
+
+本局结束：{client.Match.Current.Outcome}
+
+本机四客户端调试 · F1 控制面板
+
+杠
+
+杠按钮
+
+杠牌按钮
+
+東
+
+東 一 局
+
+枚
+
+标题副标题
+
+标题印章
+
+标题图标文字
+
+桌布
+
+桌布内边框
+
+桌布水印
+
+桌布水印文字
+
+桌心
+
+桌心分隔线
+
+桌心北风
+
+桌心南风
+
+桌心圆环
+
+桌心菱形
+
+桌心西风
+
+桌心面板
+
+桌心面板边框
+
+桌心面板阴影
+
+桌面副说明
+
+桌面说明
+
+桌面说明分隔线
+
+模式指示点
+
+模式说明
+
+正在同步牌局
+
+正在建立本机四座连接（{Math.Min(joining, 4)}/4）
+
+正在建立本机房间…
+
+正在等待服务端确认
+
+此入口仅支持四人麻将。
+
+没有剩余可摸牌。
+
+河底捞鱼
+
+流 局
+
+流局满贯
+
+海底捞月
+
+混一色
+
+混全带幺九
+
+混老头
+
+清一色
+
+清老头
+
+游戏标题
+
+满贯
+
+演示牌局 · F1 或右上角“四座调试”进入调试
+
+点数
+
+点数变化
+
+点数总计
+
+点数情况
+
+片刻闲暇，一起立直
+
+牌体
+
+牌布局单元
+
+牌桌布局
+
+牌桌摄像机
+
+牌桌画布
+
+牌桌边框
+
+牌桌边线
+
+牌桌阴影
+
+玩家
+
+玩家名
+
+玩家名称
+
+玩家操作转换时出现意外牌数目:{Tiles},{TargetTile}
+
+玩家点数
+
+界面预览
+
+番数
+
+番数种类
+
+番种列表
+
+番种文字
+
+番种面板
+
+番种面板 (1)
+
+番种面板 (10)
+
+番种面板 (11)
+
+番种面板 (2)
+
+番种面板 (3)
+
+番种面板 (4)
+
+番种面板 (5)
+
+番种面板 (6)
+
+番种面板 (7)
+
+番种面板 (8)
+
+番种面板 (9)
+
+番符总计
+
+白板
+
+白露
+
+确认
+
+确认按钮
+
+碰
+
+碰按钮
+
+碰牌按钮
+
+种子需要32字节
+
+立 直
+
+立直
+
+立直按钮
+
+立直文字
+
+立直标记
+
+立直麻将
+
+端口 {Server.Port}
+{snapshot.Phase}
+玩家 {snapshot.Members.Count}/4
+
+等待
+
+等待其他玩家...
+
+等待响应
+
+等待提示
+
+等级
+
+筒
+
+索
+
+累计役满
+
+红中
+
+纯全带幺九
+
+纯正九莲宝灯
+
+结算与房间遮罩
+
+结算分类
+
+结算得点
+
+结算标题
+
+结算点数
+
+结算窗口
+
+结算详情
+
+绿一色
+
+背景底色
+
+自 摸
+
+自动切换开关
+
+自动切换待操作座位：
+
+自家信息区
+
+自家手牌区
+
+自家指示
+
+自家点数
+
+自家点数情况
+
+自家立直棒
+
+自家风位
+
+自摸
+
+自风
+
+自风底板
+
+自风牌
+
+自风边框
+
+荒牌流局
+
+荣 和
+
+荣和
+
+西
+
+西风
+
+观看{new[] {
+
+规则摘要
+
+视角 {seat+1}号（{new[] {
+
+计时圆环
+
+该座位当前无需操作
+
+请为 {seat + 1} 号选择
+
+请退出播放模式后再创建调试场景。
+
+请退出播放模式后再生成牌桌预览场景。
+
+请选择立直宣言牌，再次点击确认
+
+调试
+
+调试场景已存在，保留你的编辑：
+
+调试按钮
+
+调试文字
+
+调试标题
+
+调试玩家 {joining + 1}
+
+调试管理操作
+
+赤
+
+赤五筒
+
+赤宝牌
+
+赤宝牌  ·  食断  ·  一番缚
+
+跳 过
+
+跳满
+
+跳过
+
+跳过与摸切按钮
+
+跳过按钮
+
+转换时错误:出现意料外花色类型
+
+过长用户名,超过48bytes编码限制
+
+运行中
+
+返回牌桌
+
+进入下一局
+
+连接中
+
+连接状态
+
+选中后再次点击出牌
+
+选中后再次点击出牌  ·  也可以选择自摸
+
+选中边框
+
+里宝牌
+
+里宝牌指示 {string.Join(
+
+重开按钮
+
+重开整场
+
+重置预览
+
+门前清自摸和
+
+阶段与操作说明
+
+雀
+
+青岚
+
+顶部分隔线
+
+风位
+
+鸣牌组
+
+鸣牌选择组
+
+鸣牌选择组 (1)
+
+鸣牌选择面板
+
+麻将/四座调试/创建独立调试场景
+
+麻将/牌桌预览/仅生成独立场景
+
+麻将/牌桌预览/打开预览场景
+
+麻将/牌桌预览/生成场景与评审图
+
+麻将牌
+
+麻将牌面

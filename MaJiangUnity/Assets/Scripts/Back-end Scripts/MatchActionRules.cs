@@ -7,6 +7,9 @@ namespace MaJiangLib
     /// <summary>客户端菜单和服务端校验共用，查询无副作用且不访问别家暗手。</summary>
     public static class MatchActionRules
     {
+        internal static bool IsDoubleRiichiDeclaration(IMatchInformation state, int seat)
+            => state.FirstCycleIppatsu && state.DiscardTileList[seat].Count == 0;
+
         /// <summary>根据本人手牌与公开牌局生成具体选择；忽略宝牌的一番缚由HandAnalysis判定。</summary>
         public static IReadOnlyList<PlayerActionData> GetActions(IMatchInformation state, HandTile hand, MatchActionContext context)
         {

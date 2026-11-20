@@ -54,6 +54,7 @@ namespace MaJiangLib
         }
         public string SeatError(int seat) => clients[ClientIndex(seat)]?.LastError;
         public bool SeatConnected(int seat) => clients[ClientIndex(seat)]?.IsMatchSynchronized == true;
+        public bool ConfirmSettlement(int seat, Guid roundId) => clients[ClientIndex(seat)]?.ConfirmSettlement(roundId) > 0;
 
         private void ConnectNext()
         {

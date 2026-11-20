@@ -46,11 +46,17 @@ namespace MaJiangLib
         public bool Chankan;
         public bool FirstDraw;
         public IReadOnlyList<Tile> UraIndicators = Array.Empty<Tile>();
+        internal bool RonEstimate;
+        internal bool DeclaresRiichi;
     }
 
     /// <summary>纯四人立直麻将计分。穷举分解及和牌归属，先算符再算基本点，排除无役宝牌。</summary>
     public static class RiichiScoring
     {
+        /// <summary>预估普通荣和中由当前牌型、风位、立直及已翻开的表宝牌确定的番数。</summary>
+        public static ScoredHand EstimateRon(IMatchInformation state, HandTile hand, Tile winningTile, bool declaresRiichi)
+            => Evaluate(new WinContext { State = state, Hand = hand, WinningTile = winningTile, RonEstimate = true, DeclaresRiichi = declaresRiichi });
+
         private readonly struct Meld
         {
             public readonly int Face;
@@ -202,15 +208,21 @@ namespace MaJiangLib
             List<ScoredYaku> yaku = new();
             int seat = context.Hand.PlayerNumber;
             bool closed = context.Hand.IsClosedHand;
-            if (context.State.IsRiichi[seat])
+            if (context.State.IsRiichi[seat] || context.DeclaresRiichi)
             {
-                yaku.Add(new(context.State.IsDoubleRiichi[seat] ? YakuType.DoubleRiichi : YakuType.Riichi, context.State.IsDoubleRiichi[seat] ? 2 : 1));
-                if (context.State.HaveIppatsu[seat]) { yaku.Add(new(YakuType.Ippatsu, 1)); }
+                bool doubleRiichi = context.DeclaresRiichi
+                    ? MatchActionRules.IsDoubleRiichiDeclaration(context.State, seat)
+                    : context.State.IsDoubleRiichi[seat];
+                yaku.Add(new(doubleRiichi ? YakuType.DoubleRiichi : YakuType.Riichi, doubleRiichi ? 2 : 1));
+                if (!context.RonEstimate && context.State.HaveIppatsu[seat]) { yaku.Add(new(YakuType.Ippatsu, 1)); }
             }
             if (context.Tsumo && closed) { yaku.Add(new(YakuType.Tsumo, 1)); }
             if (context.Tsumo && context.State.IsKan[seat]) { yaku.Add(new(YakuType.Rinshankaiho, 1)); }
             if (context.Chankan) { yaku.Add(new(YakuType.Chankan, 1)); }
-            if (context.State.RemainTileCount == 0 && (!context.Tsumo || !context.State.IsKan[seat])) { yaku.Add(new(context.Tsumo ? YakuType.HaiteiRaoyui : YakuType.HoteiRaoyui, 1)); }
+            if (!context.RonEstimate && context.State.RemainTileCount == 0 && (!context.Tsumo || !context.State.IsKan[seat]))
+            {
+                yaku.Add(new(context.Tsumo ? YakuType.HaiteiRaoyui : YakuType.HoteiRaoyui, 1));
+            }
             if ((closed || context.State.MatchSettingData.OpenTanyao) && faces.All(face => !Terminal(face))) { yaku.Add(new(YakuType.Tanyao, 1)); }
             if (faces.Where(face => face < 27).Select(face => face / 9).Distinct().Count() == 1)
             {
@@ -228,11 +240,14 @@ namespace MaJiangLib
             List<Tile> tiles = context.Hand.HandTileList.Concat(new[] { context.WinningTile }).Concat(context.Hand.OpenTileList.SelectMany(group => group.Tiles)).ToList();
             int CountDora(IEnumerable<Tile> indicators) => indicators.Sum(indicator => tiles.Count(tile => HandAnalysis.Face(tile) == NextDora(HandAnalysis.Face(indicator))));
             int dora = CountDora(context.State.DoraPointerList);
-            int red = tiles.Count(tile => tile.IsRedDora);
-            int ura = context.State.IsRiichi[context.Hand.PlayerNumber] ? CountDora(context.UraIndicators) : 0;
             if (dora > 0) { yaku.Add(new(YakuType.Dora, dora)); }
-            if (red > 0) { yaku.Add(new(YakuType.AkaDora, red)); }
-            if (ura > 0) { yaku.Add(new(YakuType.UraDora, ura)); }
+            if (!context.RonEstimate)
+            {
+                int red = tiles.Count(tile => tile.IsRedDora);
+                int ura = context.State.IsRiichi[context.Hand.PlayerNumber] ? CountDora(context.UraIndicators) : 0;
+                if (red > 0) { yaku.Add(new(YakuType.AkaDora, red)); }
+                if (ura > 0) { yaku.Add(new(YakuType.UraDora, ura)); }
+            }
             int han = yaku.Sum(item => item.Han);
             return new(han, fu, BasicPoints(han, fu), 0, yaku);
         }

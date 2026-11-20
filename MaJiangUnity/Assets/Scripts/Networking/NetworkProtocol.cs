@@ -24,7 +24,8 @@ namespace MaJiangLib
         MatchAck = 13,
         RequestMatchSync = 14,
         MatchCommand = 15,
-        MatchCommandResult = 16
+        MatchCommandResult = 16,
+        ConfirmSettlement = 17
     }
 
     /// <summary>已经完整组装的消息。</summary>
@@ -46,7 +47,7 @@ namespace MaJiangLib
     public static class NetworkFrameCodec
     {
         public const int FrameSize = 1024;
-        public const ushort Version = 5;
+        public const ushort Version = 6;
         public const int PayloadOffset = 32;
         public const int PayloadCapacity = 984;
         public const int MaximumMessageSize = 65536;

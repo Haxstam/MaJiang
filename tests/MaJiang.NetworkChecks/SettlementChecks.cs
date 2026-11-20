@@ -28,7 +28,7 @@ internal static partial class Program
         Assert(fixture.Journal.Settlement != null && fixture.Core.PlayerPoint.SequenceEqual(new[] { 24000, 26000, 25000, 25000 }), "Win was not paid.");
         long sequence = fixture.Journal.LatestSequence;
         for (int repeat = 0; repeat < 4; repeat++) { session.Tick(); fixture.Machine.Submit(1, ron); }
-        Assert(fixture.Journal.LatestSequence == sequence && fixture.Core.PlayerPoint[1] == 26000 && fixture.Journal.NextRoundMilliseconds == 5000,
+        Assert(fixture.Journal.LatestSequence == sequence && fixture.Core.PlayerPoint[1] == 26000 && fixture.Journal.NextRoundMilliseconds == 10000,
             "Settlement/retry paid twice or reset display deadline.");
         return Task.CompletedTask;
     }
@@ -36,11 +36,12 @@ internal static partial class Program
     private static Task SettlementNextRound()
     {
         var (fixture, session, ron) = SettledRon(); Guid previous = fixture.Journal.RoundId; AuthoritativeMatchMachine retired = fixture.Machine;
-        fixture.Now = 4999; session.Tick(); Assert(fixture.Journal.RoundId == previous, "Result display ended early.");
-        fixture.Now = 5000; session.Tick();
+        fixture.Now = 9999; session.Tick(); Assert(fixture.Journal.RoundId == previous, "Result display ended early.");
+        fixture.Now = 10000; session.Tick();
         Assert(fixture.Journal.RoundId != previous && fixture.Journal.RoundGeneration == 2 && fixture.Journal.LatestSequence == 0
             && fixture.Core.CurrentDealerIndex == 1 && fixture.Core.CurrentPlayerIndex == 1 && fixture.Core.RemainTileCount == 69
-            && fixture.Core.PlayerPoint[1] == 26000 && fixture.Journal.Outcome == RoundOutcomeKind.None && fixture.Journal.Settlement.RoundId == previous,
+            && fixture.Core.PlayerPoint[1] == 26000 && fixture.Journal.Outcome == RoundOutcomeKind.None && fixture.Journal.Settlement.RoundId == previous
+            && fixture.Journal.SettlementConfirmations == 0,
             "Next round reset points, dealer or result history.");
         Assert(fixture.Core.PlayerList.Select(player => player.PlayerHandTile.HandTileList.Count).All(count => count == 13)
             && fixture.Journal.GetSnapshot(1).ThinkingMilliseconds == 20000 && fixture.Journal.FuritenFlags.All(flags => flags == 0), "New round did not reset private state and banks.");
@@ -101,7 +102,8 @@ internal static partial class Program
         Assert(fixture.Journal.Settlement.MatchEnded && fixture.Journal.Settlement.Ranking[0] == 1 && fixture.Core.PlayerPoint[1] >= 30000,
             "Final dealer win did not end match.");
         fixture.Now = 1000000; session.Tick();
-        Assert(fixture.Journal.RoundId == round && session.Machine.Stage == MatchOperationStage.RoundEnded && fixture.Journal.NextRoundMilliseconds == 0,
+        Assert(fixture.Journal.RoundId == round && session.Machine.Stage == MatchOperationStage.RoundEnded && fixture.Journal.NextRoundMilliseconds == 0
+            && fixture.Journal.SettlementConfirmations == MatchSession.AllSeatsConfirmed,
             "Finished match created another round.");
         return Task.CompletedTask;
     }
@@ -123,7 +125,7 @@ internal static partial class Program
 
     private static async Task SettlementTcpNextRound()
     {
-        Fixture fixture = new();
+        Fixture fixture = new(new LanRoomServer(() => 0));
         try
         {
             await SyncStart(fixture); MainMatchControl core = fixture.Server.Match.AuthoritativeState;
@@ -142,13 +144,28 @@ internal static partial class Program
             await Until(() => fixture.Clients.All(client => client.Match.Current.Settlement?.RoundId == fixture.Server.Match.RoundId), fixture.Pump);
             Guid oldRound = fixture.Server.Match.RoundId;
             LanRoomClient guest = fixture.Clients.Single(client => client.Match.Current.SelfSeat == 2);
+            Assert(guest.ConfirmSettlement(Guid.NewGuid()) == 0 && guest.ConfirmSettlement(oldRound) != 0, "Current settlement confirmation was not sent.");
+            Assert(guest.ConfirmSettlement(oldRound) != 0, "Retry did not reach the server.");
+            await Until(() => fixture.Clients.All(client => client.Match.Current.SettlementConfirmations == 4), fixture.Pump);
+            Assert(fixture.Server.Match.RoundId == oldRound && fixture.Server.Match.NextRoundMilliseconds == 10000,
+                "A single confirmation or a retry advanced the round or changed the deadline.");
             await guest.CloseAsync(); await Until(() => fixture.Server.ConnectionCount == 3, fixture.Pump);
             await guest.ConnectAsync(IPAddress.Loopback, fixture.Server.Port, "restored");
             await Until(() => guest.IsJoined && guest.Match.Current.Settlement?.RoundId == oldRound, fixture.Pump);
-            Assert(guest.Match.Current.State.PlayerPoint[1] == 26000 && guest.Match.Current.Settlement.Revealed.Single().Seat == 1, "Reconnect lost payment or winning reveal.");
-            await Until(() => fixture.Clients.All(client => client.Match.Current.RoundGeneration == 2), fixture.Pump, 8000);
+            Assert(guest.Match.Current.State.PlayerPoint[1] == 26000 && guest.Match.Current.Settlement.Revealed.Single().Seat == 1
+                && guest.Match.Current.SettlementConfirmations == 4 && guest.Match.Current.NextRoundMilliseconds == 10000,
+                "Reconnect lost payment, winning reveal, confirmation, or deadline.");
+            foreach (LanRoomClient client in fixture.Clients.Where(client => client != guest))
+            {
+                Assert(client.ConfirmSettlement(oldRound) != 0, "A remaining seat could not confirm.");
+            }
+            await Until(() => fixture.Clients.All(client => client.Match.Current.RoundGeneration == 2), fixture.Pump);
             Assert(fixture.Server.Match.RoundId != oldRound && fixture.Clients.All(client => client.Match.Current.Settlement.RoundId == oldRound
-                && client.Match.Current.State.PlayerPoint[1] == 26000 && client.Match.Current.State.CurrentDealerIndex == 1), "Next TCP round reset score or lost last settlement.");
+                && client.Match.Current.State.PlayerPoint[1] == 26000 && client.Match.Current.State.CurrentDealerIndex == 1
+                && client.Match.Current.SettlementConfirmations == 0), "Four confirmations did not advance or next TCP round lost settlement.");
+            long sequence = fixture.Server.Match.LatestSequence;
+            Assert(!fixture.Server.Session.ConfirmSettlement(2, fixture.Server.Match.MatchId, oldRound)
+                && fixture.Server.Match.LatestSequence == sequence, "A stale confirmation affected the new round.");
             foreach (LanRoomClient client in fixture.Clients) { SyncSameState(client.Match.Current, fixture.Server.Match.GetSnapshot(client.Match.Current.SelfSeat)); }
         }
         finally { await fixture.Cleanup(); }

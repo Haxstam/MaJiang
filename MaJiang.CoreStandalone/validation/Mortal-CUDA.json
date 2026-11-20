@@ -1,0 +1,145 @@
+{
+  "date": "2026-10-25",
+  "result": "pass",
+  "runtime": {
+    "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+    "python_version": "3.10.10",
+    "torch": "2.12.0+cu126",
+    "torch_cuda": "12.6",
+    "requested_device": "cuda",
+    "brain_device": "cuda:0",
+    "dqn_device": "cuda:0",
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "allocated_gpu_bytes": 52140544,
+    "native_module": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64\\libriichi.pyd"
+  },
+  "smoke": {
+    "tensor_batches": 2,
+    "mjai_cases": [
+      {
+        "seat": 0,
+        "draw": "1p",
+        "type": "reach",
+        "followup": "dahai"
+      },
+      {
+        "seat": 0,
+        "draw": "9s",
+        "type": "hora"
+      },
+      {
+        "seat": 1,
+        "draw": "1p",
+        "type": "reach",
+        "followup": "dahai"
+      },
+      {
+        "seat": 1,
+        "draw": "9s",
+        "type": "hora"
+      },
+      {
+        "seat": 2,
+        "draw": "1p",
+        "type": "reach",
+        "followup": "dahai"
+      },
+      {
+        "seat": 2,
+        "draw": "9s",
+        "type": "hora"
+      },
+      {
+        "seat": 3,
+        "draw": "1p",
+        "type": "reach",
+        "followup": "dahai"
+      },
+      {
+        "seat": 3,
+        "draw": "9s",
+        "type": "hora"
+      }
+    ]
+  },
+  "four_seat_cuda_curse_run": {
+    "result": "pass",
+    "rounds": 4,
+    "modelDecisions": 201,
+    "localDecisions": 0,
+    "reaches": 2,
+    "calls": 6,
+    "seats": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "seedNumber": 2,
+    "seedEncoding": "sha256-v1",
+    "device": "cuda",
+    "curses": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "curseStatistics": [
+      {
+        "Seat": 0,
+        "Curse": 1,
+        "Attempts": 4,
+        "PreparedHands": 4,
+        "AlreadyValid": 0,
+        "LiveWallSwaps": 0,
+        "DeadWallSwaps": 0,
+        "Unavoidable": 0
+      },
+      {
+        "Seat": 1,
+        "Curse": 2,
+        "Attempts": 13,
+        "PreparedHands": 0,
+        "AlreadyValid": 12,
+        "LiveWallSwaps": 1,
+        "DeadWallSwaps": 0,
+        "Unavoidable": 0
+      },
+      {
+        "Seat": 2,
+        "Curse": 3,
+        "Attempts": 41,
+        "PreparedHands": 0,
+        "AlreadyValid": 24,
+        "LiveWallSwaps": 16,
+        "DeadWallSwaps": 1,
+        "Unavoidable": 0
+      },
+      {
+        "Seat": 3,
+        "Curse": 4,
+        "Attempts": 50,
+        "PreparedHands": 4,
+        "AlreadyValid": 42,
+        "LiveWallSwaps": 4,
+        "DeadWallSwaps": 0,
+        "Unavoidable": 0
+      }
+    ],
+    "matchEnded": false,
+    "ranking": null,
+    "scores": [
+      21000,
+      23000,
+      22000,
+      33000
+    ]
+  },
+  "regression_checks_passed": 150,
+  "python_compatibility": [
+    "Project-local libriichi rebuilt for CPython 3.10 using existing offline Rust dependencies",
+    "Scoped Python 3.10 file_digest compatibility preserves the original weight checksum check"
+  ],
+  "external_venv_and_model_source_modified": false,
+  "full_match_or_statistical_experiment": false
+}

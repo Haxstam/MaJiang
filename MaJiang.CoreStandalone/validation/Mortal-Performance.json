@@ -1,0 +1,717 @@
+{
+  "schemaVersion": 1,
+  "measuredDate": "2026-10-25",
+  "purpose": "benchmark",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vramMiB": 6141,
+    "otherAppsGpuBaselineMiB": [
+      2506,
+      2502,
+      2512
+    ]
+  },
+  "configuration": {
+    "seeds": [
+      2,
+      3
+    ],
+    "seats": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cursesBySeat": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+    "torch": "2.12.0+cu126",
+    "cuda": "12.6",
+    "threadsPerModelProcess": 2,
+    "modelProcessesPerMatch": 4,
+    "roundLimit": 100,
+    "detailedAudit": true,
+    "perStepDiskFlush": true
+  },
+  "comparison": {
+    "identicalWorkload": {
+      "completedMatches": 2,
+      "rounds": 29,
+      "modelDecisions": 1325
+    },
+    "serial": {
+      "concurrency": 1,
+      "wallSeconds": 65.95002679999743,
+      "playSecondsSum": 42.3897638,
+      "decisionsPerWallSecond": 20.090969849310987,
+      "decisionsPerPlaySecond": 31.25754619090376,
+      "globalGpuPeakMiB": 3200,
+      "minimumAvailableRamMiB": 9383
+    },
+    "parallel": {
+      "concurrency": 2,
+      "wallSeconds": 40.59010549999948,
+      "playSpanSeconds": 27.5742761,
+      "decisionsPerWallSecond": 32.6434234077075,
+      "decisionsPerPlaySpanSecond": 48.0520320894299,
+      "globalGpuPeakMiB": 3859,
+      "minimumAvailableRamMiB": 5278
+    },
+    "wallThroughputSpeedup": 1.6247808668543193,
+    "recordBytesPerMatch": [
+      972198,
+      1218608
+    ]
+  },
+  "recordingValidation": [
+    {
+      "seedNumber": 2,
+      "file": "events.jsonl",
+      "entries": 1017,
+      "identicalIgnoringIds": true
+    },
+    {
+      "seedNumber": 2,
+      "file": "rounds.jsonl",
+      "entries": 13,
+      "identicalIgnoringIds": true
+    },
+    {
+      "seedNumber": 2,
+      "file": "curse-audit.jsonl",
+      "entries": 311,
+      "identicalIgnoringIds": true
+    },
+    {
+      "seedNumber": 3,
+      "file": "events.jsonl",
+      "entries": 1287,
+      "identicalIgnoringIds": true
+    },
+    {
+      "seedNumber": 3,
+      "file": "rounds.jsonl",
+      "entries": 16,
+      "identicalIgnoringIds": true
+    },
+    {
+      "seedNumber": 3,
+      "file": "curse-audit.jsonl",
+      "entries": 395,
+      "identicalIgnoringIds": true
+    }
+  ],
+  "netChecks": {
+    "passed": 153,
+    "domain": 18,
+    "actions": 41,
+    "scoring": 46,
+    "adapterAndRecording": 22,
+    "curses": 26
+  },
+  "limitations": [
+    "Two distinct seeds, each measured serially and in parallel once; not a long-run throughput guarantee.",
+    "GPU resources include other active applications; Windows shared GPU memory and thermal throttling were not profiled.",
+    "Current host reloads four model processes for every match; startup and cleanup are included in wall time.",
+    "No formal win-rate samples were generated. Known model kokushi rob-ankan limitation remains."
+  ],
+  "runs": [
+    {
+      "schemaVersion": 1,
+      "purpose": "benchmark",
+      "startedAtUtc": "2026-10-25T09:37:05.936256+00:00",
+      "concurrency": 1,
+      "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+      "roundLimit": 100,
+      "baselineGpu": {
+        "totalMiB": 6141,
+        "usedMiB": 2506,
+        "utilizationPercent": 31
+      },
+      "baselineAvailableRamMiB": 14004,
+      "wallSecondsIncludingStartupAndCleanup": 29.41047069999695,
+      "successfulWorkers": 1,
+      "completedMatches": 1,
+      "totalModelDecisions": 588,
+      "aggregateDecisionsPerWallSecond": 19.992879610732004,
+      "playSpanSeconds": 17.475819699999995,
+      "aggregateDecisionsPerPlaySpanSecond": 33.64649041326514,
+      "peakGlobalGpuMiB": 3199,
+      "averageSampledGpuUtilizationPercent": 23.98,
+      "minimumAvailableRamMiB": 9541,
+      "workers": [
+        {
+          "index": 0,
+          "exitCode": 0,
+          "startSeconds": 0.006633400000282563,
+          "endSeconds": 29.41021289999844,
+          "wallSeconds": 29.40357949999816,
+          "command": [
+            "dotnet",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.MortalConsole.dll",
+            "--python",
+            "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+            "--model-dir",
+            "G:\\Documents\\Codex\\2026-10-24\\qing-n\\outputs\\Mortal-S42",
+            "--bridge",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\python\\mortal_bridge.py",
+            "--native-dir",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64",
+            "--device",
+            "cuda",
+            "--threads",
+            "2",
+            "--seats",
+            "0,1,2,3",
+            "--curses",
+            "1,2,3,4",
+            "--audit",
+            "--purpose",
+            "benchmark",
+            "--rounds",
+            "100",
+            "--output",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-single-1\\matches",
+            "--seed",
+            "2"
+          ],
+          "summary": {
+            "result": "pass",
+            "status": "completed",
+            "purpose": "benchmark",
+            "rounds": 13,
+            "modelDecisions": 588,
+            "localDecisions": 0,
+            "reaches": 8,
+            "calls": 21,
+            "seats": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "seedNumber": 2,
+            "seedEncoding": "sha256-v1",
+            "device": "cuda",
+            "curses": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "curseStatistics": [
+              {
+                "Seat": 0,
+                "Curse": 1,
+                "Attempts": 13,
+                "PreparedHands": 13,
+                "AlreadyValid": 0,
+                "LiveWallSwaps": 0,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 1,
+                "Curse": 2,
+                "Attempts": 40,
+                "PreparedHands": 0,
+                "AlreadyValid": 35,
+                "LiveWallSwaps": 5,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 2,
+                "Curse": 3,
+                "Attempts": 113,
+                "PreparedHands": 0,
+                "AlreadyValid": 73,
+                "LiveWallSwaps": 38,
+                "DeadWallSwaps": 2,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 3,
+                "Curse": 4,
+                "Attempts": 145,
+                "PreparedHands": 13,
+                "AlreadyValid": 121,
+                "LiveWallSwaps": 11,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              }
+            ],
+            "matchEnded": true,
+            "ranking": [
+              3,
+              2,
+              1,
+              0
+            ],
+            "scores": [
+              17500,
+              21900,
+              25900,
+              34700
+            ],
+            "kyotaku": 0,
+            "timing": {
+              "startupSeconds": 11.1497972,
+              "playSeconds": 17.4758197,
+              "recordWriteSeconds": 0.129044,
+              "totalBeforeCleanupSeconds": 28.6414234,
+              "decisionsPerPlaySecond": 33.64649041326514,
+              "inferenceCalls": 596,
+              "inferenceSeconds": 16.0961558,
+              "averageInferenceMilliseconds": 27.006972818791944
+            },
+            "recordDirectory": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-single-1\\matches\\match-d1579ffe6ace443dbb9e087025444684"
+          }
+        }
+      ],
+      "recordingBytes": 972198
+    },
+    {
+      "schemaVersion": 1,
+      "purpose": "benchmark",
+      "startedAtUtc": "2026-10-25T09:39:42.550716+00:00",
+      "concurrency": 1,
+      "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+      "roundLimit": 100,
+      "baselineGpu": {
+        "totalMiB": 6141,
+        "usedMiB": 2502,
+        "utilizationPercent": 16
+      },
+      "baselineAvailableRamMiB": 13909,
+      "wallSecondsIncludingStartupAndCleanup": 36.53955610000048,
+      "successfulWorkers": 1,
+      "completedMatches": 1,
+      "totalModelDecisions": 737,
+      "aggregateDecisionsPerWallSecond": 20.169922097110266,
+      "playSpanSeconds": 24.913944100000002,
+      "aggregateDecisionsPerPlaySpanSecond": 29.581827632020733,
+      "peakGlobalGpuMiB": 3200,
+      "averageSampledGpuUtilizationPercent": 25.338709677419356,
+      "minimumAvailableRamMiB": 9383,
+      "workers": [
+        {
+          "index": 0,
+          "exitCode": 0,
+          "startSeconds": 0.008196499999030493,
+          "endSeconds": 36.53935270000147,
+          "wallSeconds": 36.53115620000244,
+          "command": [
+            "dotnet",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.MortalConsole.dll",
+            "--python",
+            "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+            "--model-dir",
+            "G:\\Documents\\Codex\\2026-10-24\\qing-n\\outputs\\Mortal-S42",
+            "--bridge",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\python\\mortal_bridge.py",
+            "--native-dir",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64",
+            "--device",
+            "cuda",
+            "--threads",
+            "2",
+            "--seats",
+            "0,1,2,3",
+            "--curses",
+            "1,2,3,4",
+            "--audit",
+            "--purpose",
+            "benchmark",
+            "--rounds",
+            "100",
+            "--output",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-single-2\\matches",
+            "--seed",
+            "3"
+          ],
+          "summary": {
+            "result": "pass",
+            "status": "completed",
+            "purpose": "benchmark",
+            "rounds": 16,
+            "modelDecisions": 737,
+            "localDecisions": 0,
+            "reaches": 14,
+            "calls": 13,
+            "seats": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "seedNumber": 3,
+            "seedEncoding": "sha256-v1",
+            "device": "cuda",
+            "curses": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "curseStatistics": [
+              {
+                "Seat": 0,
+                "Curse": 1,
+                "Attempts": 16,
+                "PreparedHands": 16,
+                "AlreadyValid": 0,
+                "LiveWallSwaps": 0,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 1,
+                "Curse": 2,
+                "Attempts": 45,
+                "PreparedHands": 0,
+                "AlreadyValid": 40,
+                "LiveWallSwaps": 5,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 2,
+                "Curse": 3,
+                "Attempts": 149,
+                "PreparedHands": 0,
+                "AlreadyValid": 95,
+                "LiveWallSwaps": 51,
+                "DeadWallSwaps": 3,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 3,
+                "Curse": 4,
+                "Attempts": 185,
+                "PreparedHands": 16,
+                "AlreadyValid": 156,
+                "LiveWallSwaps": 12,
+                "DeadWallSwaps": 1,
+                "Unavoidable": 0
+              }
+            ],
+            "matchEnded": true,
+            "ranking": [
+              3,
+              1,
+              0,
+              2
+            ],
+            "scores": [
+              17700,
+              35900,
+              8000,
+              38400
+            ],
+            "kyotaku": 0,
+            "timing": {
+              "startupSeconds": 10.7872426,
+              "playSeconds": 24.9139441,
+              "recordWriteSeconds": 0.1395912,
+              "totalBeforeCleanupSeconds": 35.7194774,
+              "decisionsPerPlaySecond": 29.581827632020737,
+              "inferenceCalls": 751,
+              "inferenceSeconds": 23.012537899999995,
+              "averageInferenceMilliseconds": 30.64252716378162
+            },
+            "recordDirectory": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-single-2\\matches\\match-11b0ecab2f664aa5bea6bbd5e0f33787"
+          }
+        }
+      ],
+      "recordingBytes": 1218608
+    },
+    {
+      "schemaVersion": 1,
+      "purpose": "benchmark",
+      "startedAtUtc": "2026-10-25T09:38:39.566105+00:00",
+      "concurrency": 2,
+      "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+      "roundLimit": 100,
+      "baselineGpu": {
+        "totalMiB": 6141,
+        "usedMiB": 2512,
+        "utilizationPercent": 32
+      },
+      "baselineAvailableRamMiB": 14030,
+      "wallSecondsIncludingStartupAndCleanup": 40.59010549999948,
+      "successfulWorkers": 2,
+      "completedMatches": 2,
+      "totalModelDecisions": 1325,
+      "aggregateDecisionsPerWallSecond": 32.6434234077075,
+      "playSpanSeconds": 27.5742761,
+      "aggregateDecisionsPerPlaySpanSecond": 48.0520320894299,
+      "peakGlobalGpuMiB": 3859,
+      "averageSampledGpuUtilizationPercent": 46.544117647058826,
+      "minimumAvailableRamMiB": 5278,
+      "workers": [
+        {
+          "index": 0,
+          "exitCode": 0,
+          "startSeconds": 0.006705599997076206,
+          "endSeconds": 35.80353009999817,
+          "wallSeconds": 35.796824500001094,
+          "command": [
+            "dotnet",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.MortalConsole.dll",
+            "--python",
+            "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+            "--model-dir",
+            "G:\\Documents\\Codex\\2026-10-24\\qing-n\\outputs\\Mortal-S42",
+            "--bridge",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\python\\mortal_bridge.py",
+            "--native-dir",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64",
+            "--device",
+            "cuda",
+            "--threads",
+            "2",
+            "--seats",
+            "0,1,2,3",
+            "--curses",
+            "1,2,3,4",
+            "--audit",
+            "--purpose",
+            "benchmark",
+            "--rounds",
+            "100",
+            "--output",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-dual-1\\matches",
+            "--seed",
+            "2"
+          ],
+          "summary": {
+            "result": "pass",
+            "status": "completed",
+            "purpose": "benchmark",
+            "rounds": 13,
+            "modelDecisions": 588,
+            "localDecisions": 0,
+            "reaches": 8,
+            "calls": 21,
+            "seats": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "seedNumber": 2,
+            "seedEncoding": "sha256-v1",
+            "device": "cuda",
+            "curses": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "curseStatistics": [
+              {
+                "Seat": 0,
+                "Curse": 1,
+                "Attempts": 13,
+                "PreparedHands": 13,
+                "AlreadyValid": 0,
+                "LiveWallSwaps": 0,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 1,
+                "Curse": 2,
+                "Attempts": 40,
+                "PreparedHands": 0,
+                "AlreadyValid": 35,
+                "LiveWallSwaps": 5,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 2,
+                "Curse": 3,
+                "Attempts": 113,
+                "PreparedHands": 0,
+                "AlreadyValid": 73,
+                "LiveWallSwaps": 38,
+                "DeadWallSwaps": 2,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 3,
+                "Curse": 4,
+                "Attempts": 145,
+                "PreparedHands": 13,
+                "AlreadyValid": 121,
+                "LiveWallSwaps": 11,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              }
+            ],
+            "matchEnded": true,
+            "ranking": [
+              3,
+              2,
+              1,
+              0
+            ],
+            "scores": [
+              17500,
+              21900,
+              25900,
+              34700
+            ],
+            "kyotaku": 0,
+            "timing": {
+              "startupSeconds": 12.8178838,
+              "playSeconds": 22.6033905,
+              "recordWriteSeconds": 0.1362865,
+              "totalBeforeCleanupSeconds": 35.4410951,
+              "decisionsPerPlaySecond": 26.01379647004727,
+              "inferenceCalls": 596,
+              "inferenceSeconds": 20.84708750000001,
+              "averageInferenceMilliseconds": 34.97833473154365
+            },
+            "recordDirectory": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-dual-1\\matches\\match-1b693acc65764b1cb8b9662d477e247b"
+          }
+        },
+        {
+          "index": 1,
+          "exitCode": 0,
+          "startSeconds": 0.020746199999848614,
+          "endSeconds": 40.58972309999808,
+          "wallSeconds": 40.56897689999823,
+          "command": [
+            "dotnet",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.MortalConsole.dll",
+            "--python",
+            "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+            "--model-dir",
+            "G:\\Documents\\Codex\\2026-10-24\\qing-n\\outputs\\Mortal-S42",
+            "--bridge",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\python\\mortal_bridge.py",
+            "--native-dir",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64",
+            "--device",
+            "cuda",
+            "--threads",
+            "2",
+            "--seats",
+            "0,1,2,3",
+            "--curses",
+            "1,2,3,4",
+            "--audit",
+            "--purpose",
+            "benchmark",
+            "--rounds",
+            "100",
+            "--output",
+            "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-dual-1\\matches",
+            "--seed",
+            "3"
+          ],
+          "summary": {
+            "result": "pass",
+            "status": "completed",
+            "purpose": "benchmark",
+            "rounds": 16,
+            "modelDecisions": 737,
+            "localDecisions": 0,
+            "reaches": 14,
+            "calls": 13,
+            "seats": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "seedNumber": 3,
+            "seedEncoding": "sha256-v1",
+            "device": "cuda",
+            "curses": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "curseStatistics": [
+              {
+                "Seat": 0,
+                "Curse": 1,
+                "Attempts": 16,
+                "PreparedHands": 16,
+                "AlreadyValid": 0,
+                "LiveWallSwaps": 0,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 1,
+                "Curse": 2,
+                "Attempts": 45,
+                "PreparedHands": 0,
+                "AlreadyValid": 40,
+                "LiveWallSwaps": 5,
+                "DeadWallSwaps": 0,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 2,
+                "Curse": 3,
+                "Attempts": 149,
+                "PreparedHands": 0,
+                "AlreadyValid": 95,
+                "LiveWallSwaps": 51,
+                "DeadWallSwaps": 3,
+                "Unavoidable": 0
+              },
+              {
+                "Seat": 3,
+                "Curse": 4,
+                "Attempts": 185,
+                "PreparedHands": 16,
+                "AlreadyValid": 156,
+                "LiveWallSwaps": 12,
+                "DeadWallSwaps": 1,
+                "Unavoidable": 0
+              }
+            ],
+            "matchEnded": true,
+            "ranking": [
+              3,
+              1,
+              0,
+              2
+            ],
+            "scores": [
+              17700,
+              35900,
+              8000,
+              38400
+            ],
+            "kyotaku": 0,
+            "timing": {
+              "startupSeconds": 12.7128588,
+              "playSeconds": 27.5742761,
+              "recordWriteSeconds": 0.1433898,
+              "totalBeforeCleanupSeconds": 40.3036454,
+              "decisionsPerPlaySecond": 26.727809547101767,
+              "inferenceCalls": 751,
+              "inferenceSeconds": 25.390416000000005,
+              "averageInferenceMilliseconds": 33.80880958721705
+            },
+            "recordDirectory": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\benchmarks\\20261025-dual-1\\matches\\match-99cf99856f68405d829446f7a2930f4f"
+          }
+        }
+      ],
+      "recordingBytes": 2190811
+    }
+  ]
+}

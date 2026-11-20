@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-25",
+  "model": "Mortal-S42 / Mortal v4 / CPU",
+  "checks": {
+    "domain": 18,
+    "actions_and_core": 41,
+    "scoring": 46,
+    "mortal_adapter": 17,
+    "total": 122
+  },
+  "build": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "real_single_seat": {
+    "seat": 0,
+    "rounds": 1,
+    "model_decisions": 25,
+    "local_decisions": 60,
+    "result": "pass"
+  },
+  "real_four_seat_full_match": {
+    "seats": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "rounds": 13,
+    "model_decisions": 747,
+    "local_decisions": 0,
+    "riichi_choices": 9,
+    "call_or_kan_choices": 26,
+    "final_scores": [
+      19300,
+      18300,
+      19300,
+      43100
+    ],
+    "core_default_substitutions": 0,
+    "result": "pass",
+    "event_counts_per_seat": {
+      "start_game": 1,
+      "start_kyoku": 13,
+      "tsumo": 563,
+      "dahai": 582,
+      "pon": 17,
+      "chi": 8,
+      "hora": 10,
+      "end_kyoku": 13,
+      "ryukyoku": 3,
+      "reach": 9,
+      "reach_accepted": 9,
+      "ankan": 1,
+      "dora": 1,
+      "end_game": 1
+    }
+  },
+  "protocol_audit": {
+    "all_seats_same_public_event_order": true,
+    "initial_hands_exactly_13": true,
+    "opponent_hands_and_draws_hidden": true,
+    "absolute_seats_and_real_point_units": true,
+    "meld_consumed_counts_checked": true
+  },
+  "known_limitations": [
+    "The deployed libriichi ankan update does not offer kokushi rob-closed-kan; adapter reports unavailable and leaves the local decision pending.",
+    "Mid-round recovery replays this adapter's event history; arbitrary standalone snapshots cannot reconstruct missing mjai history."
+  ]
+}

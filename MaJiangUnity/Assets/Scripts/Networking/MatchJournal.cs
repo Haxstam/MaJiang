@@ -33,6 +33,7 @@ namespace MaJiangLib
         /// <summary>最近一个已完成本场的公开结算；新局仍保留，便于重连查询。</summary>
         public RoundSettlementResult Settlement;
         public long NextRoundMilliseconds;
+        public byte SettlementConfirmations;
 
         public IReadOnlyList<PlayerActionData> GetAvailableActions() => MatchActionRules.GetActions(State, State.PlayerList[SelfSeat].PlayerHandTile,
             new MatchActionContext { Stage = OperationStage, SourceSeat = ResponseSourceSeat, ResponseTile = ResponseTile, HasResponded = HasResponded,
@@ -40,7 +41,7 @@ namespace MaJiangLib
 
         public long RemainingMilliseconds(long millisecondsSinceReceipt)
             => RemainingUntil(DeadlineMilliseconds, millisecondsSinceReceipt);
-        /// <summary>结算展示距自动换局的剩余时间，终局为0。</summary>
+        /// <summary>距结算自动确认的剩余时间。</summary>
         public long RemainingResultMilliseconds(long millisecondsSinceReceipt)
             => RemainingUntil(NextRoundMilliseconds, millisecondsSinceReceipt);
         private long RemainingUntil(long deadline, long millisecondsSinceReceipt)
@@ -111,6 +112,7 @@ namespace MaJiangLib
         public bool WinByRobbingKan { get; set; }
         public RoundSettlementResult Settlement { get; set; }
         public long NextRoundMilliseconds { get; set; }
+        public byte SettlementConfirmations { get; set; }
 
         public MatchJournal(MainMatchControl state, Func<long> clock = null, int retentionWindow = 512)
         {
@@ -137,7 +139,7 @@ namespace MaJiangLib
             PendingDoraCount = 0;
             OperationStage = MatchOperationStage.AwaitingDraw; ResponseSourceSeat = -1; ResponseTile = null; PendingRiichiSeat = -1;
             Outcome = RoundOutcomeKind.None; WinnerMask = 0; ThinkingProvider = null;
-            WinByRobbingKan = false; NextRoundMilliseconds = 0;
+            WinByRobbingKan = false; NextRoundMilliseconds = 0; SettlementConfirmations = 0;
             for (int seat = 0; seat < 4; seat++)
             {
                 ThinkingMilliseconds[seat] = state.MatchSettingData.ThinkingTime * 1000;
@@ -238,7 +240,8 @@ namespace MaJiangLib
                 ThinkingMilliseconds = ThinkingProvider != null ? ThinkingProvider(seat) : ThinkingMilliseconds[seat], FuritenFlags = furiten, HasResponded = HasResponded[seat], PendingDoraCount = PendingDoraCount,
                 OperationStage = OperationStage, ResponseSourceSeat = ResponseSourceSeat, ResponseTile = ResponseTile, PendingRiichiSeat = PendingRiichiSeat,
                 ForbiddenDiscards = ForbiddenDiscards[seat].ToList(), Outcome = Outcome, WinnerMask = WinnerMask,
-                Settlement = Settlement == null ? null : RoundSettlementCodec.Copy(Settlement), NextRoundMilliseconds = NextRoundMilliseconds
+                Settlement = Settlement == null ? null : RoundSettlementCodec.Copy(Settlement),
+                NextRoundMilliseconds = NextRoundMilliseconds, SettlementConfirmations = SettlementConfirmations
             };
         }
         private static int CheckSeat(int seat)

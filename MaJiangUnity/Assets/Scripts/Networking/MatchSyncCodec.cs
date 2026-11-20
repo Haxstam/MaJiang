@@ -156,6 +156,7 @@ namespace MaJiangLib
             writer.Byte((byte)(view.PendingRiichiSeat + 1)); WriteTiles(writer, view.ForbiddenDiscards, 2);
             writer.Byte((byte)view.Outcome); writer.Byte(view.WinnerMask);
             writer.Int64(view.NextRoundMilliseconds);
+            writer.Byte(view.SettlementConfirmations);
         }
 
         private static void ReadStatus(RoomPayloadReader reader, VisibleMatchState view)
@@ -178,6 +179,7 @@ namespace MaJiangLib
             view.PendingRiichiSeat = reader.Byte() - 1; view.ForbiddenDiscards = ReadTiles(reader, 2);
             view.Outcome = (RoundOutcomeKind)reader.Byte(); view.WinnerMask = reader.Byte();
             view.NextRoundMilliseconds = reader.Int64();
+            view.SettlementConfirmations = reader.Byte();
         }
 
         private static void WriteHand(RoomPayloadWriter writer, HandTile hand) { WriteTiles(writer, hand.HandTileList, 13); WriteTile(writer, hand.SingleTile); }
@@ -260,7 +262,9 @@ namespace MaJiangLib
                 || view.Sequence < -1 || view.SelfSeat < 0 || view.SelfSeat > 3 || view.PhaseId < 1 || view.DeadlineMilliseconds < 0
                 || view.ServerMilliseconds < 0 || view.ThinkingMilliseconds < 0 || view.FuritenFlags > 7 || view.PendingDoraCount < 0 || view.PendingDoraCount > 4
                 || !Enum.IsDefined(typeof(MatchOperationStage), view.OperationStage) || !Enum.IsDefined(typeof(RoundOutcomeKind), view.Outcome)
-                || view.ResponseSourceSeat < -1 || view.ResponseSourceSeat > 3 || view.PendingRiichiSeat < -1 || view.PendingRiichiSeat > 3 || view.WinnerMask > 15 || view.NextRoundMilliseconds < 0)
+                || view.ResponseSourceSeat < -1 || view.ResponseSourceSeat > 3 || view.PendingRiichiSeat < -1 || view.PendingRiichiSeat > 3
+                || view.WinnerMask > 15 || view.NextRoundMilliseconds < 0 || view.SettlementConfirmations > MatchSession.AllSeatsConfirmed
+                || (view.SettlementConfirmations != 0 && (view.OperationStage != MatchOperationStage.RoundEnded || view.Settlement?.RoundId != view.RoundId)))
             {
                 throw new InvalidDataException("Invalid visible match header.");
             }

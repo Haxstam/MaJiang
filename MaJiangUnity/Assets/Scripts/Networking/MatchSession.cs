@@ -3,15 +3,17 @@ using System.Linq;
 
 namespace MaJiangLib
 {
-    /// <summary>整场生命周期：操作机结束后仅结算一次，展示结束后换局，终局保留排名供查看与重连。</summary>
+    /// <summary>整场生命周期：一局只结算一次，四家确认或到期后换局。</summary>
     public sealed class MatchSession
     {
+        public const byte AllSeatsConfirmed = 0b1111;
+        public const int DefaultResultDisplayMilliseconds = 10000;
         private readonly MatchJournal journal;
         private readonly Func<long> clock;
         private readonly int resultDisplayMilliseconds;
         public AuthoritativeMatchMachine Machine { get; private set; }
 
-        public MatchSession(MatchJournal journal, Func<long> clock = null, int resultDisplayMilliseconds = 5000, AuthoritativeMatchMachine machine = null)
+        public MatchSession(MatchJournal journal, Func<long> clock = null, int resultDisplayMilliseconds = DefaultResultDisplayMilliseconds, AuthoritativeMatchMachine machine = null)
         {
             if (resultDisplayMilliseconds < 0 || resultDisplayMilliseconds > 60000) { throw new ArgumentOutOfRangeException(nameof(resultDisplayMilliseconds)); }
             this.journal = journal ?? throw new ArgumentNullException(nameof(journal));
@@ -21,7 +23,7 @@ namespace MaJiangLib
             Machine = machine ?? new AuthoritativeMatchMachine(journal, this.clock);
         }
 
-        /// <summary>调用者串行驱动；结果不等待客户端确认，因此断线不阻止换局。</summary>
+        /// <summary>调用者串行驱动；到期时补齐确认，断线不阻止换局。</summary>
         public void Tick()
         {
             Machine.Tick();
@@ -35,11 +37,30 @@ namespace MaJiangLib
                 journal.AuthoritativeState.PlayerPoint = result.PointsAfter.ToList();
                 journal.AuthoritativeState.RiichiStickCount = result.SticksAfter;
                 journal.Settlement = RoundSettlementCodec.Copy(result);
-                journal.NextRoundMilliseconds = result.MatchEnded ? 0 : clock() + resultDisplayMilliseconds;
+                journal.NextRoundMilliseconds = clock() + resultDisplayMilliseconds;
                 journal.RecordAppliedAction(null);
                 return;
             }
-            if (!journal.Settlement.MatchEnded && clock() >= journal.NextRoundMilliseconds) { AdvanceRound(); }
+            if (journal.SettlementConfirmations != AllSeatsConfirmed && clock() < journal.NextRoundMilliseconds) { return; }
+            SetConfirmations(AllSeatsConfirmed);
+            if (!journal.Settlement.MatchEnded) { AdvanceRound(); }
+        }
+
+        /// <summary>确认按已认证席位和本局身份去重，重连继续使用原进度。</summary>
+        public bool ConfirmSettlement(int seat, Guid matchId, Guid roundId)
+        {
+            if (seat < 0 || seat >= 4 || matchId != journal.MatchId || roundId != journal.RoundId ||
+                Machine.Stage != MatchOperationStage.RoundEnded || journal.Settlement?.RoundId != roundId) { return false; }
+            SetConfirmations((byte)(journal.SettlementConfirmations | (1 << seat)));
+            return true;
+        }
+
+        private void SetConfirmations(byte mask)
+        {
+            if (mask == journal.SettlementConfirmations) { return; }
+            journal.SettlementConfirmations = mask;
+            if (mask == AllSeatsConfirmed) { journal.NextRoundMilliseconds = 0; }
+            journal.RecordAppliedAction(null);
         }
 
         private void AdvanceRound()

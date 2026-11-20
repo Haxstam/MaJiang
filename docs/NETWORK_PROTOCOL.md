@@ -1,4 +1,4 @@
-# 局域网二进制协议 v5
+# 局域网二进制协议 v6
 
 > 实现日期：2026-10-24。当前包含房间、玩家可见日志/检查点、操作命令、公开结算和换局。详见 [日志同步](MATCH_SYNCHRONIZATION.md)、[状态机](STATE_MACHINE.md) 与 [计分整场](SCORING_AND_MATCH.md)。
 
@@ -9,7 +9,7 @@
 | 偏移 | 字节数 | 含义 |
 | --- | ---: | --- |
 | 0 | 8 | `02 48 61 78 4D 61 6A 50`，沿用 `STX HaxMajP` 标记 |
-| 8 | 2 | 协议版本 `ushort`，当前为 5 |
+| 8 | 2 | 协议版本 `ushort`，当前为 6 |
 | 10 | 2 | 消息类型 `ushort` |
 | 12 | 4 | 消息编号 `uint`，从 1 开始 |
 | 16 | 4 | 完整消息负载总字节数 `int`，0–65536 |
@@ -23,7 +23,7 @@
 
 CRC 使用反射多项式 `0xEDB88320`，初值 `0xFFFFFFFF`，结果取反。计算时把 28–31 字节当作 0，其余整个 1024 字节均参与，包括填充与包尾。接收时按同样方式重新计算并比较。移除旧 MD5、时间戳、来源 IP、每帧用户名和旧 TaskID 布局。
 
-当前v5拒绝v1–v4；相对v4增加公开结算与换局期限，消息类型仍为1–16。旧客户端连接时关闭连接，不尝试混合解码。
+当前 v6 增加结算确认与四席确认位图，现用消息类型为 1–17。旧客户端连接时关闭连接。
 
 ## 2. 帧读取与消息组装
 
@@ -72,6 +72,7 @@ CRC 使用反射多项式 `0xEDB88320`，初值 `0xFFFFFFFF`，结果取反。�
 | 14 | RequestMatchSync | 客户端→服务端 | 同MatchAck，再加Bool强制检查点 |
 | 15 | MatchCommand | 客户端→服务端 | Guid MatchId、Guid RoundId、int RoundGeneration、long PhaseId、Guid CommandId、可选动作 |
 | 16 | MatchCommandResult | 服务端→客户端 | Guid CommandId、Bool Accepted、Bool UsedDefault、Text(96) Reason、long PhaseId、long Sequence |
+| 17 | ConfirmSettlement | 客户端→服务端 | Guid MatchId、Guid RoundId。服务端按当前连接的座位确认，回应 Result |
 
 `Result`对应房间请求的当前连接消息编号。操作使用独立`MatchCommandResult`，CommandId按认证座位在本局去重，重连仍有效，不把帧序号当成完整的对局操作编号。相同命令重试需重新发送为一条正常递增编号的网络消息；重复物理消息编号仍是协议错误。
 
@@ -99,13 +100,13 @@ CRC 使用反射多项式 `0xEDB88320`，初值 `0xFFFFFFFF`，结果取反。�
 
 ## 6. 当前验收范围
 
-已通过75项协议、房间、可见日志、操作/结算/整场及真实回环TCP检查，以及netstandard2.1和Unity工程编译。另有42项独立计分和21项核心检查。尚未执行Unity Editor多实例及跨机器局域网验收。
+已通过 78 项网络检查，涵盖协议、房间、可见日志、操作、结算及真实回环 TCP。另有 42 项计分检查和 38 项核心检查通过，Unity 主程序集和 Editor 程序集编译通过。Unity Editor 多实例及跨机器局域网仍待验收。
 
-StartMatch创建权威MainMatchControl、MatchJournal及MatchSession，由会话管理当前AuthoritativeMatchMachine。正常变化走日志，重连走检查点；结算展示5秒后进入下一局，终局保留结果和排名。
+StartMatch 创建权威 MainMatchControl、MatchJournal 及 MatchSession。正常变化走日志，重连走检查点。结算发布满 10 秒自动补齐未确认席，四家提前确认时立即换局，终局保留结果和排名。重复确认同一局同一席不产生新日志。
 
-## 7. v5结算字段
+## 7. 结算字段
 
-裁定状态末尾增加`long NextRoundMilliseconds`，0表示无待换局期限。检查点在本人手牌之后增加可选公开结算；增量在本人手牌变化区之后增加Bool结果变化标记，仅变化时写可选结果。可选结果为Bool存在、存在时int字节长度及最多8192字节负载，完整消息仍按原通用机制分片。
+裁定状态末尾为 `long NextRoundMilliseconds` 与 `byte SettlementConfirmations`。前者是服务端自动确认的期限，0 表示当前无等待期限。确认位图低四位对应绝对座位 0–3，四家确认后为 15，开始新局后归零。检查点在本人手牌之后携带可选公开结算。增量在本人手牌变化区之后携带 Bool 结果变化标记，仅变化时写可选结果。可选结果为 Bool 存在、存在时 int 字节长度及最多 8192 字节负载，完整消息按通用机制分片。
 
 结算编码顺序为：Guid RoundId、int局代数；byte结束原因/和牌者位图/听牌位图/流满位图；各4个int的前点数、后点数、增减；两个int供托前后；Bool连庄、Bool终局；byte下局风/局/庄、int下局本场；4个byte排名座位；byte和牌/流满人数及明细；byte公开手牌人数及明细；有显式计数的里指示牌列表（最多5）。
 

@@ -250,6 +250,16 @@ namespace MaJiangLib
                     MatchCommandResult decision = Machine.Submit(actingPlayer.Seat, command);
                     connection.Send(RoomMessageType.MatchCommandResult, MatchCommandCodec.EncodeResult(decision));
                     return;
+                case RoomMessageType.ConfirmSettlement:
+                    Guid settlementMatch = reader.Guid(); Guid settlementRound = reader.Guid(); reader.Complete();
+                    RoomMember confirmingPlayer = null;
+                    if (matchCursors.TryGetValue(connection.Id, out MatchCursor confirmingCursor))
+                    {
+                        confirmingPlayer = Room.Snapshot().Members.FirstOrDefault(member => member.PlayerId == confirmingCursor.PlayerId && member.Connected);
+                    }
+                    result = confirmingPlayer != null && Session?.ConfirmSettlement(confirmingPlayer.Seat, settlementMatch, settlementRound) == true
+                        ? "Ok" : "NoActiveSettlement";
+                    break;
                 default:
                     throw new InvalidDataException("Message is not valid in the client-to-server direction.");
             }
@@ -547,6 +557,15 @@ namespace MaJiangLib
             return Send(RoomMessageType.SetReady, writer.ToArray());
         }
         public uint StartMatch() => Send(RoomMessageType.StartMatch, Array.Empty<byte>());
+        public uint ConfirmSettlement(Guid roundId)
+        {
+            VisibleMatchState view = Match.Current;
+            if (!IsMatchSynchronized || view?.RoundId != roundId || view.Settlement?.RoundId != roundId
+                || view.OperationStage != MatchOperationStage.RoundEnded) { return 0; }
+            using RoomPayloadWriter writer = new();
+            writer.Guid(view.MatchId); writer.Guid(roundId);
+            return Send(RoomMessageType.ConfirmSettlement, writer.ToArray());
+        }
         public uint RequestState() => Send(RoomMessageType.RequestState, Array.Empty<byte>());
         public uint SetMatchType(MatchType type)
         {

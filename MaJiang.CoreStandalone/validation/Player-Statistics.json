@@ -1,0 +1,32 @@
+{
+  "statisticsVersion": "1.0",
+  "unitChecksPassed": 13,
+  "source": "G:\\Documents\\Test\\batch-100-20261025-175727",
+  "output": "G:\\Documents\\Test\\batch-100-20261025-175727\\summary\\player-statistics",
+  "metricCount": 22,
+  "includedMatches": 100,
+  "playerRoundObservations": 6472,
+  "groups": 4,
+  "definitions": {
+    "include_abortive": true,
+    "draws": "exhaustive",
+    "tsumo_denominator": "wins",
+    "dama": "closed-nonriichi-wins",
+    "points": "base",
+    "ron_turn": "current"
+  },
+  "independentChecks": [
+    "prior winning-hand counts and intrinsic points",
+    "prior rank averages",
+    "successful riichi, first riichi and open-hand counts",
+    "riichi winning counts",
+    "per-curse match-to-round net score telescoping",
+    "all-player net points sum zero",
+    "efficiency formulas",
+    "CSV row counts",
+    "name selection",
+    "curse selection and alternative definitions",
+    "pooled model selection"
+  ],
+  "scriptSha256": "1ca0abd7244842b4e7462adc3cbad07500b08513ff6cb463999ddcbb0e7fdd3b"
+}

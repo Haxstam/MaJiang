@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "batchCreatedAtUtc": "2026-10-25T09:57:27.593569+00:00",
+  "batchFinishedAtUtc": "2026-10-25T10:30:48.635439+00:00",
+  "configuration": {
+    "count": 100,
+    "concurrency": 2,
+    "firstSeed": 1,
+    "python": "D:\\PycharmProjects\\Envirment1\\venv\\Scripts\\python.exe",
+    "modelDirectory": "G:\\Documents\\Codex\\2026-10-24\\qing-n\\outputs\\Mortal-S42",
+    "purpose": "experiment",
+    "device": "cuda",
+    "threadsPerModel": 2,
+    "roundLimit": 100,
+    "detailedAudit": true,
+    "kokushiRobClosedKanPolicy": "skip",
+    "matchTimeoutSeconds": 600,
+    "artifactSha256": {
+      "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.MortalConsole.dll": "e71c5779bb0d22389379062705afeacdfb3f1cf3710afdcd889bd6527ceb84c7",
+      "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.Core.dll": "b446b216f167d85eb67451bade1a9adc0d64b45c257b97a3950fb1bb032d61fc",
+      "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\examples\\MaJiang.MortalConsole\\bin\\Release\\net10.0\\MaJiang.Mortal.dll": "307c44b5e5bb508e9c3b9e045b45894f41fb206d62c4cb1fb40d189e076e0def",
+      "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\python\\mortal_bridge.py": "a9e311ec3a98d566dc4029ca2b789da2cc2b1a17974de0f3f58ec8fff3d2e8c2",
+      "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\python-native\\cp310-win_amd64\\libriichi.pyd": "0b8cd1049ce4f6bb0d5635b5cb84aa7d58ebb325cfedd3a1f3423b69c8d36f4d"
+    }
+  },
+  "analysis": {
+    "analysisStatus": "complete",
+    "generatedAtUtc": "2026-10-25T10:31:31.042494+00:00",
+    "batchDirectory": "G:\\Documents\\Test\\batch-100-20261025-175727",
+    "plannedMatches": 100,
+    "statusCounts": {
+      "pending": 0,
+      "running": 0,
+      "completed": 100,
+      "failed": 0,
+      "truncated": 0,
+      "interrupted": 0
+    },
+    "validatedCompletedMatches": 100,
+    "artifactConfigurations": 1,
+    "elapsedSeconds": 2001.019133,
+    "matchesPerHour": 179.908324744639,
+    "counts": {
+      "successfulFacts": 121271,
+      "auditEntries": 35747,
+      "rounds": 1618,
+      "modelDecisions": 71058
+    },
+    "roundOutcomes": {
+      "NineTerminals": 555,
+      "Ron": 579,
+      "Tsumo": 248,
+      "ExhaustiveDraw": 234,
+      "FourWinds": 2
+    },
+    "seatCurseCounts": [
+      {
+        "1": 25,
+        "2": 25,
+        "3": 25,
+        "4": 25
+      },
+      {
+        "2": 25,
+        "3": 25,
+        "4": 25,
+        "1": 25
+      },
+      {
+        "3": 25,
+        "4": 25,
+        "1": 25,
+        "2": 25
+      },
+      {
+        "4": 25,
+        "1": 25,
+        "2": 25,
+        "3": 25
+      }
+    ],
+    "curseResults": {
+      "1": {
+        "games": 100,
+        "rankCounts": [
+          21,
+          18,
+          28,
+          33
+        ],
+        "pointsSum": 2536100,
+        "winningRounds": 82,
+        "dealInRounds": 135,
+        "liveWallSwaps": 0,
+        "deadWallSwaps": 0,
+        "unavoidable": 0,
+        "firstPlaceRate": 0.21,
+        "averageRank": 2.73,
+        "averagePoints": 25361.0
+      },
+      "2": {
+        "games": 100,
+        "rankCounts": [
+          28,
+          18,
+          26,
+          28
+        ],
+        "pointsSum": 2311600,
+        "winningRounds": 220,
+        "dealInRounds": 163,
+        "liveWallSwaps": 207,
+        "deadWallSwaps": 5,
+        "unavoidable": 0,
+        "firstPlaceRate": 0.28,
+        "averageRank": 2.54,
+        "averagePoints": 23116.0
+      },
+      "3": {
+        "games": 100,
+        "rankCounts": [
+          32,
+          33,
+          16,
+          19
+        ],
+        "pointsSum": 2923100,
+        "winningRounds": 229,
+        "dealInRounds": 126,
+        "liveWallSwaps": 4252,
+        "deadWallSwaps": 89,
+        "unavoidable": 0,
+        "firstPlaceRate": 0.32,
+        "averageRank": 2.22,
+        "averagePoints": 29231.0
+      },
+      "4": {
+        "games": 100,
+        "rankCounts": [
+          19,
+          31,
+          30,
+          20
+        ],
+        "pointsSum": 2229200,
+        "winningRounds": 300,
+        "dealInRounds": 155,
+        "liveWallSwaps": 1614,
+        "deadWallSwaps": 16,
+        "unavoidable": 0,
+        "firstPlaceRate": 0.19,
+        "averageRank": 2.51,
+        "averagePoints": 22292.0
+      }
+    },
+    "peakGlobalGpuMiB": 3989,
+    "minimumAvailableRamMiB": 4938,
+    "recordingBytes": 115956172,
+    "interpretation": "Pilot sample; first-place rates describe this model under the recorded curse and skip policies."
+  }
+}

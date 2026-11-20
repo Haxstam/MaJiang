@@ -1,0 +1,27 @@
+{
+  "gracefulStop": {
+    "pending": 1,
+    "completed": 1
+  },
+  "systemTaskIndependentProbe": "completed after parent command exited",
+  "checkedAtUtc": "2026-10-25T11:39:38.4660298+00:00",
+  "purpose": "validation",
+  "resumed": {
+    "pending": 0,
+    "completed": 2,
+    "failed": 0
+  },
+  "validationDirectory": "G:\\Documents\\GitHub\\MaJiang\\MaJiang.CoreStandalone\\.utmp\\background-smoke-v2",
+  "unitChecksPassed": 5,
+  "automaticReports": [
+    {
+      "name": "player-statistics",
+      "exitCode": 0
+    },
+    {
+      "name": "batch-analysis",
+      "exitCode": 0
+    }
+  ],
+  "systemTaskExitCode": 0
+}

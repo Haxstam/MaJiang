@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-25",
+  "implementation": "four-curses-v1",
+  "checks": {
+    "domain": 18,
+    "actions_and_core": 41,
+    "scoring": 46,
+    "mortal_adapter": 19,
+    "curse_dealing": 26,
+    "total": 150
+  },
+  "build": { "errors": 0, "warnings": 0 },
+  "initial_deal_cases": 96,
+  "additional_curse_four_dealer_seeds": 16,
+  "hidden_replacement_priority": [
+    "uniform eligible remaining live-wall physical position",
+    "dead indicator positions 8,9,6,7,4,5,2,3,0,1, excluding exposed/frozen positions",
+    "hidden reserved tail in reverse position order",
+    "unused rinshan positions in reverse order"
+  ],
+  "validated": [
+    "fixed distinct assignment for a whole match",
+    "scattered hand first and kokushi allowed",
+    "all three draw restrictions including rinshan",
+    "exposed indicators and consumed positions protected",
+    "failure only after no hidden candidate remains",
+    "ura includes the separate ron winning tile and applies to non-winners",
+    "pure scoring remains side-effect free",
+    "red calls and bonus ron remain legal",
+    "full explicitly driven match inventory and point conservation",
+    "curse data absent from model protocol",
+    "seed identifiers do not repeat every 256 games"
+  ],
+  "large_scale_model_experiment_run": false,
+  "gpu_environment_changed_or_validated": false,
+  "normal_mode_model_validation": "Mortal-S42.json (historical pre-curse validation)",
+  "known_model_limit": "The existing model does not suggest kokushi rob-closed-kan. Such interrupted games are not completed samples and must not be silently discarded."
+}

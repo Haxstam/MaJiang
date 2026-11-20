@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static MaJiangLib.GlobalFunction;
 
-internal static class Program
+internal static partial class Program
 {
     private static int Main()
     {
@@ -30,7 +30,30 @@ internal static class Program
             ("Primitive lists preserve zero, negative and false values", PrimitiveListRoundTrip),
             ("Public-state round trip preserves four-player flags", PublicStateRoundTrip),
             ("Action validation checks concrete tiles without advancing state", ActionValidationIsPure),
-            ("Three standard hand families remain detectable", TenpaiFamilies)
+            ("Three standard hand families remain detectable", TenpaiFamilies),
+            ("Sorted presentation preserves red identity and source indices", SortedPresentation),
+            ("Chi uses the two ordered concealed tiles and hides kan", DisplayChi),
+            ("Pon puts own red five first and preserves called red", DisplayPon),
+            ("Open kan puts a claimed red on the upper card", DisplayOpenKan),
+            ("Added kan retains called red and prioritizes own red", DisplayAddedKan),
+            ("Closed kan uses top group, outer backs and upper red", DisplayClosedKan),
+            ("Claim directions are relative to each owner seat", DisplayDirections),
+            ("Normal discards pack edge to edge in six columns", RiverNormalPacking),
+            ("Riichi in every column expands only its row without gaps", RiverRiichiPacking),
+            ("Multiple sideways rows stay independent and empty rivers work", RiverIndependentRows),
+            ("Fixed hand strips keep drawn spacing and right-aligned melds", HandStripEdges),
+            ("Calling four with 234506 preserves five exact chi combinations", FiveExactChiChoices),
+            ("A full turn cycle preserves thirteen concealed tiles plus one private draw", PrivateDrawAndTurnCycle),
+            ("All dealer and observer seats preserve counterclockwise wind order", CounterclockwiseSeats),
+            ("Hover highlights only visible river and meld tiles, including red fives", HoverVisibility),
+            ("Turn lights retain discard response and stop at round end", TurnLightStages),
+            ("Changing the controlled hand preserves fixed public seats", FixedPublicSeats),
+            ("Tenpai rows use guaranteed ron han and the chosen riichi declaration", TenpaiRonHan),
+            ("Discard forecasts recalculate discard furiten and retain missed-win flags", TenpaiDiscardFuriten),
+            ("Tenpai remaining counts deduplicate melds and their source rivers", TenpaiRemainingTiles),
+            ("Riichi declaration menus expose only wait-producing discard faces", TenpaiRiichiChoices),
+            ("Dora sweeps use face-up red tiles and visible indicator successors", DoraSweepTiles),
+            ("Discard frames follow the live response tile and ignore skip-only menus", DiscardFrames)
         };
         int failures = 0;
         foreach (var check in checks)
@@ -48,6 +71,20 @@ internal static class Program
         }
         Console.WriteLine($"{checks.Length - failures}/{checks.Length} core checks passed.");
         return failures == 0 ? 0 : 1;
+    }
+
+    private static void SortedPresentation()
+    {
+        List<Tile> tiles = "7z 3s 0p 1w 5p 1w 2z".Split(' ').Select(value => Tile.BytesTo(value)).ToList();
+        Tile[] original = tiles.ToArray();
+        int[] indices = MaJiang.Presentation.MahjongHandOrder.SortedIndices(tiles);
+        if (!indices.SequenceEqual(new[] { 3, 5, 4, 2, 1, 6, 0 })) { throw new InvalidOperationException("Unexpected suit, red or duplicate ordering."); }
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            if (!ReferenceEquals(tiles[i], original[i])) { throw new InvalidOperationException("Sorting mutated the received hand."); }
+        }
+        if (!tiles[indices[3]].IsRedDora || tiles[indices[2]].IsRedDora) { throw new InvalidOperationException("Red and ordinary five click identity lost."); }
+        if (MaJiang.Presentation.MahjongHandOrder.SortedIndices(Array.Empty<Tile>()).Length != 0) { throw new InvalidOperationException("Empty hand failed."); }
     }
 
     private static MainMatchControl NewMatch(bool redDora = true)

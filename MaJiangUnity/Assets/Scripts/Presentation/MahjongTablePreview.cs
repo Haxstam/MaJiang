@@ -1,3 +1,4 @@
+using TMPro;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,10 +27,10 @@ namespace MaJiang.Presentation
         {
             Wire();
             InitializePreview();
-            View.RoomButton.GetComponentInChildren<UnityEngine.UI.Text>().text = "四座调试";
-            foreach (UnityEngine.UI.Text text in View.GetComponentsInChildren<UnityEngine.UI.Text>(true))
+            View.RoomButton.GetComponentInChildren<TMP_Text>().text = "四座调试";
+            foreach (TMP_Text text in View.GetComponentsInChildren<TMP_Text>(true))
             {
-                if (text.name == "Footer Preview Mode") { text.text = "演示牌局 · F1 或右上角“四座调试”进入调试"; }
+                if (text.name == "底部模式说明") { text.text = "演示牌局 · F1 或右上角“四座调试”进入调试"; }
             }
         }
 
@@ -60,7 +61,7 @@ namespace MaJiang.Presentation
                 actionHandlers[index] = () => OnAction(action);
                 View.Actions[index].onClick.AddListener(actionHandlers[index]);
             }
-            View.ResetButton.onClick.AddListener(InitializePreview);
+            if (View.ResetButton != null) { View.ResetButton.onClick.AddListener(InitializePreview); }
             View.RoomButton.onClick.AddListener(StartDebug);
             View.ModalClose.onClick.AddListener(CloseModal);
             View.ModalReset.onClick.AddListener(InitializePreview);
@@ -76,7 +77,7 @@ namespace MaJiang.Presentation
             {
                 View.Actions[index].onClick.RemoveListener(actionHandlers[index]);
             }
-            View.ResetButton.onClick.RemoveListener(InitializePreview);
+            if (View.ResetButton != null) { View.ResetButton.onClick.RemoveListener(InitializePreview); }
             View.RoomButton.onClick.RemoveListener(StartDebug);
             View.ModalClose.onClick.RemoveListener(CloseModal);
             View.ModalReset.onClick.RemoveListener(InitializePreview);
@@ -96,14 +97,16 @@ namespace MaJiang.Presentation
         private void OnTile(MahjongTileWidget widget)
         {
             if (machine.Stage == MatchOperationStage.RoundEnded) { return; }
-            if (selected != widget.HandIndex)
+            var actions = machine.GetActions(0);
+            PlayerActionData action = actions.FirstOrDefault(choice => widget.MatchesDiscard(choice, riichiSelection));
+            if (action == null) { return; }
+            if (selected == widget.HandIndex)
             {
-                selected = widget.HandIndex; View.SetSelected(selected); return;
+                Execute(action);
+                return;
             }
-            PlayerAction type = riichiSelection ? PlayerAction.Riichi : widget.Drawn ? PlayerAction.TakeCut : PlayerAction.HandCut;
-            PlayerActionData action = machine.GetActions(0).FirstOrDefault(choice => choice.PlayerAction == type && Tile.ExactlyEquals(choice.TargetTile, widget.Tile));
-            if (action == null) { View.Hint.text = riichiSelection ? "这张牌不能作为立直宣言牌" : "当前阶段不能打出这张牌"; return; }
-            Execute(action);
+            selected = widget.HandIndex;
+            View.UpdateDiscardSelection(journal.GetSnapshot(0), selected, actions, riichiSelection);
         }
 
         private void OnAction(int index)
@@ -112,23 +115,33 @@ namespace MaJiang.Presentation
             if (index == 0)
             {
                 riichiSelection = !riichiSelection;
-                View.Hint.text = riichiSelection ? "请选择立直宣言牌，再次点击确认" : "选中后再次点击出牌";
+                selected = -1;
+                View.UpdateDiscardSelection(journal.GetSnapshot(0), selected, actions, riichiSelection);
+                if (View.Hint != null) { View.Hint.text = riichiSelection ? "请选择立直宣言牌，再次点击确认" : "选中后再次点击出牌"; }
                 return;
+            }
+            if (View.ChoicePanel != null && (index == 1 || index == 2 || index == 3))
+            {
+                PlayerAction[] types = index == 1 ? new[] { PlayerAction.Chi } : index == 2 ? new[] { PlayerAction.Peng }
+                    : new[] { PlayerAction.ClosedKan, PlayerAction.AddedKan, PlayerAction.OpenKan };
+                PlayerActionData[] choices = actions.Where(choice => types.Contains(choice.PlayerAction)).ToArray();
+                if (choices.Length > 1) { View.ShowChoices(choices, Execute); return; }
             }
             PlayerActionData action = index switch
             {
+                6 => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Draw),
                 1 => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Chi),
                 2 => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Peng),
                 3 => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.ClosedKan || choice.PlayerAction == PlayerAction.AddedKan || choice.PlayerAction == PlayerAction.OpenKan),
                 4 => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Tsumo || choice.PlayerAction == PlayerAction.Ron),
-                _ => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Skip || choice.PlayerAction == PlayerAction.TakeCut)
-                    ?? actions.Where(choice => choice.PlayerAction == PlayerAction.HandCut).OrderBy(choice => choice.TargetTile).LastOrDefault()
+                _ => actions.FirstOrDefault(choice => choice.PlayerAction == PlayerAction.Skip)
             };
             if (action != null) { Execute(action); }
         }
 
         private void Execute(PlayerActionData action)
         {
+            View.HideChoices();
             if (action.PlayerAction == PlayerAction.Riichi) { riichiDiscards[0] = core.DiscardTileList[0].Count; }
             Submit(action); riichiSelection = false; selected = -1;
             AdvanceOpponents();
@@ -181,13 +194,13 @@ namespace MaJiang.Presentation
 
         private void Refresh(string hint)
         {
-            View.Render(journal.GetSnapshot(0), riichiDiscards, selected, hint);
             var choices = machine.GetActions(0);
+            View.Render(journal.GetSnapshot(0), riichiDiscards, selected, hint, choices, riichiSelection);
             bool Has(params PlayerAction[] types) => choices.Any(choice => types.Contains(choice.PlayerAction));
             bool[] enabled = { Has(PlayerAction.Riichi), Has(PlayerAction.Chi), Has(PlayerAction.Peng),
                 Has(PlayerAction.ClosedKan, PlayerAction.OpenKan, PlayerAction.AddedKan), Has(PlayerAction.Tsumo, PlayerAction.Ron),
-                Has(PlayerAction.TakeCut, PlayerAction.Skip, PlayerAction.HandCut) };
-            View.SetActions(new[] { "立 直", "吃", "碰", "杠", Has(PlayerAction.Ron) ? "荣 和" : "自 摸", Has(PlayerAction.Skip) ? "跳 过" : "摸 切" }, enabled);
+                Has(PlayerAction.Skip) };
+            View.SetActions(new[] { "立 直", "吃", "碰", "杠", Has(PlayerAction.Ron) ? "荣 和" : "自 摸", "跳 过" }, enabled);
         }
 
         /// <summary>从136张实体牌分配可见牌、其他人暗手、王牌和25张牌山，预览不泄露对手暗手。</summary>

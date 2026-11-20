@@ -9,6 +9,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongHandOrder.cs" Link="MahjongHandOrder.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongMeldPresentation.cs" Link="MahjongMeldPresentation.cs" />
+    <Compile Include="MeldPresentationChecks.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongRiverPacking.cs" Link="MahjongRiverPacking.cs" />
+    <Compile Include="RiverPackingChecks.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongHandStripMetrics.cs" Link="MahjongHandStripMetrics.cs" />
+    <Compile Include="SquareUiChecks.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongTableEffects.cs" Link="MahjongTableEffects.cs" />
+    <Compile Include="../../MaJiangUnity/Assets/Scripts/Presentation/MahjongSeatOrder.cs" Link="MahjongSeatOrder.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../MaJiang.NetworkRuntime/MaJiang.NetworkRuntime.csproj" />

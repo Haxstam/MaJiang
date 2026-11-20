@@ -148,7 +148,7 @@ internal static partial class Program
             await Until(() => offline.Match.Current.Settlement != null, fixture.Pump);
             Guid oldRound = offline.Match.Current.RoundId;
             await offline.CloseAsync(); await Until(() => fixture.Server.ConnectionCount == 3, fixture.Pump);
-            now = 5000; fixture.Pump();
+            now = 10000; fixture.Pump();
             await Until(() => fixture.Server.Match.RoundGeneration == 2, fixture.Pump);
             await offline.ConnectAsync(IPAddress.Loopback, fixture.Server.Port, "new round return");
             await Until(() => offline.IsMatchSynchronized && offline.Match.Current.RoundGeneration == 2, fixture.Pump);

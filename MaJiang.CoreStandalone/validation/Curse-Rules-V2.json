@@ -1,0 +1,22 @@
+{
+  "versions": {
+    "v1": "Original starting hands; default and legacy constructor preserved",
+    "v2": "Curse 3 starts with 13 distinct faces; subsequent draw filtering unchanged"
+  },
+  "legacyInitialFingerprint": "3AA9162B3F80B8CCB04D32BB68DDD24678F1D228090F4DF30AAA4C78ACE8D7D3",
+  "legacyFingerprintCases": 16,
+  "v2InitialCases": 96,
+  "v2DealerCases": 12,
+  "dotnetChecksPassed": 159,
+  "pythonChecksPassed": 19,
+  "oldCompletedMatchesReadAsV1": 570,
+  "oldMetricGroupsUnchanged": 4,
+  "frozenRuntimeFilesUnchanged": 20,
+  "newExperimentStarted": false,
+  "notes": [
+    "Red and normal five merge to one face",
+    "V2 remains private to the host, not model input",
+    "V2 may only acquire concealed duplicates through unavoidable curse failure; otherwise no tsumo/pon/kan",
+    "New batches must explicitly select v2; old records are not relabeled"
+  ]
+}
